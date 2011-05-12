@@ -1,6 +1,6 @@
 //A simple build file using the tests directory for requirejs
 ({
-    baseUrl: "../../tests/plugins/",
+    baseUrl: "../../../requirejs/tests/plugins/",
     optimize: "none",
     name: "earth",
     include: ["prime/earth"],

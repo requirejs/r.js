@@ -1,6 +1,6 @@
 //A simple build file using the tests directory for requirejs
 ({
-    baseUrl: "../../tests",
+    baseUrl: "../../../requirejs/tests",
     optimize: "none",
     //optimize: "uglify",
     dir: "builds/simple",

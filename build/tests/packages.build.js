@@ -1,5 +1,5 @@
 ({
-    baseUrl: "../../tests/packages/",
+    baseUrl: "../../../requirejs/tests/packages/",
     dir: "builds/packages",
     optimize: "none",
 

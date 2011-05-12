@@ -1,6 +1,6 @@
 //A simple build file using the tests directory for requirejs
 {
-    baseUrl: "../../tests/exports",
+    baseUrl: "../../../requirejs/tests/exports",
     inlineText: false,
     dir: "builds/exports",
     optimize: "none",

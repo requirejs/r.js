@@ -14,6 +14,7 @@
 /*global readFile: true, process: false, Packages: false, require: true
   print: false, console: false */
 
+var require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, exec, rhinoContext, dir, nodeRequire,
@@ -83,8 +84,8 @@
     if (env === 'rhino') {
         //INSERT build/jslib/rhino.js
     } else if (env === 'node') {
-        require = this.require;
-        define = this.define;
+        this.require = require;
+        this.define = define;
 
         //INSERT build/jslib/node.js
     }

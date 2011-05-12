@@ -1,6 +1,6 @@
 //A simple build file using the tests directory for requirejs
 {
-    appDir: "../../",
+    appDir: "../../../requirejs",
     baseUrl: "tests/i18n",
     inlineText: false,
     dir: "builds/i18n",

@@ -1,6 +1,6 @@
 //A simple build file using the circular tests for requirejs
 ({
-    baseUrl: "../../tests",
+    baseUrl: "../../../requirejs/tests",
     optimize: "none",
     dir: "builds/circular",
 
