@@ -20,45 +20,56 @@ var fs = require('fs'),
     child_process = require('child_process'),
     contents = fs.readFileSync('build/jslib/x.js', 'utf8'),
     loadRegExp = /\/\/INSERT ([\w\/\.]+)/g,
+    moduleNameRegExp = /build\/jslib\/([\w\/\-]+)\.js$/,
+    defRegExp = /define\s*\(/,
     envs = ['node', 'rhino'],
     //Update this list of files by running the optimizer against
-    //build/jslib/opto.build.js
+    //build/jslib/opto.build.js,
+    //but then remove any jslib/node entries and make sure there is
+    //an env! entry for each one of them.
     optimizerFiles = [
         'build/jslib/env.js',
         'env!env/args',
-        'build/jslib/node/args.js',
+        'env!env/load',
+        'env!env/file',
         'build/jslib/lang.js',
         'env!env/print',
-        'build/jslib/node/print.js',
         'build/jslib/logger.js',
         'build/jslib/blank.js',
         'build/jslib/blank.js',
-        'build/jslib/node/file.js',
-        'build/jslib/uglifyjs/./parse-js.js',
-        'build/jslib/uglifyjs/././squeeze-more.js',
-        'build/jslib/uglifyjs/./process.js',
+        'build/jslib/uglifyjs/parse-js.js',
+        'build/jslib/uglifyjs/squeeze-more.js',
+        'build/jslib/uglifyjs/process.js',
         'build/jslib/uglifyjs/index.js',
         'build/jslib/parse.js',
         'env!env/optimize',
-        'build/jslib/node/optimize.js',
         'build/jslib/optimize.js',
         'build/jslib/pragma.js',
-        'build/jslib/node/load.js',
         'build/jslib/requirePatch.js',
         'build/jslib/build.js'
     ],
     optoText = '';
+
+function readAndNameModule(fileName) {
+    var contents = fs.readFileSync(fileName, 'utf8'),
+        moduleName = moduleNameRegExp.exec(fileName)[1];
+
+    //Insert the module name.
+    return contents.replace(defRegExp, function (match) {
+        return match + "'" + moduleName + "', ";
+    });
+}
 
 //Load up all the optimizer files.
 optimizerFiles.forEach(function (fileName) {
     if (fileName.indexOf('env!') === 0) {
         envs.forEach(function (env) {
             optoText += "\nif(env === '" + env + "') {\n" +
-                        fs.readFileSync(fileName.replace(/env!env/, 'build/jslib/' + env + '/') + '.js', 'utf8') +
+                        readAndNameModule(fileName.replace(/env!env\//, 'build/jslib/' + env + '/') + '.js') +
                         "\n}\n";
         });
     } else {
-        optoText += fs.readFileSync(fileName, 'utf8');
+        optoText += readAndNameModule(fileName, 'utf8');
     }
 });
 
@@ -67,7 +78,11 @@ contents = contents.replace(loadRegExp, function (match, fileName) {
     if (fileName === 'OPTIMIZER') {
         return optoText;
     } else {
-        return fs.readFileSync(fileName, 'utf8');
+        var text = fs.readFileSync(fileName, 'utf8');
+        if (fileName.indexOf('require.js') !== -1) {
+            text = text.replace(/var require\, define\;/, '');
+        }
+        return text;
     }
 });
 

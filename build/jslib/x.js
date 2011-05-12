@@ -14,10 +14,9 @@
 /*global readFile: true, process: false, Packages: false, require: true
   print: false, console: false */
 
-var require, define;
 (function (console, args, readFileFunc) {
 
-    var fileName, env, fs, vm, exec, rhinoContext, dir,
+    var fileName, env, fs, vm, exec, rhinoContext, dir, nodeRequire,
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         showHelp = false;
@@ -58,8 +57,8 @@ var require, define;
         //gets replaced. Used in require/node.js
         fs = require('fs');
         vm = require('vm');
-        this.nodeRequire = require;
-        require = null;
+        nodeRequire = require;
+        require = undefined;
 
         readFile = function (path) {
             return fs.readFileSync(path, 'utf8');
