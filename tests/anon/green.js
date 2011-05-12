@@ -1,3 +1,0 @@
-require.def({
-    name: "green"
-});

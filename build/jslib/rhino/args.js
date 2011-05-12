@@ -12,5 +12,10 @@ var jsLibRhinoArgs = [].concat(Array.prototype.slice.call(arguments, 0));
 define(function () {
     var args = jsLibRhinoArgs;
 
+    //Ignore any command option used for rq.js
+    if (args[0] && args[0].indexOf('-' === 0)) {
+        args = args.slice(1);
+    }
+
     return args;
 });

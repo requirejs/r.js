@@ -1,17 +1,33 @@
-# RequireJS
+# opto
 
-RequireJS loads plain JavaScript files as well as more defined modules. It is optimized for in-browser use, including in [a Web Worker](requirejs/tree/master/docs/api.md#webworker), but it can be used in other JavaScript environments, like Rhino and [Node](requirejs/tree/master/docs/node.md). It implements the [Asynchronous Module](http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition) API.
+An JavaScript script optimizer that understands the
+[Asychronous Module Defintion API (AMD)](http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition)
+for declaring and using JavaScript modules and regular JavaScript script files.
 
-RequireJS uses plain script tags to load modules/files, so it should allow for easy debugging. It can be used [simply to load existing JavaScript files](requirejs/tree/master/docs/api.md#jsfiles), so you can add it to your existing project without having to re-write your JavaScript files.
+It is part of the [RequireJS project](http://requirejs.org), and works will with the RequireJS implementation of AMD.
 
-RequireJS includes [an optimization tool](requirejs/tree/master/docs/optimization.md) you can run as part of your packaging steps for deploying your code. The optimization tool can combine and minify your JavaScript files to allow for better performance.
+The opto project also generates the r.js adapter
+## What makes it special
 
-If the JavaScript file defines a JavaScript module via [define()](requirejs/tree/master/docs/api.md#define), then there are other benefits RequireJS can offer: [better CommonJS support](requirejs/tree/master/docs/commonjs.md) and [loading multiple versions](requirejs/tree/master/docs/api.md#multiversion) of a module in a page. RequireJS also has a plugin system that supports features like [i18n string bundles](requirejs/tree/master/docs/api.md#i18n), and [text file dependencies](requirejs/tree/master/docs/api.md#text).
+opto is better than using a plain concatenation script  because it runs require.js as part of the optimization, so it knows how to:
 
-RequireJS does not have any dependencies on a JavaScript framework. It is dual-licensed -- new BSD or MIT.
+* Use [Loader Plugins](http://requirejs.org/docs/plugins.html) to load non-script dependencies and inline them in built files.
+* [Name anonymous modules](http://requirejs.org/docs/api.html#modulename). If your optimization step does not do this, and you use
+anonymous modules, you will get errors running that built code.
 
-The standard require.js file is around 5KB when minified via Closure Compiler and gzipped.
+## What makes it awesome
 
-RequireJS works in IE 6+, Firefox 2+, Safari 3.2+, Chrome 3+, and Opera 10+.
+* It is just one JS file and runs on Node.
+* The same file runs on Rhino with the proper JAR files.
 
-Latest Release: [0.24.0](http://requirejs.org/docs/download.html)
+## Latest release
+
+(Coming soon) For the latest release for opto.js or r.js, see [the Download page on the RequireJS site](http://requirejs.org/docs/download.html).
+
+## Documentation
+
+(Coming soon) See the [optimization area](http://requirejs.org/docs/download.html) on the RequireJS site.
+
+## Directory layout
+
+* **adapt**: Contains the

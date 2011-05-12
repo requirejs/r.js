@@ -18,25 +18,22 @@ var require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, exec, rhinoContext, dir,
-        requireBuildPath = '',
         jsSuffixRegExp = /\.js$/,
-        //This flag is turned to false by the distribution script,
-        //because a requireBuildPath is not needed since the scripts
-        //are inlined in this script.
-        useRequireBuildPath = true,
-        //This flag is turned to true if the distribution script built this
-        //file as opto.js. Needed to update path args correctly in build.js
-        isOpto = false,
-        argOffset = useRequireBuildPath ? 0 : 1,
+        commandOption = '',
+        showHelp = false;
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     if (typeof Packages !== 'undefined') {
         env = 'rhino';
 
-        if (useRequireBuildPath) {
-            requireBuildPath = args[0];
+        fileName = args[0];
+
+        if (!fileName) {
+            showHelp = true;
+        } else if (fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = args[1];
         }
-        fileName = args[1 - argOffset];
 
         //Set up execution context.
         rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
@@ -72,38 +69,25 @@ var require, define;
             return vm.runInThisContext(string, name);
         };
 
-        if (useRequireBuildPath) {
-            requireBuildPath = process.argv[2];
+        fileName = process.argv[2];
+
+        if (!fileName) {
+            showHelp = true;
+        } else if (fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = process.argv[3];
         }
-
-        fileName = process.argv[3 - argOffset];
     }
 
-    //Make sure build path ends in a slash.
-    requireBuildPath = requireBuildPath.replace(/\\/g, '/');
-    if (requireBuildPath.charAt(requireBuildPath.length - 1) !== "/") {
-        requireBuildPath += "/";
-    }
+    //INSERT require.js
 
-    //Actual base directory is up one directory from this script.
-    requireBuildPath += '../';
-
-    exec(readFile(requireBuildPath + 'require.js'), 'require.js');
-
-    //These are written out long-form so that they can be replaced by
-    //the distribution script.
     if (env === 'rhino') {
-        exec(readFile(requireBuildPath + 'adapt/rhino.js'), 'rhino.js');
+        //INSERT build/jslib/rhino.js
     } else if (env === 'node') {
         require = this.require;
         define = this.define;
-        exec(readFile(requireBuildPath + 'adapt/node.js'), 'node.js');
-    }
 
-    if (useRequireBuildPath) {
-        exec("require({" +
-            "baseUrl: '" + requireBuildPath + "build/jslib/'" +
-        "})", 'bootstrap');
+        //INSERT build/jslib/node.js
     }
 
     //Support a default file name to execute. Useful for hosted envs
@@ -113,7 +97,15 @@ var require, define;
         fileName = 'main.js';
     }
 
-    if (!useRequireBuildPath) {
+    if (showHelp) {
+        console.log('See https://github.com/jrburke/r.js for usage.');
+    } else if (commandOption === 'o') {
+        //Do the optimizer work.
+
+        //INSERT OPTIMIZER
+    } else {
+        //Just run an app
+
         //Use the file name's directory as the baseUrl if available.
         dir = fileName.replace(/\\/g, '/');
         if (dir.indexOf('/') !== -1) {
@@ -122,9 +114,9 @@ var require, define;
             dir = dir.join('/');
             exec("require({baseUrl: '" + dir + "'});");
         }
-    }
 
-    exec(readFile(fileName), fileName);
+        exec(readFile(fileName), fileName);
+    }
 
 }((typeof console !== 'undefined' ? console : undefined),
   (typeof Packages !== 'undefined' ? arguments : []),

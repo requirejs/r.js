@@ -1,82 +1,49 @@
-//PS3 does not have a usable Function.prototype.toString,
-//so avoid those tests.
-var hasToString = (function () {
-    var test = 'hello world';
-}).toString().indexOf('hello world') !== -1;
+/**
+ * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
 
-doh.registerUrl("simple", "../simple.html");
+/**
+ * BUILD r.js IN THIS DIRECTORY FIRST BEFORE RUNNING THIS FILE
+ *
+ * To run in Node:
+ * node ../r.js all.js
+ *
+ * To run in Rhino:
+ * java -jar ../../build/lib/rhino/js.jar ../r.js all.js
+ * Debug:
+ * java -classpath ../../build/lib/rhino/js.jar org.mozilla.javascript.tools.debugger.Main ../r.js all.js
+ */
 
-//PS3 does not like this test
-doh.registerUrl("baseUrl", "../baseUrl.html");
+/*jslint strict: false */
+/*global require: false, doh: false */
 
-doh.registerUrl("config", "../config.html");
-doh.registerUrl("dataMain", "../dataMain.html");
+//Special global flag used by DOH.
+skipDohSetup = true;
 
-if (hasToString) {
-    doh.registerUrl("anonSimple", "../anon/anonSimple.html");
-    doh.registerUrl("packages", "../packages/packages.html");
-}
+require({
+    paths: {
+        env: '../build/jslib/env'
+    }
+}, [
+    'alpha',
+    'beta',
+    'doh/runner',
+    'env!doh/_{env}Runner'
+], function (alpha, beta) {
 
-doh.registerUrl("simple-nohead", "../simple-nohead.html");
+    doh.register('rjsTests',
+        [
+            function rjsTests(t) {
+                t.is('alpha', alpha.name);
+                t.is('beta', beta.name);
+                t.is('betaSubName', beta.subName);
+            }
+        ]
+    );
+    doh.run();
 
-//Only do the base test if the urls work out.
-if (location.href.indexOf('http://127.0.0.1/requirejs/') === 0) {
-    doh.registerUrl("simple-badbase", "../simple-badbase.html");
-}
-
-
-doh.registerUrl("circular", "../circular.html");
-doh.registerUrl("depoverlap", "../depoverlap.html");
-doh.registerUrl("urlfetch", "../urlfetch/urlfetch.html");
-doh.registerUrl("uniques", "../uniques/uniques.html");
-doh.registerUrl("multiversion", "../multiversion.html", 10000);
-doh.registerUrl("jquery", "../jquery/jquery.html");
-doh.registerUrl("jqueryPriority", "../jquery/jqueryPriority.html");
-doh.registerUrl("jqueryVersion", "../jquery/jqueryVersion.html");
-doh.registerUrl("jqueryVersion2", "../jquery/jqueryVersion2.html");
-
-//Next three tests fail in PS3
-doh.registerUrl("jqueryDynamic", "../jquery/jqueryDynamic.html");
-doh.registerUrl("jqueryDynamic2", "../jquery/jqueryDynamic2.html");
-doh.registerUrl("i18nlocaleunknown", "../i18n/i18n.html?bundle=i18n!nls/fr-fr/colors");
-
-doh.registerUrl("i18n", "../i18n/i18n.html");
-//Fail in PS3
-doh.registerUrl("i18nlocale", "../i18n/i18n.html?locale=en-us-surfer");
-//Fail in PS3
-doh.registerUrl("i18nbundle", "../i18n/i18n.html?bundle=i18n!nls/en-us-surfer/colors");
-
-//Probably fail in PS3
-doh.registerUrl("i18ncommon", "../i18n/common.html");
-doh.registerUrl("i18ncommonlocale", "../i18n/common.html?locale=en-us-surfer");
-
-
-doh.registerUrl("paths", "../paths/paths.html");
-
-doh.registerUrl("layers", "../layers/layers.html", 10000);
-doh.registerUrl("allplugins-text", "../layers/allplugins-text.html");
-
-doh.registerUrl("afterload", "../afterload.html", 10000);
-
-doh.registerUrl("pluginsSync", "../plugins/sync.html");
-doh.registerUrl("doublePluginCall", "../plugins/double.html");
-doh.registerUrl("pluginsFromText", "../plugins/fromText/fromText.html");
-doh.registerUrl("text", "../text/text.html");
-doh.registerUrl("textOnly", "../text/textOnly.html");
-doh.registerUrl("jsonp", "../jsonp/jsonp.html");
-doh.registerUrl("order", "../order/order.html");
-
-doh.registerUrl("relative", "../relative/relative.html");
-
-//Hmm, PS3 does not like exports test? assign2 is undefined?
-doh.registerUrl("exports", "../exports/exports.html");
-
-
-doh.registerUrl("priority", "../priority/priority.html");
-doh.registerUrl("priorityOptimized", "../priority/priorityOptimized.html");
-doh.registerUrl("priorityWithDeps", "../priority/priorityWithDeps/priorityWithDeps.html");
-doh.registerUrl("prioritySingleCall", "../priority/prioritySingleCall.html");
-
-if (typeof Worker !== "undefined") {
-    doh.registerUrl("workers", "../workers.html");
-}
+    //Print out the test summary.
+    doh.run();
+});
