@@ -1,0 +1,6 @@
+* Include version number for r.js
+* Make sure -o option works
+* Update README.md, build process, how to use with Java.
+* Make sure Java works.
+* Update any requirejs docs.
+* Remove from the requirejs docs.
