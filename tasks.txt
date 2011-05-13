@@ -1,4 +1,3 @@
 * Update any requirejs docs.
 * Remove from the requirejs docs.
-* Update UglifyJS
 * allow for npm install
