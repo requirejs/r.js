@@ -46,13 +46,15 @@ var fs = require('fs'),
         'build/jslib/optimize.js',
         'build/jslib/pragma.js',
         'build/jslib/requirePatch.js',
-        'build/jslib/build.js'
+        'build/jslib/build.js',
+        'build/build.js'
     ],
     optoText = '';
 
 function readAndNameModule(fileName) {
     var contents = fs.readFileSync(fileName, 'utf8'),
-        moduleName = moduleNameRegExp.exec(fileName)[1];
+        match = moduleNameRegExp.exec(fileName),
+        moduleName = (match && match[1]) || fileName;
 
     //Insert the module name.
     return contents.replace(defRegExp, function (match) {

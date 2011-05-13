@@ -1,4 +1,4 @@
-define(function(require, exports, module) {
+define(["require", "exports", "module", "./parse-js", "./squeeze-more"], function(require, exports, module) {
 
 /***********************************************************************
 

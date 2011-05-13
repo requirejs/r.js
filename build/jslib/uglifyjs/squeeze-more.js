@@ -1,4 +1,4 @@
-define(function(require, exports, module) {
+define(["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 
 var jsp = require("./parse-js"),
     pro = require("./process"),

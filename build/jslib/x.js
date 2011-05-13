@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.30.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -18,9 +18,13 @@ var require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, exec, rhinoContext, dir, nodeRequire,
+        version = '0.30.0',
         jsSuffixRegExp = /\.js$/,
+        //Indicates so build/build.js that the modules for the optimizer
+        //are built-in.
+        isRjs = true,
         commandOption = '',
-        showHelp = false;
+        showHelp = false,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     if (typeof Packages !== 'undefined') {
@@ -103,6 +107,12 @@ var require, define;
         //Do the optimizer work.
 
         //INSERT OPTIMIZER
+
+        //END OPTIMIZER
+
+        exec(readFile(fileName), fileName);
+    } else if (commandOption === 'v') {
+        console.log('Version: ' + version);
     } else {
         //Just run an app
 

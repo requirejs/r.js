@@ -26,15 +26,15 @@ require({
 function (args,            build) {
     var buildArgs = args, rjsBuildDir;
 
-    if (typeof isOpto !== 'undefined' && isOpto) {
+    if (typeof isRjs !== 'undefined' && isRjs) {
         //Shift on a base path used to find optimizer modules. However,
-        //since this case is for opto.js that has them built in, just
+        //since this case is for r.js that has them built in, just
         //use some arbitrary path.
         buildArgs.unshift('.');
     } else {
-        //This is call was done via opto.js,
-        //so take off the first argument since it is for
-        //are a path inside requirejs for use by the bootstrap.
+        //This is call was done in a script that does not include the built
+        //modules so take off the first argument since it is for
+        //are a path inside r.js for use by the bootstrap.
         buildArgs = buildArgs.slice(1);
         rjsBuildDir = buildArgs[0].replace(/\\/g, '/');
 

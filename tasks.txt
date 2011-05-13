@@ -1,6 +1,7 @@
-* Include version number for r.js
-* Make sure -o option works
-* Update README.md, build process, how to use with Java.
+* Update README.md, directory structure, build process, how to use with Java,
+  how to use -o and -v options.
+* Document release process.
 * Make sure Java works.
 * Update any requirejs docs.
 * Remove from the requirejs docs.
+* Update UglifyJS
