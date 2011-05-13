@@ -1,6 +1,4 @@
-* Update README.md, directory structure, build process, how to use with Java,
-  how to use -o and -v options.
-* Document release process.
 * Update any requirejs docs.
 * Remove from the requirejs docs.
 * Update UglifyJS
+* allow for npm install
