@@ -7,7 +7,7 @@
 /*jslint strict: false */
 /*global define: false, process: false */
 
-var jsLibRhinoArgs = [].concat(Array.prototype.slice.call(arguments, 0));
+var jsLibRhinoArgs = (typeof rhinoArgs !== 'undefined' && rhinoArgs) || [].concat(Array.prototype.slice.call(arguments, 0));
 
 define(function () {
     var args = jsLibRhinoArgs;

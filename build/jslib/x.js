@@ -25,6 +25,7 @@ var require, define;
         isRjs = true,
         commandOption = '',
         showHelp = false,
+        rhinoArgs = args,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     if (typeof Packages !== 'undefined') {
@@ -112,7 +113,7 @@ var require, define;
 
         exec(readFile(fileName), fileName);
     } else if (commandOption === 'v') {
-        console.log('Version: ' + version);
+        console.log('r.js: ' + version + ', RequireJS: ' + require.version);
     } else {
         //Just run an app
 
@@ -129,5 +130,5 @@ var require, define;
     }
 
 }((typeof console !== 'undefined' ? console : undefined),
-  (typeof Packages !== 'undefined' ? arguments : []),
+  (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
   (typeof readFile !== 'undefined' ? readFile : undefined)));
