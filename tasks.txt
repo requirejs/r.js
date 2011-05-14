@@ -1,1 +1,2 @@
+* Make sure it runs for no.de services, default file, if not there, then show help.
 * allow for npm install

@@ -97,8 +97,8 @@ var require, define;
 
     //Support a default file name to execute. Useful for hosted envs
     //like Joyent where it defaults to a server.js as the only executed
-    //script.
-    if (!fileName || !jsSuffixRegExp.test(fileName)) {
+    //script. But only do it if this is not an optimization run.
+    if (commandOption !== 'o' && (!fileName || !jsSuffixRegExp.test(fileName))) {
         fileName = 'main.js';
     }
 
@@ -111,7 +111,11 @@ var require, define;
 
         //END OPTIMIZER
 
-        exec(readFile(fileName), fileName);
+        //If fileName does not a command line arg to
+        //the build, then open it as a build profile.
+        if (fileName.indexOf('=') === -1) {
+            exec(readFile(fileName), fileName);
+        }
     } else if (commandOption === 'v') {
         console.log('r.js: ' + version + ', RequireJS: ' + require.version);
     } else {
