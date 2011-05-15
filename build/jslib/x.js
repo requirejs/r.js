@@ -12,30 +12,32 @@
 
 /*jslint strict: false, evil: true */
 /*global readFile: true, process: false, Packages: false, require: true
-  print: false, console: false */
+  print: false, console: false, java: false */
 
 var require, define;
 (function (console, args, readFileFunc) {
 
-    var fileName, env, fs, vm, exec, rhinoContext, dir, nodeRequire,
+    var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire, exists,
         version = '0.30.0',
         jsSuffixRegExp = /\.js$/,
         //Indicates so build/build.js that the modules for the optimizer
         //are built-in.
         isRjs = true,
         commandOption = '',
-        showHelp = false,
+        //Used by jslib/rhino/args.js
         rhinoArgs = args,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
+
+    function showHelp() {
+        console.log('See https://github.com/jrburke/r.js for usage.');
+    }
 
     if (typeof Packages !== 'undefined') {
         env = 'rhino';
 
         fileName = args[0];
 
-        if (!fileName) {
-            showHelp = true;
-        } else if (fileName.indexOf('-') === 0) {
+        if (fileName && fileName.indexOf('-') === 0) {
             commandOption = fileName.substring(1);
             fileName = args[1];
         }
@@ -45,6 +47,10 @@ var require, define;
 
         exec = function (string, name) {
             return rhinoContext.evaluateString(this, string, name, 0, null);
+        };
+
+        exists = function (fileName) {
+            return (new java.io.File(fileName)).exists();
         };
 
         //Define a console.log for easier logging. Don't
@@ -63,6 +69,7 @@ var require, define;
         //gets replaced. Used in require/node.js
         fs = require('fs');
         vm = require('vm');
+        path = require('path');
         nodeRequire = require;
         require = undefined;
 
@@ -74,11 +81,14 @@ var require, define;
             return vm.runInThisContext(string, name);
         };
 
+        exists = function (fileName) {
+            return path.existsSync(fileName);
+        };
+
+
         fileName = process.argv[2];
 
-        if (!fileName) {
-            showHelp = true;
-        } else if (fileName.indexOf('-') === 0) {
+        if (fileName && fileName.indexOf('-') === 0) {
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
         }
@@ -102,9 +112,7 @@ var require, define;
         fileName = 'main.js';
     }
 
-    if (showHelp) {
-        console.log('See https://github.com/jrburke/r.js for usage.');
-    } else if (commandOption === 'o') {
+    if (commandOption === 'o') {
         //Do the optimizer work.
 
         //INSERT OPTIMIZER
@@ -113,8 +121,12 @@ var require, define;
 
         //If fileName does not a command line arg to
         //the build, then open it as a build profile.
-        if (fileName.indexOf('=') === -1) {
-            exec(readFile(fileName), fileName);
+        if (fileName && fileName.indexOf('=') === -1) {
+            if (exists(fileName)) {
+                exec(readFile(fileName), fileName);
+            } else {
+                showHelp();
+            }
         }
     } else if (commandOption === 'v') {
         console.log('r.js: ' + version + ', RequireJS: ' + require.version);
@@ -130,7 +142,11 @@ var require, define;
             exec("require({baseUrl: '" + dir + "'});");
         }
 
-        exec(readFile(fileName), fileName);
+        if (exists(fileName)) {
+            exec(readFile(fileName), fileName);
+        } else {
+            showHelp();
+        }
     }
 
 }((typeof console !== 'undefined' ? console : undefined),
