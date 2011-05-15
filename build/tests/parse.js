@@ -11,8 +11,8 @@ define(['parse'], function (parse) {
                     bad1 = "require([foo, 'me'], function() {});",
                     bad2 = "require({baseUrl: './'});";
 
-                t.is('require([ "one", "two" ]);', parse("good1", good1));
-                t.is('require([ "one", "two" ]);', parse("good2", good2));
+                t.is('require(["one","two"]);', parse("good1", good1));
+                t.is('require(["one","two"]);', parse("good2", good2));
                 t.is(null, parse("bad1", bad1));
                 t.is(null, parse("bad2", bad2));
             }
@@ -34,10 +34,10 @@ define(['parse'], function (parse) {
                     goodAnon3 = "require.def(function(require, exports, module) { exports.name = 'empty'; });",
                     emptyAnon1 = "require.def(function(){ return 'foo'; });";
 
-                t.is('define("one",[ "two", "three" ]);', parse("good1", good1));
-                t.is('define("one",function() {});', parse("good2", good2));
-                t.is('define("one",[ "two" ]);', parse("good3", good3));
-                t.is('define("one",function() {});', parse("good4", good4));
+                t.is('define("one",["two","three"]);', parse("good1", good1));
+                t.is('define("one",function(){});', parse("good2", good2));
+                t.is('define("one",["two"]);', parse("good3", good3));
+                t.is('define("one",function(){});', parse("good4", good4));
                 t.is(null, parse("bad1", bad1));
                 t.is(null, parse("bad2", bad2));
                 t.is(['require', 'foo'], parse.getAnonDeps("goodAnon1", goodAnon1));
@@ -66,10 +66,10 @@ define(['parse'], function (parse) {
                     goodAnon3 = "define(function(require, exports, module) { exports.name = 'empty'; });",
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
-                t.is('define("one",[ "two", "three" ]);', parse("good1", good1));
-                t.is('define("one",function() {});', parse("good2", good2));
-                t.is('define("one",[ "two" ]);', parse("good3", good3));
-                t.is('define("one",function() {});', parse("good4", good4));
+                t.is('define("one",["two","three"]);', parse("good1", good1));
+                t.is('define("one",function(){});', parse("good2", good2));
+                t.is('define("one",["two"]);', parse("good3", good3));
+                t.is('define("one",function(){});', parse("good4", good4));
                 t.is('define("foo",[]);', parse("nested1", nested1));
                 t.is(null, parse("bad1", bad1));
                 t.is(null, parse("bad2", bad2));

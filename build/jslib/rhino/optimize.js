@@ -4,7 +4,7 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint strict: false */
+/*jslint strict: false, plusplus: false */
 /*global define: false, java: false, Packages: false */
 
 define(['logger'], function (logger) {
@@ -62,7 +62,8 @@ define(['logger'], function (logger) {
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
                 options, option, FLAG_compilation_level, compiler,
-                Compiler = Packages.com.google.javascript.jscomp.Compiler;
+                Compiler = Packages.com.google.javascript.jscomp.Compiler,
+                result;
 
             logger.trace("Minifying file: " + fileName);
 
@@ -83,7 +84,12 @@ define(['logger'], function (logger) {
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
-            compiler.compile(externSourceFile, jsSourceFile, options);
+
+            result = compiler.compile(externSourceFile, jsSourceFile, options);
+            if (!result.success) {
+                throw new Error("Closure Compiler compilation failed");
+            }
+
             return compiler.toSource();
         }
     };

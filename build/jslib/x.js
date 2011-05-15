@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.30.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.24.0+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -18,7 +18,7 @@ var require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire, exists,
-        version = '0.30.0',
+        version = '0.24.0+',
         jsSuffixRegExp = /\.js$/,
         //Indicates so build/build.js that the modules for the optimizer
         //are built-in.
