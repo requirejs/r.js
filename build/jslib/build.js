@@ -208,6 +208,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
+        //Run CSS optimizations before doing JS module tracing, to allow
+        //things like text loader plugins loading CSS to get the optimized
+        //CSS.
+        if (config.optimizeCss && config.optimizeCss !== "none") {
+            optimize.css(config.dir, config);
+        }
+
         if (modules) {
             //For each module layer, call require to calculate dependencies.
             modules.forEach(function (module) {
@@ -274,11 +281,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
             for (i = 0; (fileName = fileNames[i]); i++) {
                 optimize.jsFile(fileName, fileName, config);
-            }
-
-            //CSS optimizations
-            if (config.optimizeCss && config.optimizeCss !== "none") {
-                optimize.css(config.dir, config);
             }
 
             //All module layers are done, write out the build.txt file.
@@ -405,7 +407,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             buildFileContents = file.readFile(buildFile);
             try {
                 buildFileConfig = eval("(" + buildFileContents + ")");
-            } catch(e) {
+            } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
             }
             lang.mixin(config, buildFileConfig, true);
