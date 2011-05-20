@@ -26,8 +26,10 @@ var fs = require('fs'),
     //Update this list of files by running the optimizer against
     //build/jslib/opto.build.js,
     //but then remove any jslib/node entries and make sure there is
-    //an env! entry for each one of them.
-    optimizerFiles = [
+    //an env! entry for each one of them. Include
+    //build/jslib/commonjs.js in the list, but remove build/build.js
+    //since it is loaded separately.
+    libFiles = [
         'build/jslib/env.js',
         'env!env/args',
         'env!env/load',
@@ -46,10 +48,11 @@ var fs = require('fs'),
         'build/jslib/optimize.js',
         'build/jslib/pragma.js',
         'build/jslib/requirePatch.js',
+        'build/jslib/commonJs.js',
         'build/jslib/build.js',
-        'build/build.js'
     ],
-    optoText = '';
+    optimizerStartFile = 'build/build.js';
+    libText = '';
 
 function readAndNameModule(fileName) {
     var contents = fs.readFileSync(fileName, 'utf8'),
@@ -63,22 +66,22 @@ function readAndNameModule(fileName) {
 }
 
 //Load up all the optimizer files.
-optimizerFiles.forEach(function (fileName) {
+libFiles.forEach(function (fileName) {
     if (fileName.indexOf('env!') === 0) {
         envs.forEach(function (env) {
-            optoText += "\nif(env === '" + env + "') {\n" +
+            libText += "\nif(env === '" + env + "') {\n" +
                         readAndNameModule(fileName.replace(/env!env\//, 'build/jslib/' + env + '/') + '.js') +
                         "\n}\n";
         });
     } else {
-        optoText += readAndNameModule(fileName, 'utf8');
+        libText += readAndNameModule(fileName, 'utf8');
     }
 });
 
 //Inline file contents
 contents = contents.replace(loadRegExp, function (match, fileName) {
-    if (fileName === 'OPTIMIZER') {
-        return optoText;
+    if (fileName === 'LIB') {
+        return libText;
     } else {
         var text = fs.readFileSync(fileName, 'utf8');
         if (fileName.indexOf('require.js') !== -1) {
@@ -90,4 +93,3 @@ contents = contents.replace(loadRegExp, function (match, fileName) {
 
 //Set the isOpto flag to true
 fs.writeFileSync('r.js', contents, 'utf8');
-

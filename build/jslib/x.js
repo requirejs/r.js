@@ -112,12 +112,19 @@ var require, define;
         fileName = 'main.js';
     }
 
+    /**
+     * Loads the library files that can be used for the optimizer, or for other
+     * tasks.
+     */
+    function loadLib() {
+        //INSERT LIB
+    }
+
     if (commandOption === 'o') {
         //Do the optimizer work.
+        loadLib();
 
-        //INSERT OPTIMIZER
-
-        //END OPTIMIZER
+        //INSERT build/build.js
 
         //If fileName does not a command line arg to
         //the build, then open it as a build profile.
@@ -130,8 +137,30 @@ var require, define;
         }
     } else if (commandOption === 'v') {
         console.log('r.js: ' + version + ', RequireJS: ' + require.version);
+    } else if (commandOption === 'convert') {
+        loadLib();
+
+        require(['env!env/args', 'commonJs', 'env!env/print'],
+        function (args,           commonJs,   print) {
+
+            var srcDir, outDir;
+            srcDir = args[0];
+            outDir = args[1];
+
+            if (!srcDir || !outDir) {
+                print('Usage: path/to/commonjs/modules output/dir');
+                return;
+            }
+
+            commonJs.convertDir(args[0], args[1]);
+        });
     } else {
         //Just run an app
+
+        //Load the bundled libraries for use in the app.
+        if (commandOption === 'lib') {
+            loadLib();
+        }
 
         //Use the file name's directory as the baseUrl if available.
         dir = fileName.replace(/\\/g, '/');

@@ -82,9 +82,28 @@ will get errors running the built code.
 
 # Other r.js commands
 
+## Get Version
+
 To get the version of r.js and the version of require.js used by r.js:
 
     node r.js -v
+
+## Convert CommonJS modules
+
+To convert a directory of CommonJS modules to ones that have define() wrappers:
+
+    node r.js -convert path/to/commonjs/dir output/dir
+
+Most, but not all, CommonJS modules can be converted to define()-wrapped modules
+and still work.
+
+However, there are some modules that may fail if:
+
+* They use code branches like if/else or try/catch to call require(). There are
+problems supporting this kind of dynamic module calls in an async environment.
+* Some kinds of circular dependencies will not work right. The kinds that fail
+are normally very brittle and depend on the execution order of the dependent
+modules.
 
 # Directory layout
 

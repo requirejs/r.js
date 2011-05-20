@@ -5,11 +5,6 @@
  */
 
 /*
- * Use the .sh or .bat build scripts to run this script. General use:
- * executingEnv build.js directory/containing/build.js/ profile.build.js
- *
- * General use:
- *
  * Create a build.js file that has the build options you want and pass that
  * build file to this file to do the build. See example.build.js for more information.
  */
