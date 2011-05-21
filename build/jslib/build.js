@@ -25,13 +25,27 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             isBuild: true
         };
 
+    /**
+     * If the path looks like an URL, throw an error. This is to prevent
+     * people from using URLs with protocols in the build config, since
+     * the optimizer is not set up to do network access.
+     */
+    function disallowUrls(path) {
+        if (path.indexOf(':') !== -1) {
+            throw new Error('Path is not supported: ' + path +
+                            '\nOptimizer can only handle' +
+                            ' local paths. Download the locally if necessary' +
+                            ' and update the config to use a local path.');
+        }
+    }
+
     function endsWithSlash(dirName) {
         if (dirName.charAt(dirName.length - 1) !== "/") {
             dirName += "/";
         }
+        disallowUrls(dirName);
         return dirName;
     }
-
 
     /**
      * Main API entry point into the build. The args argument can either be
@@ -489,6 +503,15 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 config[prop] = endsWithSlash(config[prop]);
+            }
+        }
+
+        //Do not allow URLs for paths resources.
+        if (config.paths) {
+            for (prop in config.paths) {
+                if (config.paths.hasOwnProperty(prop)) {
+                    disallowUrls(config.paths[prop]);
+                }
             }
         }
 
