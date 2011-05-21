@@ -6,8 +6,9 @@
 
 /*
  * This is a bootstrap script to allow running RequireJS in the command line
- * in either a Java/Rhino or Node environment. It is best to call this script
- * via the x script that is a sibling to it.
+ * in either a Java/Rhino or Node environment. It is modified by the top-level
+ * dist.js file to inject other files to completely enable this file. It is
+ * the shell of the r.js file.
  */
 
 /*jslint strict: false, evil: true */
@@ -126,15 +127,6 @@ var require, define;
 
         //INSERT build/build.js
 
-        //If fileName does not a command line arg to
-        //the build, then open it as a build profile.
-        if (fileName && fileName.indexOf('=') === -1) {
-            if (exists(fileName)) {
-                exec(readFile(fileName), fileName);
-            } else {
-                showHelp();
-            }
-        }
     } else if (commandOption === 'v') {
         console.log('r.js: ' + version + ', RequireJS: ' + require.version);
     } else if (commandOption === 'convert') {
