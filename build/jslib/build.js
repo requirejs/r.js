@@ -717,7 +717,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     //avoid issues with some Dojo transition modules that use a
     //define(\n//begin v1.x content
     //for a comment.
-    build.anonDefRegExp = /(require\s*\.\s*def|define)\s*\(\s*(\/\/[^\n\r]*[\r\n])?(\[|f|\{)/;
+    build.anonDefRegExp = /[^\.](require\s*\.\s*def|define)\s*\(\s*(\/\/[^\n\r]*[\r\n])?(\[|f|\{)/;
 
     build.toTransport = function (moduleName, path, contents, layer) {
         //If anonymous module, insert the module name.
