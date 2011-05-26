@@ -13,7 +13,7 @@ define(['parse'], function (parse) {
 
                 t.is('require(["one","two"]);', parse("good1", good1));
                 t.is('require(["one","two"]);', parse("good2", good2));
-                t.is(null, parse("bad1", bad1));
+                t.is('require(["me"]);', parse("bad1", bad1));
                 t.is(null, parse("bad2", bad2));
             }
         ]
@@ -38,7 +38,7 @@ define(['parse'], function (parse) {
                 t.is('define("one",function(){});', parse("good2", good2));
                 t.is('define("one",["two"]);', parse("good3", good3));
                 t.is('define("one",function(){});', parse("good4", good4));
-                t.is(null, parse("bad1", bad1));
+                t.is('define("one",["me"]);', parse("bad1", bad1));
                 t.is(null, parse("bad2", bad2));
                 t.is(['require', 'foo'], parse.getAnonDeps("goodAnon1", goodAnon1));
                 t.is(['require', 'exports', 'module', 'bar'], parse.getAnonDeps("goodAnon2", goodAnon2));
@@ -70,8 +70,8 @@ define(['parse'], function (parse) {
                 t.is('define("one",function(){});', parse("good2", good2));
                 t.is('define("one",["two"]);', parse("good3", good3));
                 t.is('define("one",function(){});', parse("good4", good4));
-                t.is('define("foo",[]);', parse("nested1", nested1));
-                t.is(null, parse("bad1", bad1));
+                t.is(null, parse("nested1", nested1));
+                t.is('define("one",["me"]);', parse("bad1", bad1));
                 t.is(null, parse("bad2", bad2));
                 t.is(null, parse("bad3", bad3));
                 t.is(null, parse("bad4", bad4));
