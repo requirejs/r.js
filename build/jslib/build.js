@@ -31,7 +31,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * the optimizer is not set up to do network access.
      */
     function disallowUrls(path) {
-        if (path.indexOf(':') !== -1) {
+        if (path.indexOf(':') !== -1 && path !== 'empty:') {
             throw new Error('Path is not supported: ' + path +
                             '\nOptimizer can only handle' +
                             ' local paths. Download the locally if necessary' +
@@ -137,7 +137,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 for (prop in paths) {
                     if (paths.hasOwnProperty(prop)) {
                         //Set up build path for each path prefix.
-                        buildPaths[prop] = prop.replace(/\./g, "/");
+                        buildPaths[prop] = paths[prop] === 'empty:' ? 'empty:' : prop.replace(/\./g, "/");
 
                         //Make sure source path is fully formed with baseUrl,
                         //if it is a relative URL.
@@ -148,15 +148,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                         destPath = config.dirBaseUrl + buildPaths[prop];
 
-                        //If the srcPath is a directory, copy the whole directory.
-                        if (file.exists(srcPath) && file.isDirectory(srcPath)) {
-                            //Copy files to build area. Copy all files (the /\w/ regexp)
-                            file.copyDir(srcPath, destPath, /\w/, true);
-                        } else {
-                            //Try a .js extension
-                            srcPath += '.js';
-                            destPath += '.js';
-                            file.copyFile(srcPath, destPath);
+                        //Skip empty: paths
+                        if (srcPath !== 'empty:') {
+                            //If the srcPath is a directory, copy the whole directory.
+                            if (file.exists(srcPath) && file.isDirectory(srcPath)) {
+                                //Copy files to build area. Copy all files (the /\w/ regexp)
+                                file.copyDir(srcPath, destPath, /\w/, true);
+                            } else {
+                                //Try a .js extension
+                                srcPath += '.js';
+                                destPath += '.js';
+                                file.copyFile(srcPath, destPath);
+                            }
                         }
                     }
                 }

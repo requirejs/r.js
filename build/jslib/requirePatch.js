@@ -71,7 +71,8 @@ function (file,           pragma,   parse) {
             //on Windows, full paths are used for some urls, which include
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
-            return url.indexOf("://") === -1 && url.indexOf("?") === -1;
+            return url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
+                   url.indexOf('empty:') !== 0;
         };
 
         //Override require.def to catch modules that just define an object, so that
