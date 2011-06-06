@@ -22,7 +22,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             optimize: "uglify",
             optimizeCss: "standard.keepLines",
             inlineText: true,
-            isBuild: true
+            isBuild: true,
+            optimizeAllPluginResources: false
         };
 
     /**
@@ -45,6 +46,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
         disallowUrls(dirName);
         return dirName;
+    }
+
+    //Method used by plugin writeFile calls, defined up here to avoid
+    //jslint warning about "making a function in a loop".
+    function writeFile(name, contents) {
+        logger.trace('Saving plugin-optimized file: ' + name);
+        file.saveUtf8File(name, contents);
     }
 
     /**
@@ -105,11 +113,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
     build._run = function (cmdConfig) {
         var buildFileContents = "",
+            pluginCollector = {},
             buildPaths, fileName, fileNames,
             prop, paths, i,
             baseConfig, config,
             modules, builtModule, srcPath, buildContext,
-            destPath;
+            destPath, moduleName, moduleMap, parentModuleMap, context,
+            resources, resource, pluginProcessed = {}, plugin;
 
         //Can now run the patches to require.js to allow it to be used for
         //build generation. Do it here instead of at the top of the module
@@ -297,8 +307,68 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //JS optimizations.
             fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
             for (i = 0; (fileName = fileNames[i]); i++) {
-                optimize.jsFile(fileName, fileName, config);
+                //Generate the module name from the config.dir root.
+                moduleName = fileName.replace(config.dir, '');
+                //Get rid of the extension
+                moduleName = moduleName.substring(0, moduleName.length - 3);
+                optimize.jsFile(fileName, fileName, config, moduleName, pluginCollector);
             }
+
+            //Normalize all the plugin resources.
+            context = require.s.contexts._;
+
+            for (moduleName in pluginCollector) {
+                if (pluginCollector.hasOwnProperty(moduleName)) {
+                    parentModuleMap = context.makeModuleMap(moduleName);
+                    resources = pluginCollector[moduleName];
+                    for (i = 0; (resource = resources[i]); i++) {
+                        moduleMap = context.makeModuleMap(resource, parentModuleMap);
+                        if (!context.plugins[moduleMap.prefix]) {
+                            //Set the value in context.plugins so it
+                            //will be evaluated as a full plugin.
+                            context.plugins[moduleMap.prefix] = true;
+
+                            //Do not bother if the plugin is not available.
+                            if (!file.exists(require.toUrl(moduleMap.prefix + '.js'))) {
+                                continue;
+                            }
+
+                            //Rely on the require in the build environment
+                            //to be synchronous
+                            context.require([moduleMap.prefix]);
+
+                            //Now that the plugin is loaded, redo the moduleMap
+                            //since the plugin will need to normalize part of the path.
+                            moduleMap = context.makeModuleMap(resource, parentModuleMap);
+                        }
+
+                        //Only bother with plugin resources that can be handled
+                        //processed by the plugin, via support of the writeFile
+                        //method.
+                        if (!pluginProcessed[moduleMap.fullName]) {
+                            //Only do the work if the plugin was really loaded.
+                            //Using an internal access because the file may
+                            //not really be loaded.
+                            plugin = context.defined[moduleMap.prefix];
+                            if (plugin && plugin.writeFile) {
+                                plugin.writeFile(
+                                    moduleMap.prefix,
+                                    moduleMap.name,
+                                    require,
+                                    writeFile,
+                                    context.config
+                                );
+                            }
+
+                            pluginProcessed[moduleMap.fullName] = true;
+                        }
+                    }
+
+                }
+            }
+
+            //console.log('PLUGIN COLLECTOR: ' + JSON.stringify(pluginCollector, null, "  "));
+
 
             //All module layers are done, write out the build.txt file.
             file.saveUtf8File(config.dir + "build.txt", buildFileContents);

@@ -37,31 +37,46 @@ define(['uglifyjs/index'], function (uglify) {
 
     /**
      * Validates a node as being an object literal (like for i18n bundles)
-     * or an array literal with just string members.
+     * or an array literal with just string members. If an array literal,
+     * only return array members that are full strings. So the caller of
+     * this function should use the return value as the new value for the
+     * node.
+     *
      * This function does not need to worry about comments, they are not
      * present in this AST.
+     *
+     * @param {Node} node an AST node.
+     *
+     * @returns {Node} an AST node to use for the valid dependencies.
+     * If null is returned, then it means the input node was not a valid
+     * dependency.
      */
     function validateDeps(node) {
-        var arrayArgs, i, dep;
+        var newDeps = ['array', []],
+            arrayArgs, i, dep;
+
+        if (!node) {
+            return null;
+        }
 
         if (isObjectLiteral(node) || node[0] === 'function') {
-            return true;
+            return node;
         }
 
         //Dependencies can be an object literal or an array.
         if (!isArrayLiteral(node)) {
-            return false;
+            return null;
         }
 
         arrayArgs = node[1];
 
         for (i = 0; i < arrayArgs.length; i++) {
             dep = arrayArgs[i];
-            if (dep[0] !== 'string') {
-                return false;
+            if (dep[0] === 'string') {
+                newDeps[1].push(dep);
             }
         }
-        return true;
+        return newDeps[1].length ? newDeps : null;
     }
 
     /**
@@ -77,7 +92,12 @@ define(['uglifyjs/index'], function (uglify) {
         var matches = [], result = null,
             astRoot = parser.parse(fileContents);
 
-        parse.recurse(astRoot, matches);
+        parse.recurse(astRoot, function () {
+            var parsed = parse.callToString.apply(parse, arguments);
+            if (parsed) {
+                matches.push(parsed);
+            }
+        });
 
         if (matches.length) {
             result = matches.join("\n");
@@ -94,19 +114,16 @@ define(['uglifyjs/index'], function (uglify) {
     /**
      * Handles parsing a file recursively for require calls.
      * @param {Array} parentNode the AST node to start with.
-     * @param {Array} matches where to store the string matches
+     * @param {Function} onMatch function to call on a parse match.
      */
-    parse.recurse = function (parentNode, matches) {
-        var i, node, parsed;
+    parse.recurse = function (parentNode, onMatch) {
+        var i, node;
         if (isArray(parentNode)) {
             for (i = 0; i < parentNode.length; i++) {
                 node = parentNode[i];
                 if (isArray(node)) {
-                    parsed = this.parseNode(node);
-                    if (parsed) {
-                        matches.push(parsed);
-                    }
-                    this.recurse(node, matches);
+                    this.parseNode(node, onMatch);
+                    this.recurse(node, onMatch);
                 }
             }
         }
@@ -190,6 +207,42 @@ define(['uglifyjs/index'], function (uglify) {
         }
 
         return null;
+    };
+
+    /**
+     * Finds all dependencies specified in dependency arrays and inside
+     * simplified commonjs wrappers.
+     * @param {String} fileName
+     * @param {String} fileContents
+     *
+     * @returns {Array} an array of dependency strings. The dependencies
+     * have not been normalized, they may be relative IDs.
+     */
+    parse.findDependencies = function (fileName, fileContents) {
+        //This is a litle bit inefficient, it ends up with two uglifyjs parser
+        //calls. Can revisit later, but trying to build out larger functional
+        //pieces first.
+        var dependencies = parse.getAnonDeps(fileName, fileContents),
+            astRoot = parser.parse(fileContents),
+            i, dep;
+
+        parse.recurse(astRoot, function (callName, config, name, deps) {
+            //Normalize the input args.
+            if (name && isArrayLiteral(name)) {
+                deps = name;
+                name = null;
+            }
+
+            if (!(deps = validateDeps(deps)) || !isArrayLiteral(deps)) {
+                return;
+            }
+
+            for (i = 0; (dep = deps[1][i]); i++) {
+                dependencies.push(dep[1]);
+            }
+        });
+
+        return dependencies;
     };
 
     parse.findRequireDepNames = function (node, deps) {
@@ -291,7 +344,7 @@ define(['uglifyjs/index'], function (uglify) {
             name = null;
         }
 
-        if (deps && !validateDeps(deps)) {
+        if (!(deps = validateDeps(deps))) {
             return null;
         }
 
@@ -311,11 +364,14 @@ define(['uglifyjs/index'], function (uglify) {
     /**
      * Determines if a specific node is a valid require or define/require.def call.
      * @param {Array} node
+     * @param {Function} onMatch a function to call when a match is found.
+     * It is passed the match name, and the config, name, deps possible args.
+     * The config, name and deps args are not normalized.
      *
      * @returns {String} a JS source string with the valid require/define call.
      * Otherwise null.
      */
-    parse.parseNode = function (node) {
+    parse.parseNode = function (node, onMatch) {
         var call, name, config, deps, args;
 
         if (!isArray(node)) {
@@ -337,11 +393,11 @@ define(['uglifyjs/index'], function (uglify) {
                         config = null;
                     }
 
-                    if (!deps || !validateDeps(deps)) {
+                    if (!(deps = validateDeps(deps))) {
                         return null;
                     }
 
-                    return this.callToString("require", null, null, deps);
+                    return onMatch("require", null, null, deps);
 
                 } else if ((call[0] === 'name' && call[1] === 'define') ||
                            (call[0] === 'dot' && call[1][1] === 'require' &&
@@ -364,7 +420,7 @@ define(['uglifyjs/index'], function (uglify) {
                           name[0] === 'function' || isObjectLiteral(name))) &&
                         (!deps || isArrayLiteral(deps) ||
                          deps[0] === 'function' || isObjectLiteral(deps))) {
-                        return this.callToString("define", null, name, deps);
+                        return onMatch("define", null, name, deps);
                     }
                 }
             }

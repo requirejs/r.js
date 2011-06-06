@@ -130,6 +130,14 @@
     //together.
     skipModuleInsertion: false,
 
+    //If it is not a one file optimization, scan through all .js files in the
+    //output directory for any plugin resource dependencies, and if the plugin
+    //supports optimizing them as separate files, optimize them. Can be a
+    //slower optimization. Only use if there are some plugins that use things
+    //like XMLHttpRequest that do not work across domains, but the built code
+    //will be placed on another domain.
+    optimizeAllPluginResources: false,
+
     //List the modules that will be optimized. All their immediate and deep
     //dependencies will be included in the module's file when the build is
     //done. If that module or any of its dependencies includes i18n bundles,

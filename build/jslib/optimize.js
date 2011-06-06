@@ -7,8 +7,10 @@
 /*jslint plusplus: false, nomen: false, regexp: false, strict: false */
 /*global define: false */
 
-define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'uglifyjs/index'],
-function (lang,   logger,   envOptimize,        file,           uglify) {
+define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
+         'uglifyjs/index'],
+function (lang,   logger,   envOptimize,        file,           parse,
+          uglify) {
 
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
@@ -127,22 +129,44 @@ function (lang,   logger,   envOptimize,        file,           uglify) {
 
     optimize = {
         /**
-         * Optimizes a file that contains JavaScript content. It will inline
-         * text plugin files and run it through Google Closure Compiler
-         * minification, if the config options specify it.
+         * Optimizes a file that contains JavaScript content. Optionally collects
+         * plugin resources mentioned in a file, and then passes the content
+         * through an minifier if one is specified via config.optimize.
          *
          * @param {String} fileName the name of the file to optimize
          * @param {String} outFileName the name of the file to use for the
          * saved optimized content.
          * @param {Object} config the build config object.
+         * @param {String} [moduleName] the module name to use for the file.
+         * Used for plugin resource collection.
+         * @param {Array} [pluginCollector] storage for any plugin resources
+         * found.
          */
-        jsFile: function (fileName, outFileName, config) {
+        jsFile: function (fileName, outFileName, config, moduleName, pluginCollector) {
             var parts = (config.optimize + "").split('.'),
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
-                fileContents, optFunc;
+                fileContents, optFunc, deps, i, dep;
 
             fileContents = file.readFile(fileName);
+
+            //If there is a plugin collector, scan the file for plugin resources.
+            if (config.optimizeAllPluginResources && pluginCollector) {
+                try {
+                    deps = parse.findDependencies(fileName, fileContents);
+                    if (deps.length) {
+                        for (i = 0; (dep = deps[i]); i++) {
+                            if (dep.indexOf('!') !== -1) {
+                                (pluginCollector[moduleName] ||
+                                 (pluginCollector[moduleName] = [])).push(dep);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    logger.error('Parse error looking for plugin resources in ' +
+                                 fileName + ', skipping.');
+                }
+            }
 
             //Optimize the JS files if asked.
             if (optimizerName && optimizerName !== 'none') {
