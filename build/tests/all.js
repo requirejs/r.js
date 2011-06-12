@@ -22,20 +22,24 @@ require({
     baseUrl: '../jslib/'
 });
 
+debugger;
 //Run the tests in a different context.
 require({
     baseUrl: '../jslib/',
+    paths: {
+        tests: '../tests'
+    },
     context: 'test'
 }, [
     '../../tests/doh/runner.js',
     'env!../../tests/doh/_{env}Runner.js',
-    './convert',
-    './parse',
-    './buildUtils',
+    'tests/convert',
+    'tests/parse',
+    'tests/buildUtils',
 
     //Build tests should be last in case they alter the environment
     //in a weird way.
-    './builds'
+    'tests/builds'
 ]);
 
 //Show final report. Do this outside the require call, not
