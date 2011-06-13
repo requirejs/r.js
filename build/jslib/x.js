@@ -79,7 +79,7 @@ var require, define;
         };
 
         exec = function (string, name) {
-            return vm.runInThisContext(string, name);
+            return vm.runInThisContext(string, name ? fs.realpathSync(name) : '');
         };
 
         exists = function (fileName) {

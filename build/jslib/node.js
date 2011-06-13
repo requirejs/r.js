@@ -64,7 +64,7 @@
 
         if (path.existsSync(url)) {
             contents = fs.readFileSync(url, 'utf8');
-            vm.runInThisContext(contents, url);
+            vm.runInThisContext(contents, fs.realpathSync(url));
         } else {
             define(moduleName, function () {
                 return req(moduleName);
