@@ -164,14 +164,7 @@ var require, define;
         }
 
         if (exists(fileName)) {
-            try {
-                exec(readFile(fileName), fileName);
-            } catch (e) {
-                //The optimizer may have been wanted, ask about it
-                console.log('Trying to run the optimizer? Be sure to pass ' +
-                            'the -o option.\nError evaluating file: ' + fileName +
-                            ': ' + e);
-            }
+            exec(readFile(fileName), fileName);
         } else {
             showHelp();
         }

@@ -64,7 +64,11 @@
 
         if (path.existsSync(url)) {
             contents = fs.readFileSync(url, 'utf8');
-            vm.runInThisContext(contents, fs.realpathSync(url));
+            try {
+                vm.runInThisContext(contents, fs.realpathSync(url));
+            } catch (e) {
+                return require.onError(e);
+            }
         } else {
             define(moduleName, function () {
                 return req(moduleName);
@@ -73,5 +77,7 @@
 
         //Support anonymous modules.
         context.completeLoad(moduleName);
+
+        return undefined;
     };
 }());
