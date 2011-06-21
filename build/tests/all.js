@@ -22,7 +22,6 @@ require({
     baseUrl: '../jslib/'
 });
 
-debugger;
 //Run the tests in a different context.
 require({
     baseUrl: '../jslib/',

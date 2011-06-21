@@ -5,7 +5,7 @@
  */
 
 /*jslint regexp: false, strict: false */
-/*global require: false, define: false, nodeRequire: true, process: false */
+/*global require: false, define: false, requirejsVars: false, process: false */
 
 /**
  * This adapter assumes that x.js has loaded it and set up
@@ -13,23 +13,19 @@
  * usage from within the requirejs directory. The general
  * node adapater is r.js.
  */
+
 (function () {
-    var req = nodeRequire,
-        fs = req('fs'),
-        path = req('path'),
-        vm = req('vm');
-
-    //Clear out the global set by x.js
-    nodeRequire = null;
-
-    //Make nodeRequire available off of require, to allow a script to
-    //add things to its require.paths for example.
-    require.nodeRequire = req;
+    var nodeReq = requirejsVars.nodeRequire,
+        req = requirejsVars.require,
+        def = requirejsVars.define,
+        fs = nodeReq('fs'),
+        path = nodeReq('path'),
+        vm = nodeReq('vm');
 
     //Supply an implementation that allows synchronous get of a module.
-    require.get = function (context, moduleName, relModuleMap) {
+    req.get = function (context, moduleName, relModuleMap) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
-            require.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
+            req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
         }
 
         var ret,
@@ -43,7 +39,7 @@
         } else {
             if (ret === undefined) {
                 //Try to dynamically fetch it.
-                require.load(context, moduleName, moduleMap.url);
+                req.load(context, moduleName, moduleMap.url);
                 //The above call is sync, so can do the next thing safely.
                 ret = context.defined[moduleName];
             }
@@ -52,11 +48,20 @@
         return ret;
     };
 
-    require.load = function (context, moduleName, url) {
+    //Add wrapper around the code so that it gets the requirejs
+    //API instead of the Node API, and it is done lexically so
+    //that it survives later execution.
+    req.makeNodeWrapper = function (contents) {
+        return '(function (require, define) { ' +
+                contents +
+                '\n}(requirejsVars.require, requirejsVars.define));';
+    };
+
+    req.load = function (context, moduleName, url) {
         var contents;
 
         //isDone is used by require.ready()
-        require.s.isDone = false;
+        req.s.isDone = false;
 
         //Indicate a the module is in process of loading.
         context.loaded[moduleName] = false;
@@ -64,14 +69,16 @@
 
         if (path.existsSync(url)) {
             contents = fs.readFileSync(url, 'utf8');
+
+            contents = req.makeNodeWrapper(contents);
             try {
                 vm.runInThisContext(contents, fs.realpathSync(url));
             } catch (e) {
-                return require.onError(e);
+                return req.onError(e);
             }
         } else {
-            define(moduleName, function () {
-                return req(moduleName);
+            def(moduleName, function () {
+                return nodeReq(moduleName);
             });
         }
 
@@ -79,5 +86,12 @@
         context.completeLoad(moduleName);
 
         return undefined;
+    };
+
+    //Override to provide the function wrapper for define/require.
+    req.exec = function (text) {
+        /*jslint evil: true */
+        text = req.makeNodeWrapper(text);
+        return eval(text);
     };
 }());

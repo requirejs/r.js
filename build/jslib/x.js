@@ -12,13 +12,14 @@
  */
 
 /*jslint strict: false, evil: true */
-/*global readFile: true, process: false, Packages: false, require: true
-  print: false, console: false, java: false */
+/*global readFile: true, process: false, Packages: false, print: false,
+console: false, java: false */
 
 var require, define;
 (function (console, args, readFileFunc) {
 
-    var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire, exists,
+    var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
+        nodeDefine, exists,
         version = '0.24.0+',
         jsSuffixRegExp = /\.js$/,
         //Indicates so build/build.js that the modules for the optimizer
@@ -72,14 +73,20 @@ var require, define;
         vm = require('vm');
         path = require('path');
         nodeRequire = require;
+        nodeDefine = define;
+
+        //Temporarily hide require and define to allow require.js to define
+        //them.
         require = undefined;
+        define = undefined;
 
         readFile = function (path) {
             return fs.readFileSync(path, 'utf8');
         };
 
         exec = function (string, name) {
-            return vm.runInThisContext(string, name ? fs.realpathSync(name) : '');
+            return vm.runInThisContext(this.requirejsVars.require.makeNodeWrapper(string),
+                                       name ? fs.realpathSync(name) : '');
         };
 
         exists = function (fileName) {
@@ -100,10 +107,19 @@ var require, define;
     if (env === 'rhino') {
         //INSERT build/jslib/rhino.js
     } else if (env === 'node') {
-        this.require = require;
-        this.define = define;
+        this.requirejsVars = {
+            require: require,
+            define: define,
+            nodeRequire: nodeRequire
+        };
+        require.nodeRequire = nodeRequire;
 
         //INSERT build/jslib/node.js
+
+
+        //Restore node values
+        require = nodeRequire;
+        define = nodeDefine;
     }
 
     //Support a default file name to execute. Useful for hosted envs
@@ -128,11 +144,11 @@ var require, define;
         //INSERT build/build.js
 
     } else if (commandOption === 'v') {
-        console.log('r.js: ' + version + ', RequireJS: ' + require.version);
+        console.log('r.js: ' + version + ', RequireJS: ' + this.requirejsVars.require.version);
     } else if (commandOption === 'convert') {
         loadLib();
 
-        require(['env!env/args', 'commonJs', 'env!env/print'],
+        this.requirejsVars.require(['env!env/args', 'commonJs', 'env!env/print'],
         function (args,           commonJs,   print) {
 
             var srcDir, outDir;
