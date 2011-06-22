@@ -29,7 +29,6 @@ require({
 }, [
     'alpha',
     'beta',
-    'a',
     'doh/runner',
     'env!doh/_{env}Runner'
 ], function (alpha, beta, a) {
@@ -40,10 +39,6 @@ require({
                 t.is('alpha', alpha.name);
                 t.is('beta', beta.name);
                 t.is('betaSubName', beta.subName);
-
-                t.is('a', a.name);
-                t.is('b', a.bName);
-                t.is('c', a.cName);
             }
         ]
     );
