@@ -116,10 +116,6 @@ var requirejs, require, define;
 
         //INSERT build/jslib/node.js
 
-
-        //Restore node values
-        require = nodeRequire;
-        define = nodeDefine;
     }
 
     //Support a default file name to execute. Useful for hosted envs
@@ -180,6 +176,15 @@ var requirejs, require, define;
         }
 
         if (exists(fileName)) {
+            if (env === 'node') {
+                //Put the file name's directory on the paths
+                //so node_modules in that directory will be
+                //consulted instead of relying on a node_modules
+                //in the r.js location.
+                //Put the current working direct
+                nodeRequire.paths.unshift(path.join(path.dirname(fs.realpathSync(fileName)), 'node_modules'));
+            }
+
             exec(readFile(fileName), fileName);
         } else {
             showHelp();

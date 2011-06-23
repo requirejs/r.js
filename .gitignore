@@ -1,3 +1,4 @@
 .DS_Store
 r.js
 build/tests/builds
+tests/node/node_modules

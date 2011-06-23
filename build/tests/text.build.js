@@ -2,7 +2,7 @@
 {
     baseUrl: "../../../requirejs/tests/text",
     paths: {
-        text: "../../text"
+        text: "../../../requirejs/text"
     },
     dir: "builds/text",
     optimize: "none",
