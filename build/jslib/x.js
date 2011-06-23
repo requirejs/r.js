@@ -15,7 +15,7 @@
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false */
 
-var require, define;
+var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,

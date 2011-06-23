@@ -49,9 +49,9 @@ var fs = require('fs'),
         'build/jslib/pragma.js',
         'build/jslib/requirePatch.js',
         'build/jslib/commonJs.js',
-        'build/jslib/build.js',
+        'build/jslib/build.js'
     ],
-    optimizerStartFile = 'build/build.js';
+    optimizerStartFile = 'build/build.js',
     libText = '';
 
 function readAndNameModule(fileName) {
@@ -85,7 +85,7 @@ contents = contents.replace(loadRegExp, function (match, fileName) {
     } else {
         var text = fs.readFileSync(fileName, 'utf8');
         if (fileName.indexOf('require.js') !== -1) {
-            text = text.replace(/var require\, define\;/, '');
+            text = text.replace(/var requirejs, require\, define\;/, '');
         }
         return text;
     }
