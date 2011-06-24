@@ -64,12 +64,26 @@ define(['parse'], function (parse) {
                     goodAnon1 = "define(function(require){ var foo = require('foo'); });",
                     goodAnon2 = "define(function (require, exports, module) { if (true) { callback(function () { require(\"bar\"); })}});",
                     goodAnon3 = "define(function(require, exports, module) { exports.name = 'empty'; });",
+                    good5 = "define(function (require) {\n" +
+                        '   return {\n' +
+                        '        getA: function () {\n' +
+                        '            return require("../index!0?./a:./b:./c");\n' +
+                        '        },\n' +
+                        '       getC: function () {\n' +
+                        '            return require("../index!2?./a:./b:./c");\n' +
+                        '        },\n' +
+                        '        getB: function () {\n' +
+                        '            return require("../index!1?./a:./b:./c");\n' +
+                        '        }\n' +
+                        '   };\n' +
+                        '});\n',
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
                 t.is('define("one",["two","three"]);', parse("good1", good1));
                 t.is('define("one",function(){});', parse("good2", good2));
                 t.is('define("one",["two"]);', parse("good3", good3));
                 t.is('define("one",function(){});', parse("good4", good4));
+                t.is('define(["require","../index!0?./a:./b:./c","../index!2?./a:./b:./c","../index!1?./a:./b:./c"]);', parse("good5", good5));
                 t.is(null, parse("nested1", nested1));
                 t.is('define("one",["me"]);', parse("bad1", bad1));
                 t.is(null, parse("bad2", bad2));

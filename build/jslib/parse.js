@@ -36,6 +36,29 @@ define(['uglifyjs/index'], function (uglify) {
     }
 
     /**
+     * Converts a regular JS array of strings to an AST node that
+     * represents that array.
+     * @param {Array} ary
+     * @param {Node} an AST node that represents an array of strings.
+     */
+    function toAstArray(ary) {
+        var output = [
+            'array',
+            []
+        ],
+        i, item;
+
+        for (i = 0; (item = ary[i]); i++) {
+            output[1].push([
+                'string',
+                item
+            ]);
+        }
+
+        return output;
+    }
+
+    /**
      * Validates a node as being an object literal (like for i18n bundles)
      * or an array literal with just string members. If an array literal,
      * only return array members that are full strings. So the caller of
@@ -152,25 +175,34 @@ define(['uglifyjs/index'], function (uglify) {
      */
     parse.getAnonDeps = function (fileName, fileContents) {
         var astRoot = parser.parse(fileContents),
-            deps = [],
-            defFunc = this.findAnonRequireDefCallback(astRoot),
+            defFunc = this.findAnonRequireDefCallback(astRoot);
+
+        return parse.getAnonDepsFromNode(defFunc);
+    };
+
+    /**
+     * Finds require("") calls inside a CommonJS anonymous module wrapped
+     * in a define function, given an AST node for the definition function.
+     * @param {Node} node the AST node for the definition function.
+     * @returns {Array} and array of dependency names. Can be of zero length.
+     */
+    parse.getAnonDepsFromNode = function (node) {
+        var deps = [],
             funcArgLength;
 
-        //Now look inside the def call's function for require calls.
-        if (defFunc) {
-            this.findRequireDepNames(defFunc, deps);
+        if (node) {
+            this.findRequireDepNames(node, deps);
 
             //If no deps, still add the standard CommonJS require, exports, module,
             //in that order, to the deps, but only if specified as function args.
             //In particular, if exports is used, it is favored over the return
             //value of the function, so only add it if asked.
-            funcArgLength = defFunc[2] && defFunc[2].length;
+            funcArgLength = node[2] && node[2].length;
             if (funcArgLength) {
                 deps = (funcArgLength > 1 ? ["require", "exports", "module"] :
                         ["require"]).concat(deps);
             }
         }
-
         return deps;
     };
 
@@ -372,7 +404,7 @@ define(['uglifyjs/index'], function (uglify) {
      * Otherwise null.
      */
     parse.parseNode = function (node, onMatch) {
-        var call, name, config, deps, args;
+        var call, name, config, deps, args, cjsDeps;
 
         if (!isArray(node)) {
             return null;
@@ -420,6 +452,16 @@ define(['uglifyjs/index'], function (uglify) {
                           name[0] === 'function' || isObjectLiteral(name))) &&
                         (!deps || isArrayLiteral(deps) ||
                          deps[0] === 'function' || isObjectLiteral(deps))) {
+
+                        //If first arg is a function, could be a commonjs wrapper,
+                        //look inside for commonjs dependencies.
+                        if (name && name[0] === 'function') {
+                            cjsDeps = parse.getAnonDepsFromNode(name);
+                            if (cjsDeps.length) {
+                                name = toAstArray(cjsDeps);
+                            }
+                        }
+
                         return onMatch("define", null, name, deps);
                     }
                 }
