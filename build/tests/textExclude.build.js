@@ -1,8 +1,8 @@
 //A simple build file using the tests directory for requirejs
 {
-    baseUrl: "../../tests/text",
+    baseUrl: "../../../requirejs/tests/text",
     paths: {
-        text: "../../text"
+        text: "../../../requirejs/text"
     },
     dir: "builds/textExclude",
     optimize: "none",

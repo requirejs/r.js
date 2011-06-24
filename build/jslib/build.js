@@ -746,7 +746,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         fileContents += input;
                     };
                     writeApi.asModule = function (moduleName, input) {
-                        fileContents += build.toTransport(moduleName, path, input, layer);
+                        fileContents += "\n" + build.toTransport(moduleName, path, input, layer);
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -756,7 +756,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 currContents = build.toTransport(moduleName, path, currContents, layer);
 
-                fileContents += currContents;
+                fileContents += "\n" + currContents;
             }
 
             buildFileContents += path.replace(config.dir, "") + "\n";
@@ -775,7 +775,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                    'define("jquery", [], function () { return jq; });\n' +
                                    '}());\n';
                 } else {
-                    fileContents += 'define("' + moduleName + '", function(){});\n';
+                    fileContents += '\ndefine("' + moduleName + '", function(){});\n';
                 }
             }
         }
