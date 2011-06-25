@@ -192,6 +192,12 @@
             excludeShallow: [
                 "foo/bar/bot"
             ]
+        },
+
+        //This module entry will include require.js itself in the build file.
+        {
+            name: "foo/bar/bul",
+            includeRequire: true
         }
     ]
 })
