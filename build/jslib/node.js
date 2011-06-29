@@ -58,7 +58,7 @@
     };
 
     req.load = function (context, moduleName, url) {
-        var contents;
+        var contents, err;
 
         //isDone is used by require.ready()
         req.s.isDone = false;
@@ -74,11 +74,24 @@
             try {
                 vm.runInThisContext(contents, fs.realpathSync(url));
             } catch (e) {
-                return req.onError(e);
+                err = new Error('Evaluating ' + url + ' as module "' +
+                                moduleName + '" failed with error: ' + e);
+                err.originalError = e;
+                err.moduleName = moduleName;
+                err.fileName = url;
+                return req.onError(err);
             }
         } else {
             def(moduleName, function () {
-                return nodeReq(moduleName);
+                try {
+                    return nodeReq(moduleName);
+                } catch (e) {
+                    err = new Error('Calling node\'s require("' +
+                                        moduleName + '") failed with error: ' + e);
+                    err.originalError = e;
+                    err.moduleName = moduleName;
+                    return req.onError(err);
+                }
             });
         }
 
