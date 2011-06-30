@@ -130,6 +130,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         config = build.createConfig(cmdConfig);
         paths = config.paths;
 
+        if ( config.logLevel ) {
+            logger.logLevel( config.logLevel );
+        }
+
         if (!config.out && !config.cssIn) {
             //This is not just a one-off file build but a full build profile, with
             //lots of files to process.
