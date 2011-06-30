@@ -16,6 +16,10 @@ define(['env!env/print'], function (print) {
         level: 0,
         logPrefix: "",
 
+        logLevel: function( level ) {
+            this.level = level;
+        },
+
         trace: function (message) {
             if (this.level <= this.TRACE) {
                 this._print(message);
