@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.24.0+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.25.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -15,12 +15,12 @@
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false */
 
-var require, define;
+var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists,
-        version = '0.24.0+',
+        version = '0.25.0',
         jsSuffixRegExp = /\.js$/,
         //Indicates so build/build.js that the modules for the optimizer
         //are built-in.
@@ -103,7 +103,7 @@ var require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 0.24.0+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 0.25.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -115,7 +115,7 @@ var require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "0.24.0+",
+    var version = "0.25.0",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(["']([^'"\s]+)["']\)/g,
         currDirRegExp = /^\.\//,
@@ -239,16 +239,27 @@ var require, define;
         }
     }
 
-    //Check for an existing version of require. If so, then exit out. Only allow
-    //one version of require to be active in a page. However, allow for a require
-    //config object, just exit quickly if require is an actual function.
-    if (typeof require !== "undefined") {
-        if (isFunction(require)) {
+    if (typeof define !== "undefined") {
+        //If a define is already in play via another AMD loader,
+        //do not overwrite.
+        return;
+    }
+
+    if (typeof requirejs !== "undefined") {
+        if (isFunction(requirejs)) {
+            //Do not overwrite and existing requirejs instance.
             return;
         } else {
-            //assume it is a config object.
-            cfg = require;
+            cfg = requirejs;
+            requirejs = undefined;
         }
+    }
+
+    //Allow for a require config object
+    if (typeof require !== "undefined" && !isFunction(require)) {
+        //assume it is a config object.
+        cfg = require;
+        require = undefined;
     }
 
     /**
@@ -816,14 +827,14 @@ var require, define;
         }
 
         /**
-         * Convenience method to call main for a require.def call that was put on
+         * Convenience method to call main for a define call that was put on
          * hold in the defQueue.
          */
         function callDefMain(args) {
             main.apply(null, args);
             //Mark the module loaded. Must do it here in addition
-            //to doing it in require.def in case a script does
-            //not call require.def
+            //to doing it in define in case a script does
+            //not call define
             loaded[args[0]] = true;
         }
 
@@ -1393,11 +1404,11 @@ var require, define;
                         args[0] = moduleName;
                         break;
                     } else if (args[0] === moduleName) {
-                        //Found matching require.def call for this script!
+                        //Found matching define call for this script!
                         break;
                     } else {
-                        //Some other named require.def call, most likely the result
-                        //of a build layer that included many require.def calls.
+                        //Some other named define call, most likely the result
+                        //of a build layer that included many define calls.
                         callDefMain(args);
                         args = null;
                     }
@@ -1415,7 +1426,7 @@ var require, define;
                 }
 
                 //Mark the script as loaded. Note that this can be different from a
-                //moduleName that maps to a require.def call. This line is important
+                //moduleName that maps to a define call. This line is important
                 //for traditional browser scripts.
                 loaded[moduleName] = true;
 
@@ -1535,7 +1546,7 @@ var require, define;
      * on a require that are not standardized), and to give a short
      * name for minification/local scope use.
      */
-    req = require = function (deps, callback) {
+    req = requirejs = function (deps, callback) {
 
         //Find the right context, use default
         var contextName = defContextName,
@@ -1567,6 +1578,13 @@ var require, define;
 
         return context.require(deps, callback);
     };
+
+    /**
+     * Export require as a global, but only if it does not already exist.
+     */
+    if (typeof require === "undefined") {
+        require = req;
+    }
 
     /**
      * Global require.toUrl(), to match global require, mostly useful
@@ -1843,9 +1861,9 @@ var require, define;
             if (node.attachEvent && !isOpera) {
                 //Probably IE. IE (at least 6-8) do not fire
                 //script onload right after executing the script, so
-                //we cannot tie the anonymous require.def call to a name.
+                //we cannot tie the anonymous define call to a name.
                 //However, IE reports the script as being in "interactive"
-                //readyState at the time of the require.def call.
+                //readyState at the time of the define call.
                 useInteractive = true;
                 node.attachEvent("onreadystatechange", callback);
             } else {
@@ -1854,7 +1872,7 @@ var require, define;
             node.src = url;
 
             //For some cache cases in IE 6-8, the script executes before the end
-            //of the appendChild execution, so to tie an anonymous require.def
+            //of the appendChild execution, so to tie an anonymous define
             //call to the module name (which is stored on the node), hold on
             //to a reference to this node, but clear after the DOM insertion.
             currentlyAddingScript = node;
@@ -2179,7 +2197,7 @@ var require, define;
     };
 
     req.load = function (context, moduleName, url) {
-        var contents;
+        var contents, err;
 
         //isDone is used by require.ready()
         req.s.isDone = false;
@@ -2195,11 +2213,24 @@ var require, define;
             try {
                 vm.runInThisContext(contents, fs.realpathSync(url));
             } catch (e) {
-                return req.onError(e);
+                err = new Error('Evaluating ' + url + ' as module "' +
+                                moduleName + '" failed with error: ' + e);
+                err.originalError = e;
+                err.moduleName = moduleName;
+                err.fileName = url;
+                return req.onError(err);
             }
         } else {
             def(moduleName, function () {
-                return nodeReq(moduleName);
+                try {
+                    return nodeReq(moduleName);
+                } catch (e) {
+                    err = new Error('Calling node\'s require("' +
+                                        moduleName + '") failed with error: ' + e);
+                    err.originalError = e;
+                    err.moduleName = moduleName;
+                    return req.onError(err);
+                }
             });
         }
 
@@ -2217,10 +2248,6 @@ var require, define;
     };
 }());
 
-
-        //Restore node values
-        require = nodeRequire;
-        define = nodeDefine;
     }
 
     //Support a default file name to execute. Useful for hosted envs
@@ -2939,6 +2966,10 @@ define('logger', ['env!env/print'], function (print) {
         ERROR: 3,
         level: 0,
         logPrefix: "",
+
+        logLevel: function( level ) {
+            this.level = level;
+        },
 
         trace: function (message) {
             if (this.level <= this.TRACE) {
@@ -5991,6 +6022,29 @@ define('parse', ['uglifyjs/index'], function (uglify) {
     }
 
     /**
+     * Converts a regular JS array of strings to an AST node that
+     * represents that array.
+     * @param {Array} ary
+     * @param {Node} an AST node that represents an array of strings.
+     */
+    function toAstArray(ary) {
+        var output = [
+            'array',
+            []
+        ],
+        i, item;
+
+        for (i = 0; (item = ary[i]); i++) {
+            output[1].push([
+                'string',
+                item
+            ]);
+        }
+
+        return output;
+    }
+
+    /**
      * Validates a node as being an object literal (like for i18n bundles)
      * or an array literal with just string members. If an array literal,
      * only return array members that are full strings. So the caller of
@@ -6107,25 +6161,34 @@ define('parse', ['uglifyjs/index'], function (uglify) {
      */
     parse.getAnonDeps = function (fileName, fileContents) {
         var astRoot = parser.parse(fileContents),
-            deps = [],
-            defFunc = this.findAnonRequireDefCallback(astRoot),
+            defFunc = this.findAnonRequireDefCallback(astRoot);
+
+        return parse.getAnonDepsFromNode(defFunc);
+    };
+
+    /**
+     * Finds require("") calls inside a CommonJS anonymous module wrapped
+     * in a define function, given an AST node for the definition function.
+     * @param {Node} node the AST node for the definition function.
+     * @returns {Array} and array of dependency names. Can be of zero length.
+     */
+    parse.getAnonDepsFromNode = function (node) {
+        var deps = [],
             funcArgLength;
 
-        //Now look inside the def call's function for require calls.
-        if (defFunc) {
-            this.findRequireDepNames(defFunc, deps);
+        if (node) {
+            this.findRequireDepNames(node, deps);
 
             //If no deps, still add the standard CommonJS require, exports, module,
             //in that order, to the deps, but only if specified as function args.
             //In particular, if exports is used, it is favored over the return
             //value of the function, so only add it if asked.
-            funcArgLength = defFunc[2] && defFunc[2].length;
+            funcArgLength = node[2] && node[2].length;
             if (funcArgLength) {
                 deps = (funcArgLength > 1 ? ["require", "exports", "module"] :
                         ["require"]).concat(deps);
             }
         }
-
         return deps;
     };
 
@@ -6327,7 +6390,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
      * Otherwise null.
      */
     parse.parseNode = function (node, onMatch) {
-        var call, name, config, deps, args;
+        var call, name, config, deps, args, cjsDeps;
 
         if (!isArray(node)) {
             return null;
@@ -6375,6 +6438,16 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                           name[0] === 'function' || isObjectLiteral(name))) &&
                         (!deps || isArrayLiteral(deps) ||
                          deps[0] === 'function' || isObjectLiteral(deps))) {
+
+                        //If first arg is a function, could be a commonjs wrapper,
+                        //look inside for commonjs dependencies.
+                        if (name && name[0] === 'function') {
+                            cjsDeps = parse.getAnonDepsFromNode(name);
+                            if (cjsDeps.length) {
+                                name = toAstArray(cjsDeps);
+                            }
+                        }
+
                         return onMatch("define", null, name, deps);
                     }
                 }
@@ -7395,6 +7468,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         config = build.createConfig(cmdConfig);
         paths = config.paths;
 
+        if ( config.logLevel ) {
+            logger.logLevel( config.logLevel );
+        }
+
         if (!config.out && !config.cssIn) {
             //This is not just a one-off file build but a full build profile, with
             //lots of files to process.
@@ -8011,7 +8088,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         fileContents += input;
                     };
                     writeApi.asModule = function (moduleName, input) {
-                        fileContents += build.toTransport(moduleName, path, input, layer);
+                        fileContents += "\n" + build.toTransport(moduleName, path, input, layer);
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -8021,7 +8098,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 currContents = build.toTransport(moduleName, path, currContents, layer);
 
-                fileContents += currContents;
+                fileContents += "\n" + currContents;
             }
 
             buildFileContents += path.replace(config.dir, "") + "\n";
@@ -8040,7 +8117,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                    'define("jquery", [], function () { return jq; });\n' +
                                    '}());\n';
                 } else {
-                    fileContents += 'define("' + moduleName + '", function(){});\n';
+                    fileContents += '\ndefine("' + moduleName + '", function(){});\n';
                 }
             }
         }
@@ -8176,6 +8253,15 @@ function (args,            build) {
         }
 
         if (exists(fileName)) {
+            if (env === 'node') {
+                //Put the file name's directory on the paths
+                //so node_modules in that directory will be
+                //consulted instead of relying on a node_modules
+                //in the r.js location.
+                //Put the current working direct
+                nodeRequire.paths.unshift(path.join(path.dirname(fs.realpathSync(fileName)), 'node_modules'));
+            }
+
             exec(readFile(fileName), fileName);
         } else {
             showHelp();
