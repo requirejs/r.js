@@ -7370,7 +7370,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * the optimizer is not set up to do network access.
      */
     function disallowUrls(path) {
-        if (path.indexOf(':') !== -1 && path !== 'empty:') {
+        if (path.indexOf('://') !== -1 && path !== 'empty:') {
             throw new Error('Path is not supported: ' + path +
                             '\nOptimizer can only handle' +
                             ' local paths. Download the locally if necessary' +
