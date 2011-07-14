@@ -29,10 +29,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     /**
      * If the path looks like an URL, throw an error. This is to prevent
      * people from using URLs with protocols in the build config, since
-     * the optimizer is not set up to do network access.
+     * the optimizer is not set up to do network access. However, be
+     * sure to allow absolute paths on Windows, like C:\directory.
      */
     function disallowUrls(path) {
-        if (path.indexOf(':') !== -1 && path !== 'empty:') {
+        if (path.indexOf('://') !== -1 && path !== 'empty:') {
             throw new Error('Path is not supported: ' + path +
                             '\nOptimizer can only handle' +
                             ' local paths. Download the locally if necessary' +
