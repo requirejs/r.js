@@ -164,7 +164,7 @@ function (file,           pragma,   parse) {
                     context.completeLoad(moduleName);
                 }
 
-                // remember the list of dependencies for this layer.O
+                // remember the list of dependencies for this layer.
                 layer.buildFilePaths.push(url);
             }
 
@@ -180,7 +180,7 @@ function (file,           pragma,   parse) {
         //This method is called when a plugin specifies a loaded value. Use
         //this to track dependencies that do not go through require.load.
         require.onPluginLoad = function (context, pluginName, name, value) {
-            var registeredName = pluginName + '!' + name;
+            var registeredName = pluginName + '!' + (name || '');
             layer.buildFilePaths.push(registeredName);
             //For plugins the real path is not knowable, use the name
             //for both module to file and file to module mappings.
