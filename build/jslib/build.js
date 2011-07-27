@@ -757,7 +757,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             } else {
                 //Add the contents but remove any pragmas.
-                currContents = pragma.process(path, file.readFile(path), config);
+                currContents = pragma.process(path, file.readFile(path), config, 'OnSave');
 
                 currContents = build.toTransport(moduleName, path, currContents, layer);
 

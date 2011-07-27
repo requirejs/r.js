@@ -9,6 +9,26 @@
 
 define(function () {
 
+    function Temp() {}
+
+    function create(obj, mixin) {
+        Temp.prototype = obj;
+        var temp = new Temp(), prop;
+
+        //Avoid any extra memory hanging around
+        Temp.prototype = null;
+
+        if (mixin) {
+            for (prop in mixin) {
+                if (mixin.hasOwnProperty(prop) && !(prop in temp)) {
+                    temp[prop] = mixin[prop];
+                }
+            }
+        }
+
+        return temp; // Object
+    }
+
     var pragma = {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
         useStrictRegExp: /['"]use strict['"];/g,
@@ -21,20 +41,38 @@ define(function () {
         /**
          * processes the fileContents for some //>> conditional statements
          */
-        process: function (fileName, fileContents, config) {
+        process: function (fileName, fileContents, config, onLifecycleName) {
             /*jslint evil: true */
             var foundIndex = -1, startIndex = 0, lineEndIndex, conditionLine,
                 matches, type, marker, condition, isTrue, endRegExp, endMatches,
-                endMarkerIndex, shouldInclude, startLength, pragmas = config.pragmas,
+                endMarkerIndex, shouldInclude, startLength, lifecycleHas,
+                lifecyclePragmas, pragmas = config.pragmas, hasConfig = config.has,
                 //Legacy arg defined to help in dojo conversion script. Remove later
                 //when dojo no longer needs conversion:
                 kwArgs = pragmas;
 
+            //Mix in a specific lifecycle scoped object, to allow targeting
+            //some pragmas/has tests to only when files are saved, or at different
+            //lifecycle events. Do not bother with kwArgs in this section, since
+            //the old dojo kwArgs were for all points in the build lifecycle.
+            if (onLifecycleName) {
+                lifecyclePragmas = config['pragmas' + onLifecycleName];
+                lifecycleHas = config['has' + onLifecycleName];
+
+                if (lifecyclePragmas) {
+                    pragmas = create(pragmas || {}, lifecyclePragmas);
+                }
+
+                if (lifecycleHas) {
+                    hasConfig = create(hasConfig || {}, lifecycleHas);
+                }
+            }
+
             //Replace has references if desired
-            if (config.has) {
+            if (hasConfig) {
                 fileContents = fileContents.replace(pragma.hasRegExp, function (match, test) {
-                    if (test in config.has) {
-                        return !!config.has[test];
+                    if (test in hasConfig) {
+                        return !!hasConfig[test];
                     }
                     return match;
                 });

@@ -120,7 +120,7 @@ function (file,           pragma,   parse) {
                 //Load the file contents, process for conditionals, then
                 //evaluate it.
                 contents = file.readFile(url);
-                contents = pragma.process(url, contents, context.config);
+                contents = pragma.process(url, contents, context.config, 'OnExecute');
 
                 //Find out if the file contains a require() definition. Need to know
                 //this so we can inject plugins right after it, but before they are needed,
