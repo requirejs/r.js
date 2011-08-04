@@ -13,13 +13,13 @@
 
 /*jslint strict: false, evil: true */
 /*global readFile: true, process: false, Packages: false, print: false,
-console: false, java: false */
+console: false, java: false, module: false */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists,
+        nodeDefine, exists, reqMain,
         version = '0.25.0+',
         jsSuffixRegExp = /\.js$/,
         //Indicates so build/build.js that the modules for the optimizer
@@ -74,6 +74,7 @@ var requirejs, require, define;
         path = require('path');
         nodeRequire = require;
         nodeDefine = define;
+        reqMain = require.main;
 
         //Temporarily hide require and define to allow require.js to define
         //them.
@@ -7247,7 +7248,8 @@ function (file,           pragma,   parse) {
 
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
-            oldDef;
+            oldDef,
+            cachedFileContents = {};
 
         /** Reset state for each build layer pass. */
         require._buildReset = function () {
@@ -7339,39 +7341,45 @@ function (file,           pragma,   parse) {
                 layer.buildFileToModule[url] = moduleName;
 
                 try {
-                    //Load the file contents, process for conditionals, then
-                    //evaluate it.
-                    contents = file.readFile(url);
-                    contents = pragma.process(url, contents, context.config, 'OnExecute');
+                    if (url in cachedFileContents) {
+                        contents = cachedFileContents[url];
+                    } else {
+                        //Load the file contents, process for conditionals, then
+                        //evaluate it.
+                        contents = file.readFile(url);
+                        contents = pragma.process(url, contents, context.config, 'OnExecute');
 
-                    //Find out if the file contains a require() definition. Need to know
-                    //this so we can inject plugins right after it, but before they are needed,
-                    //and to make sure this file is first, so that require.def calls work.
-                    //This situation mainly occurs when the build is done on top of the output
-                    //of another build, where the first build may include require somewhere in it.
-                    if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                        layer.existingRequireUrl = url;
-                    }
-
-                    if (moduleName in context.plugins) {
-                        //This is a loader plugin, check to see if it has a build extension,
-                        //otherwise the plugin will act as the plugin builder too.
-                        pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
-                        if (pluginBuilderMatch) {
-                            //Load the plugin builder for the plugin contents.
-                            builderName = context.normalize(pluginBuilderMatch[3], moduleName);
-                            contents = file.readFile(context.nameToUrl(builderName));
+                        //Find out if the file contains a require() definition. Need to know
+                        //this so we can inject plugins right after it, but before they are needed,
+                        //and to make sure this file is first, so that require.def calls work.
+                        //This situation mainly occurs when the build is done on top of the output
+                        //of another build, where the first build may include require somewhere in it.
+                        if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                            layer.existingRequireUrl = url;
                         }
 
-                        //plugins need to have their source evaled as-is.
-                        context._plugins[moduleName] = true;
-                    }
+                        if (moduleName in context.plugins) {
+                            //This is a loader plugin, check to see if it has a build extension,
+                            //otherwise the plugin will act as the plugin builder too.
+                            pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
+                            if (pluginBuilderMatch) {
+                                //Load the plugin builder for the plugin contents.
+                                builderName = context.normalize(pluginBuilderMatch[3], moduleName);
+                                contents = file.readFile(context.nameToUrl(builderName));
+                            }
 
-                    //Parse out the require and define calls.
-                    //Do this even for plugins in case they have their own
-                    //dependencies that may be separate to how the pluginBuilder works.
-                    if (!context._plugins[moduleName]) {
-                        contents = parse(url, contents);
+                            //plugins need to have their source evaled as-is.
+                            context._plugins[moduleName] = true;
+                        }
+
+                        //Parse out the require and define calls.
+                        //Do this even for plugins in case they have their own
+                        //dependencies that may be separate to how the pluginBuilder works.
+                        if (!context._plugins[moduleName]) {
+                            contents = parse(url, contents);
+                        }
+
+                        cachedFileContents[url] = contents;
                     }
 
                     if (contents) {
@@ -8412,6 +8420,30 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
     }
 
+
+    /**
+     * Sets the default baseUrl for requirejs to be directory of top level
+     * script.
+     */
+    function setBaseUrl(fileName) {
+        //Use the file name's directory as the baseUrl if available.
+        dir = fileName.replace(/\\/g, '/');
+        if (dir.indexOf('/') !== -1) {
+            dir = dir.split('/');
+            dir.pop();
+            dir = dir.join('/');
+            exec("require({baseUrl: '" + dir + "'});");
+        }
+    }
+
+    //If in Node, and included via a require('requirejs'), just export and
+    //THROW IT ON THE GROUND!
+    if (env === 'node' && reqMain !== module) {
+        setBaseUrl(path.resolve(reqMain.filename));
+        module.exports = requirejs;
+        return;
+    }
+
     if (commandOption === 'o') {
         //Do the optimizer work.
         loadLib();
@@ -8489,25 +8521,9 @@ function (args,            build) {
             loadLib();
         }
 
-        //Use the file name's directory as the baseUrl if available.
-        dir = fileName.replace(/\\/g, '/');
-        if (dir.indexOf('/') !== -1) {
-            dir = dir.split('/');
-            dir.pop();
-            dir = dir.join('/');
-            exec("require({baseUrl: '" + dir + "'});");
-        }
+        setBaseUrl(fileName);
 
         if (exists(fileName)) {
-            if (env === 'node') {
-                //Put the file name's directory on the paths
-                //so node_modules in that directory will be
-                //consulted instead of relying on a node_modules
-                //in the r.js location.
-                //Put the current working direct
-                nodeRequire.paths.unshift(path.join(path.dirname(fs.realpathSync(fileName)), 'node_modules'));
-            }
-
             exec(readFile(fileName), fileName);
         } else {
             showHelp();
