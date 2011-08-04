@@ -630,7 +630,7 @@ var requirejs, require, define;
         }
 
         function execManager(manager) {
-            var i, ret, waitingCallbacks, err,
+            var i, ret, waitingCallbacks, err, errFile,
                 cb = manager.callback,
                 fullName = manager.fullName,
                 args = [],
@@ -688,10 +688,12 @@ var requirejs, require, define;
             }
 
             if (err) {
+                errFile = (fullName ? makeModuleMap(fullName).url : '') ||
+                           err.fileName || err.sourceURL;
                 err = makeError('defineerror', 'Error evaluating ' +
                                 'module "' + fullName + '" at location "' +
-                                (fullName ? makeModuleMap(fullName).url : '') + '":\n' +
-                                err + '\nfileName:' + (err.fileName || err.sourceURL) +
+                                errFile + '":\n' +
+                                err + '\nfileName:' + errFile +
                                 '\nlineNumber: ' + (err.lineNumber || err.line), err);
                 err.moduleName = fullName;
                 return req.onError(err);
@@ -7336,51 +7338,53 @@ function (file,           pragma,   parse) {
                 layer.buildPathMap[moduleName] = url;
                 layer.buildFileToModule[url] = moduleName;
 
-                //Load the file contents, process for conditionals, then
-                //evaluate it.
-                contents = file.readFile(url);
-                contents = pragma.process(url, contents, context.config, 'OnExecute');
+                try {
+                    //Load the file contents, process for conditionals, then
+                    //evaluate it.
+                    contents = file.readFile(url);
+                    contents = pragma.process(url, contents, context.config, 'OnExecute');
 
-                //Find out if the file contains a require() definition. Need to know
-                //this so we can inject plugins right after it, but before they are needed,
-                //and to make sure this file is first, so that require.def calls work.
-                //This situation mainly occurs when the build is done on top of the output
-                //of another build, where the first build may include require somewhere in it.
-                if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                    layer.existingRequireUrl = url;
-                }
-
-                if (moduleName in context.plugins) {
-                    //This is a loader plugin, check to see if it has a build extension,
-                    //otherwise the plugin will act as the plugin builder too.
-                    pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
-                    if (pluginBuilderMatch) {
-                        //Load the plugin builder for the plugin contents.
-                        builderName = context.normalize(pluginBuilderMatch[3], moduleName);
-                        contents = file.readFile(context.nameToUrl(builderName));
+                    //Find out if the file contains a require() definition. Need to know
+                    //this so we can inject plugins right after it, but before they are needed,
+                    //and to make sure this file is first, so that require.def calls work.
+                    //This situation mainly occurs when the build is done on top of the output
+                    //of another build, where the first build may include require somewhere in it.
+                    if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                        layer.existingRequireUrl = url;
                     }
 
-                    //plugins need to have their source evaled as-is.
-                    context._plugins[moduleName] = true;
-                }
+                    if (moduleName in context.plugins) {
+                        //This is a loader plugin, check to see if it has a build extension,
+                        //otherwise the plugin will act as the plugin builder too.
+                        pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
+                        if (pluginBuilderMatch) {
+                            //Load the plugin builder for the plugin contents.
+                            builderName = context.normalize(pluginBuilderMatch[3], moduleName);
+                            contents = file.readFile(context.nameToUrl(builderName));
+                        }
 
-                //Parse out the require and define calls.
-                //Do this even for plugins in case they have their own
-                //dependencies that may be separate to how the pluginBuilder works.
-                if (!context._plugins[moduleName]) {
-                    contents = parse(url, contents);
-                }
+                        //plugins need to have their source evaled as-is.
+                        context._plugins[moduleName] = true;
+                    }
 
-                if (contents) {
-                    try {
+                    //Parse out the require and define calls.
+                    //Do this even for plugins in case they have their own
+                    //dependencies that may be separate to how the pluginBuilder works.
+                    if (!context._plugins[moduleName]) {
+                        contents = parse(url, contents);
+                    }
+
+                    if (contents) {
                         eval(contents);
-                    } catch (e) {
-                        throw new Error('requirePatch.js: eval of ' + url +
-                                        ' created error: ' + e);
+
+                        //Support anonymous modules.
+                        context.completeLoad(moduleName);
                     }
 
-                    //Support anonymous modules.
-                    context.completeLoad(moduleName);
+                } catch (e) {
+                    e.fileName = url;
+                    e.lineNumber = e.line;
+                    throw e;
                 }
 
                 // remember the list of dependencies for this layer.
