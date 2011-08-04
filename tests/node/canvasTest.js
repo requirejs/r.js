@@ -5,6 +5,8 @@
 /*jslint strict: false */
 /*global require: false, console: false */
 
+var require = require('r');
+
 require(['canvas', 'express'], function (Canvas, express) {
     var canvas = new Canvas(200, 200),
         ctx = canvas.getContext('2d'),

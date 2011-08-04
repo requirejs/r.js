@@ -26,7 +26,8 @@ function (file,           pragma,   parse) {
 
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
-            oldDef;
+            oldDef,
+            cachedFileContents = {};
 
         /** Reset state for each build layer pass. */
         require._buildReset = function () {
@@ -118,39 +119,45 @@ function (file,           pragma,   parse) {
                 layer.buildFileToModule[url] = moduleName;
 
                 try {
-                    //Load the file contents, process for conditionals, then
-                    //evaluate it.
-                    contents = file.readFile(url);
-                    contents = pragma.process(url, contents, context.config, 'OnExecute');
+                    if (url in cachedFileContents) {
+                        contents = cachedFileContents[url];
+                    } else {
+                        //Load the file contents, process for conditionals, then
+                        //evaluate it.
+                        contents = file.readFile(url);
+                        contents = pragma.process(url, contents, context.config, 'OnExecute');
 
-                    //Find out if the file contains a require() definition. Need to know
-                    //this so we can inject plugins right after it, but before they are needed,
-                    //and to make sure this file is first, so that require.def calls work.
-                    //This situation mainly occurs when the build is done on top of the output
-                    //of another build, where the first build may include require somewhere in it.
-                    if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                        layer.existingRequireUrl = url;
-                    }
-
-                    if (moduleName in context.plugins) {
-                        //This is a loader plugin, check to see if it has a build extension,
-                        //otherwise the plugin will act as the plugin builder too.
-                        pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
-                        if (pluginBuilderMatch) {
-                            //Load the plugin builder for the plugin contents.
-                            builderName = context.normalize(pluginBuilderMatch[3], moduleName);
-                            contents = file.readFile(context.nameToUrl(builderName));
+                        //Find out if the file contains a require() definition. Need to know
+                        //this so we can inject plugins right after it, but before they are needed,
+                        //and to make sure this file is first, so that require.def calls work.
+                        //This situation mainly occurs when the build is done on top of the output
+                        //of another build, where the first build may include require somewhere in it.
+                        if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                            layer.existingRequireUrl = url;
                         }
 
-                        //plugins need to have their source evaled as-is.
-                        context._plugins[moduleName] = true;
-                    }
+                        if (moduleName in context.plugins) {
+                            //This is a loader plugin, check to see if it has a build extension,
+                            //otherwise the plugin will act as the plugin builder too.
+                            pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
+                            if (pluginBuilderMatch) {
+                                //Load the plugin builder for the plugin contents.
+                                builderName = context.normalize(pluginBuilderMatch[3], moduleName);
+                                contents = file.readFile(context.nameToUrl(builderName));
+                            }
 
-                    //Parse out the require and define calls.
-                    //Do this even for plugins in case they have their own
-                    //dependencies that may be separate to how the pluginBuilder works.
-                    if (!context._plugins[moduleName]) {
-                        contents = parse(url, contents);
+                            //plugins need to have their source evaled as-is.
+                            context._plugins[moduleName] = true;
+                        }
+
+                        //Parse out the require and define calls.
+                        //Do this even for plugins in case they have their own
+                        //dependencies that may be separate to how the pluginBuilder works.
+                        if (!context._plugins[moduleName]) {
+                            contents = parse(url, contents);
+                        }
+
+                        cachedFileContents[url] = contents;
                     }
 
                     if (contents) {

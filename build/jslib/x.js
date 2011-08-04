@@ -13,13 +13,13 @@
 
 /*jslint strict: false, evil: true */
 /*global readFile: true, process: false, Packages: false, print: false,
-console: false, java: false */
+console: false, java: false, module: false */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists,
+        nodeDefine, exists, reqMain,
         version = '0.25.0+',
         jsSuffixRegExp = /\.js$/,
         //Indicates so build/build.js that the modules for the optimizer
@@ -74,6 +74,7 @@ var requirejs, require, define;
         path = require('path');
         nodeRequire = require;
         nodeDefine = define;
+        reqMain = require.main;
 
         //Temporarily hide require and define to allow require.js to define
         //them.
@@ -133,6 +134,30 @@ var requirejs, require, define;
         //INSERT LIB
     }
 
+
+    /**
+     * Sets the default baseUrl for requirejs to be directory of top level
+     * script.
+     */
+    function setBaseUrl(fileName) {
+        //Use the file name's directory as the baseUrl if available.
+        dir = fileName.replace(/\\/g, '/');
+        if (dir.indexOf('/') !== -1) {
+            dir = dir.split('/');
+            dir.pop();
+            dir = dir.join('/');
+            exec("require({baseUrl: '" + dir + "'});");
+        }
+    }
+
+    //If in Node, and included via a require('requirejs'), just export and
+    //THROW IT ON THE GROUND!
+    if (env === 'node' && reqMain !== module) {
+        setBaseUrl(path.resolve(reqMain.filename));
+        module.exports = requirejs;
+        return;
+    }
+
     if (commandOption === 'o') {
         //Do the optimizer work.
         loadLib();
@@ -166,25 +191,9 @@ var requirejs, require, define;
             loadLib();
         }
 
-        //Use the file name's directory as the baseUrl if available.
-        dir = fileName.replace(/\\/g, '/');
-        if (dir.indexOf('/') !== -1) {
-            dir = dir.split('/');
-            dir.pop();
-            dir = dir.join('/');
-            exec("require({baseUrl: '" + dir + "'});");
-        }
+        setBaseUrl(fileName);
 
         if (exists(fileName)) {
-            if (env === 'node') {
-                //Put the file name's directory on the paths
-                //so node_modules in that directory will be
-                //consulted instead of relying on a node_modules
-                //in the r.js location.
-                //Put the current working direct
-                nodeRequire.paths.unshift(path.join(path.dirname(fs.realpathSync(fileName)), 'node_modules'));
-            }
-
             exec(readFile(fileName), fileName);
         } else {
             showHelp();
