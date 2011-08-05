@@ -131,8 +131,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         config = build.createConfig(cmdConfig);
         paths = config.paths;
 
-        if ( config.logLevel ) {
-            logger.logLevel( config.logLevel );
+        if (config.logLevel) {
+            logger.logLevel(config.logLevel);
         }
 
         if (!config.out && !config.cssIn) {
@@ -450,7 +450,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                    path;
             path = file.normalize(path);
         }
-        return path;
+        return path.replace(lang.backSlashRegExp, '/');
     };
 
     /**
@@ -471,6 +471,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
+
+        //Normalize on front slashes
+        cfg.requireBuildPath = cfg.requireBuildPath.replace(lang.backSlashRegExp, '/');
 
         //Normalize build directory location, and set up path to require.js
         if (config.requireBuildPath.charAt(config.requireBuildPath.length - 1) !== "/") {
@@ -588,6 +591,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (config.paths) {
             for (prop in config.paths) {
                 if (config.paths.hasOwnProperty(prop)) {
+                    config.paths[prop] = config.paths[prop].replace(lang.backSlashRegExp, "/");
                     disallowUrls(config.paths[prop]);
                 }
             }

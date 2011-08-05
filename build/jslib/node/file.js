@@ -5,12 +5,29 @@
  */
 
 /*jslint plusplus: false, octal:false, strict: false */
-/*global define: false */
+/*global define: false, process: false */
 
 define(['fs', 'path'], function (fs, path) {
 
+    var isWindows = process.platform === 'win32',
+        file;
+
+    function exists(path) {
+        if (isWindows && path.charAt(path.length - 1) === '/' &&
+            path.charAt(path.length - 2) !== ':') {
+            path = path.substring(0, path.length - 1);
+        }
+
+        try {
+            fs.statSync(path);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     function mkDir(dir) {
-        if (!path.existsSync(dir)) {
+        if (!exists(dir)) {
             fs.mkdirSync(dir, 0777);
         }
     }
@@ -19,6 +36,7 @@ define(['fs', 'path'], function (fs, path) {
         var parts = dir.split('/'),
             currDir = '',
             first = true;
+
         parts.forEach(function (part) {
             //First part may be empty string if path starts with a slash.
             currDir += part + '/';
@@ -30,14 +48,14 @@ define(['fs', 'path'], function (fs, path) {
         });
     }
 
-    var file = {
+    file = {
         backSlashRegExp: /\\/g,
         getLineSeparator: function () {
             return '/';
         },
 
         exists: function (fileName) {
-            return path.existsSync(fileName);
+            return exists(fileName);
         },
 
         parent: function (fileName) {
@@ -80,7 +98,7 @@ define(['fs', 'path'], function (fs, path) {
             regExpInclude = regExpFilters.include || regExpFilters;
             regExpExclude = regExpFilters.exclude || null;
 
-            if (path.existsSync(topDir)) {
+            if (file.exists(topDir)) {
                 dirFileArray = fs.readdirSync(topDir);
                 for (i = 0; i < dirFileArray.length; i++) {
                     fileName = dirFileArray[i];
@@ -146,18 +164,19 @@ define(['fs', 'path'], function (fs, path) {
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
             if (onlyCopyNew) {
-                if (path.existsSync(destFileName) && fs.statSync(destFileName).mtime.getTime() >= fs.statSync(srcFileName).mtime.getTime()) {
+                if (file.exists(destFileName) && fs.statSync(destFileName).mtime.getTime() >= fs.statSync(srcFileName).mtime.getTime()) {
                     return false; //Boolean
                 }
             }
 
             //Make sure destination dir exists.
             parentDir = path.dirname(destFileName);
-            if (!path.existsSync(parentDir)) {
+            if (!file.exists(parentDir)) {
                 mkFullDir(parentDir);
             }
 
             fs.writeFileSync(destFileName, fs.readFileSync(srcFileName, 'binary'), 'binary');
+
             return true; //Boolean
         },
 
@@ -193,7 +212,7 @@ define(['fs', 'path'], function (fs, path) {
 
             //Make sure destination directories exist.
             parentDir = path.dirname(fileName);
-            if (!path.existsSync(parentDir)) {
+            if (!file.exists(parentDir)) {
                 mkFullDir(parentDir);
             }
 
@@ -203,7 +222,7 @@ define(['fs', 'path'], function (fs, path) {
         deleteFile: function (/*String*/fileName) {
             //summary: deletes a file or directory if it exists.
             var files, i, stat;
-            if (path.existsSync(fileName)) {
+            if (file.exists(fileName)) {
                 stat = fs.statSync(fileName);
                 if (stat.isDirectory()) {
                     files = fs.readdirSync(fileName);
