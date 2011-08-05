@@ -715,6 +715,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.flattenModule = function (module, layer, config) {
         var buildFileContents = "",
+            namespace = config.namespace ? config.namespace + '.' : '',
             context = layer.context,
             path, reqIndex, fileContents, currContents,
             i, moduleName,
@@ -755,15 +756,15 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         fileContents += input;
                     };
                     writeApi.asModule = function (moduleName, input) {
-                        fileContents += "\n" + build.toTransport(moduleName, path, input, layer);
+                        fileContents += "\n" + build.toTransport(namespace, moduleName, path, input, layer);
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
-                //Add the contents but remove any pragmas.
-                currContents = pragma.process(path, file.readFile(path), config, 'OnSave');
 
-                currContents = build.toTransport(moduleName, path, currContents, layer);
+                currContents = pragma.namespace(file.readFile(path), config.namespace);
+
+                currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
 
                 fileContents += "\n" + currContents;
             }
@@ -781,10 +782,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (moduleName === 'jquery') {
                     fileContents += '\n(function () {\n' +
                                    'var jq = typeof jQuery !== "undefined" && jQuery;\n' +
+                                   namespace +
                                    'define("jquery", [], function () { return jq; });\n' +
                                    '}());\n';
                 } else {
-                    fileContents += '\ndefine("' + moduleName + '", function(){});\n';
+                    fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
                 }
             }
         }
@@ -801,7 +803,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     //for a comment.
     build.anonDefRegExp = /(^|[^\.])(require\s*\.\s*def|define)\s*\(\s*(\/\/[^\n\r]*[\r\n])?(\[|f|\{)/;
 
-    build.toTransport = function (moduleName, path, contents, layer) {
+    build.toTransport = function (namespace, moduleName, path, contents, layer) {
         //If anonymous module, insert the module name.
         return contents.replace(build.anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
             layer.modulesWithNames[moduleName] = true;
@@ -821,7 +823,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
 
-            return "define('" + moduleName + "'," +
+            return namespace + "define('" + moduleName + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    suffix;
         });

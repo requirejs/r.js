@@ -33,9 +33,36 @@ define(function () {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
         useStrictRegExp: /['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\)/g,
+        nsRegExp: /(^|[^\.])(requirejs|require|define)\s*\(/,
+        apiDefRegExp: /var requirejs, require, define;/,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
+        },
+
+        namespace: function (fileContents, ns, onLifecycleName) {
+            if (ns) {
+                //Namespace require/define calls
+                fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
+
+                //Check for require.js with the require/define definitions
+                if (pragma.apiDefRegExp.test(fileContents) &&
+                    fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
+                    //Wrap the file contents in a typeof check, and a function
+                    //to contain the API globals.
+                    fileContents = "var " + ns + ";(function () { if (typeof " +
+                                    ns + " === 'undefined') {\n" +
+                                    ns + ' = {};\n' +
+                                    fileContents +
+                                    "\n}\n" +
+                                    ns + ".requirejs = requirejs;" +
+                                    ns + ".require = require;" +
+                                    ns + ".define = define;\n" +
+                                    "}());";
+                }
+            }
+
+            return fileContents;
         },
 
         /**
@@ -76,6 +103,11 @@ define(function () {
                     }
                     return match;
                 });
+            }
+
+            //Do namespacing
+            if (onLifecycleName === 'OnSave' && config.namespace) {
+                fileContents = pragma.namespace(fileContents, config.namespace, onLifecycleName);
             }
 
             //If pragma work is not desired, skip it.

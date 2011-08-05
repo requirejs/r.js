@@ -8,9 +8,9 @@
 /*global define: false */
 
 define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
-         'uglifyjs/index'],
+         'pragma', 'uglifyjs/index'],
 function (lang,   logger,   envOptimize,        file,           parse,
-          uglify) {
+          pragma, uglify) {
 
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
@@ -149,6 +149,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 fileContents, optFunc, deps, i, dep;
 
             fileContents = file.readFile(fileName);
+
+            //Apply pragmas/namespace renaming
+            fileContents = pragma.process(fileName, fileContents, config, 'OnSave');
 
             //If there is a plugin collector, scan the file for plugin resources.
             if (config.optimizeAllPluginResources && pluginCollector) {
