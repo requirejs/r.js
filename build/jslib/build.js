@@ -761,8 +761,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
+                currContents = file.readFile(path);
 
-                currContents = pragma.namespace(file.readFile(path), config.namespace);
+                if (config.namespace) {
+                    currContents = pragma.namespace(currContents, config.namespace);
+                }
 
                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
 
@@ -823,7 +826,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
 
-            return namespace + "define('" + moduleName + "'," +
+            return start + namespace + "define('" + moduleName + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    suffix;
         });

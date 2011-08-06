@@ -6737,24 +6737,25 @@ define('pragma', function () {
         },
 
         namespace: function (fileContents, ns, onLifecycleName) {
+            if (ns) {
+                //Namespace require/define calls
+                fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
 
-            //Namespace require/define calls
-            fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
-
-            //Check for require.js with the require/define definitions
-            if (pragma.apiDefRegExp.test(fileContents) &&
-                fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
-                //Wrap the file contents in a typeof check, and a function
-                //to contain the API globals.
-                fileContents = "var " + ns + ";(function () { if (typeof " +
-                                ns + " === 'undefined') {\n" +
-                                ns + ' = {};\n' +
-                                fileContents +
-                                "\n}\n" +
-                                ns + ".requirejs = requirejs;" +
-                                ns + ".require = require;" +
-                                ns + ".define = define;\n" +
-                                "}());";
+                //Check for require.js with the require/define definitions
+                if (pragma.apiDefRegExp.test(fileContents) &&
+                    fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
+                    //Wrap the file contents in a typeof check, and a function
+                    //to contain the API globals.
+                    fileContents = "var " + ns + ";(function () { if (typeof " +
+                                    ns + " === 'undefined') {\n" +
+                                    ns + ' = {};\n' +
+                                    fileContents +
+                                    "\n}\n" +
+                                    ns + ".requirejs = requirejs;" +
+                                    ns + ".require = require;" +
+                                    ns + ".define = define;\n" +
+                                    "}());";
+                }
             }
 
             return fileContents;
@@ -8405,8 +8406,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
+                currContents = file.readFile(path);
 
-                currContents = pragma.namespace(file.readFile(path), config.namespace);
+                if (config.namespace) {
+                    currContents = pragma.namespace(currContents, config.namespace);
+                }
 
                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
 
@@ -8467,7 +8471,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
 
-            return namespace + "define('" + moduleName + "'," +
+            return start + namespace + "define('" + moduleName + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    suffix;
         });
