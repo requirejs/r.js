@@ -2460,9 +2460,14 @@ define('node/file', ['fs', 'path'], function (fs, path) {
         },
 
         parent: function (fileName) {
-            var parts = fileName.split('/');
-            parts.pop();
-            return parts.join('/');
+            var parts;
+            if( env === 'node' ){
+                return path.dirname( fileName );
+            } else {
+                parts = fileName.split(/[/\\]/);
+                parts.pop();
+                return parts.join('/');
+            }
         },
 
         /**
