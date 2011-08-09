@@ -84,7 +84,7 @@
         } else {
             def(moduleName, function () {
                 try {
-                    return nodeReq(moduleName);
+                    return (context.config.nodeRequire || req.nodeRequire)(moduleName);
                 } catch (e) {
                     err = new Error('Calling node\'s require("' +
                                         moduleName + '") failed with error: ' + e);

@@ -2,3 +2,4 @@
 r.js
 build/tests/builds
 tests/node/node_modules
+tests/node/embedded/node_modules
