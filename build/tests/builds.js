@@ -15,7 +15,7 @@ define(['build', 'env!env/file'], function (build, file) {
     }
 
     //Do a build of the text plugin to get any pragmas processed.
-    build(["..", "name=text", "baseUrl=../../../requirejs", "out=builds/text.js", "optimize=none"]);
+    build(["name=text", "baseUrl=../../../requirejs", "out=builds/text.js", "optimize=none"]);
 
     //Reset build state for next run.
     require._buildReset();
@@ -30,7 +30,7 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("buildOneCssFile",
         [
             function buildOneCssFile(t) {
-                build(["..", "cssIn=css/sub/sub1.css", "out=builds/sub1.css"]);
+                build(["cssIn=css/sub/sub1.css", "out=builds/sub1.css"]);
 
                 t.is(nol(c("cssTestCompare.css")), nol(c("builds/sub1.css")));
 
@@ -45,7 +45,7 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("buildOneJsFile",
         [
             function buildOneJsFile(t) {
-                build(["..", "name=one", "include=dimple", "out=builds/outSingle.js",
+                build(["name=one", "include=dimple", "out=builds/outSingle.js",
                        "baseUrl=../../../requirejs/tests", "optimize=none"]);
 
                 t.is(nol(oneResult), nol(c("builds/outSingle.js")));
@@ -62,7 +62,7 @@ define(['build', 'env!env/file'], function (build, file) {
         [
             function buildSimple(t) {
                 //Do the build
-                build(["..", "simple.build.js"]);
+                build(["simple.build.js"]);
 
                 t.is(nol(oneResult), nol(c("builds/simple/one.js")));
 
@@ -77,7 +77,7 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("buildExcludeShallow",
         [
             function buildExcludeShallow(t) {
-                build(["..", "name=uno", "excludeShallow=dos", "out=builds/unoExcludeShallow.js",
+                build(["name=uno", "excludeShallow=dos", "out=builds/unoExcludeShallow.js",
                        "baseUrl=../../../requirejs/tests", "optimize=none"]);
                 t.is(nol(c("../../../requirejs/tests/tres.js") +
                      c("../../../requirejs/tests/uno.js")), nol(c("builds/unoExcludeShallow.js")));
@@ -90,7 +90,7 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("buildExclude",
         [
             function buildExclude(t) {
-                build(["..", "name=uno", "exclude=dos", "out=builds/unoExclude.js",
+                build(["name=uno", "exclude=dos", "out=builds/unoExclude.js",
                        "baseUrl=../../../requirejs/tests", "optimize=none"]);
 
                 t.is(nol(c("../../../requirejs/tests/uno.js")), nol(c("builds/unoExclude.js")));
@@ -103,7 +103,7 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("buildTextPluginIncluded",
         [
             function buildTextPluginIncluded(t) {
-                build(["..", "name=one", "include=text", "out=builds/oneText.js",
+                build(["name=one", "include=text", "out=builds/oneText.js",
                        "baseUrl=../../../requirejs/tests", "paths.text=../text", "optimize=none"]);
 
                 t.is(nol(nol(c("../../../requirejs/tests/two.js") +
@@ -119,7 +119,7 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("buildPluginAsModule",
         [
             function buildPluginAsModule(t) {
-                build(["..", "name=refine!a", "out=builds/refineATest.js",
+                build(["name=refine!a", "out=builds/refineATest.js",
                        "baseUrl=../../../requirejs/tests/plugins/fromText",
                        "exclude=text,refine",
                        "paths.text=../../../text", "optimize=none"]);

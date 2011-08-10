@@ -13,6 +13,7 @@ define(['env!env/print'], function (print) {
         INFO: 1,
         WARN: 2,
         ERROR: 3,
+        SILENT: 4,
         level: 0,
         logPrefix: "",
 

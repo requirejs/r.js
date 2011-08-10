@@ -22,9 +22,6 @@ var requirejs, require, define;
         nodeDefine, exists, reqMain,
         version = '0.25.0+',
         jsSuffixRegExp = /\.js$/,
-        //Indicates so build/build.js that the modules for the optimizer
-        //are built-in.
-        isRjs = true,
         commandOption = '',
         //Used by jslib/rhino/args.js
         rhinoArgs = args,
@@ -154,6 +151,24 @@ var requirejs, require, define;
     //THROW IT ON THE GROUND!
     if (env === 'node' && reqMain !== module) {
         setBaseUrl(path.resolve(reqMain.filename));
+
+        //Create a method that will run the optimzer given an object
+        //config.
+        requirejs.optimize = function (config, callback) {
+            loadLib();
+
+            requirejs({
+                context: 'build'
+            }, ['build', 'logger'], function (build, logger) {
+                //Make sure config has a log level, and if not,
+                //make it "silent" by default.
+                config.logLevel = config.logLevel || logger.SILENT;
+
+                var result = build(config);
+                callback(result);
+            });
+        };
+
         module.exports = requirejs;
         return;
     }

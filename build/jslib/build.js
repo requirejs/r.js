@@ -15,7 +15,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     var build, buildBaseConfig;
 
     buildBaseConfig = {
-            requireBuildPath: "../",
             appDir: "",
             pragmas: {},
             paths: {},
@@ -65,10 +64,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * If it is an object, then in addition to the normal properties allowed in
      * a build profile file, the object should contain one other property:
      *
-     * requireBuildPath: a string that is the path to find require.js and the
-     * require/ directory. This should be a pristine require.js with only
-     * require.js contents (no plugins or jQuery).
-     *
      * The object could also contain a "buildFile" property, which is a string
      * that is the file path to a build profile that contains the rest
      * of the build profile directives.
@@ -77,39 +72,32 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * there is a problem completing the build.
      */
     build = function (args) {
-        var requireBuildPath, buildFile, cmdConfig;
+        var buildFile, cmdConfig;
 
         if (!args || lang.isArray(args)) {
-            if (!args || args.length < 2) {
-                logger.error("build.js directory/containing/build.js/ buildProfile.js\n" +
+            if (!args || args.length < 1) {
+                logger.error("build.js buildProfile.js\n" +
                       "where buildProfile.js is the name of the build file (see example.build.js for hints on how to make a build file).");
-                return;
+                return undefined;
             }
-
-            //Second argument should be the directory on where to find this script.
-            //This path should end in a slash.
-            requireBuildPath = args[0];
-            requireBuildPath = endsWithSlash(requireBuildPath);
 
             //Next args can include a build file path as well as other build args.
             //build file path comes first. If it does not contain an = then it is
             //a build file path. Otherwise, just all build args.
-            if (args[1].indexOf("=") === -1) {
-                buildFile = args[1];
-                args.splice(0, 2);
-            } else {
+    debugger;
+            if (args[0].indexOf("=") === -1) {
+                buildFile = args[0];
                 args.splice(0, 1);
             }
 
             //Remaining args are options to the build
             cmdConfig = build.convertArrayToObject(args);
             cmdConfig.buildFile = buildFile;
-            cmdConfig.requireBuildPath = requireBuildPath;
         } else {
             cmdConfig = args;
         }
 
-        build._run(cmdConfig);
+        return build._run(cmdConfig);
     };
 
     build._run = function (cmdConfig) {
@@ -387,7 +375,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Print out what was built into which layers.
         if (buildFileContents) {
             logger.info(buildFileContents);
+            return buildFileContents;
         }
+
+        return '';
     };
 
     /**
@@ -471,19 +462,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
-
-        //Normalize on front slashes
-        cfg.requireBuildPath = cfg.requireBuildPath.replace(lang.backSlashRegExp, '/');
-
-        //Normalize build directory location, and set up path to require.js
-        if (config.requireBuildPath.charAt(config.requireBuildPath.length - 1) !== "/") {
-            config.requireBuildPath += "/";
-            //Also adjust the override config params, since it
-            //may be re-applied later after reading the build file.
-            if (cfg.requireBuildPath) {
-                cfg.requireBuildPath = config.requireBuildPath;
-            }
-        }
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
