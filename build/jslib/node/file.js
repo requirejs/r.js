@@ -12,6 +12,10 @@ define(['fs', 'path'], function (fs, path) {
     var isWindows = process.platform === 'win32',
         file;
 
+    function frontSlash(path) {
+        return path.replace(/\\/g, '/');
+    }
+
     function exists(path) {
         if (isWindows && path.charAt(path.length - 1) === '/' &&
             path.charAt(path.length - 2) !== ':') {
@@ -70,11 +74,11 @@ define(['fs', 'path'], function (fs, path) {
          * @param {String} fileName
          */
         absPath: function (fileName) {
-            return path.normalize(fs.realpathSync(fileName).replace(/\\/g, '/'));
+            return frontSlash(path.normalize(frontSlash(fs.realpathSync(fileName))));
         },
 
         normalize: function (fileName) {
-            return path.normalize(fileName);
+            return frontSlash(path.normalize(fileName));
         },
 
         isFile: function (path) {
@@ -108,7 +112,7 @@ define(['fs', 'path'], function (fs, path) {
                         if (makeUnixPaths) {
                             //Make sure we have a JS string.
                             if (filePath.indexOf("/") === -1) {
-                                filePath = filePath.replace(/\\/g, "/");
+                                filePath = frontSlash(filePath);
                             }
                         }
 
