@@ -11,33 +11,42 @@ var requirejs = require('../../r.js'),
 //Set up the config passed to the optimizer
 config = {
     baseUrl: '../../../requirejs/tests',
+    //optimize: 'none',
     name: 'one',
     include: 'dimple',
-    out: 'builds/outSingleOpt.js',
-    optimize: 'none'
+    out: 'builds/outSingleOpt.js'
 };
 
 function respond(res, code, contents) {
     res.writeHead(code, {
-        'Content-Type': (code === 200 ? 'application/javascript' : 'text/plain'),
+        'Content-Type': (code === 200 ? 'application/javascript;charset=UTF-8' : 'text/plain'),
         'Content-Length': contents.length
     });
-    res.end(contents);
+
+    res.write(contents, 'utf8');
+    res.end();
 }
 
 http.createServer(function (req, res) {
-    //Does not matter what the request is,
-    //the answer is always OPTIMIZED JS!
-    try {
-        requirejs.optimize(config, function (buildResponse) {
-            //buildResponse is just a text output of the modules
-            //included. Load the built file for the contents.
-            var contents = fs.readFileSync(config.out, 'utf8');
-            respond(res, 200, contents);
-        });
-    } catch (e) {
-        respond(res, 500, e.toString());
-    }
+
+    req.on('close', function (err) {
+        res.end();
+    });
+
+    req.on('end', function () {
+        //Does not matter what the request is,
+        //the answer is always OPTIMIZED JS!
+        try {
+            requirejs.optimize(config, function (buildResponse) {
+                //buildResponse is just a text output of the modules
+                //included. Load the built file for the contents.
+                var contents = fs.readFileSync(config.out, 'utf8');
+                respond(res, 200, contents);
+            });
+        } catch (e) {
+            respond(res, 500, e.toString());
+        }
+    });
 
 }).listen(port, host);
 

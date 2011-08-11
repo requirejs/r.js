@@ -11,7 +11,7 @@
  * the shell of the r.js file.
  */
 
-/*jslint strict: false, evil: true */
+/*jslint strict: false, evil: true, nomen: false */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false */
 
@@ -19,7 +19,7 @@ var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists, reqMain,
+        nodeDefine, exists, reqMain, loadedOptimizedLib,
         version = '0.25.0+',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
@@ -155,18 +155,35 @@ var requirejs, require, define;
         //Create a method that will run the optimzer given an object
         //config.
         requirejs.optimize = function (config, callback) {
-            loadLib();
+            if (!loadedOptimizedLib) {
+                loadLib();
+                loadedOptimizedLib = true;
+            }
 
-            requirejs({
-                context: 'build'
-            }, ['build', 'logger'], function (build, logger) {
+            //Create the function that will be called once build modules
+            //have been loaded.
+            var runBuild = function (build, logger) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
                 config.logLevel = config.logLevel || logger.SILENT;
 
                 var result = build(config);
+
+                //Reset build internals on each run.
+                requirejs._buildReset();
+
                 callback(result);
-            });
+            };
+
+            //Enable execution of this callback in a build setting.
+            //Normally, once requirePatch is run, by default it will
+            //not execute callbacks, unless this property is set on
+            //the callback.
+            runBuild.__requireJsBuild = true;
+
+            requirejs({
+                context: 'build'
+            }, ['build', 'logger'], runBuild);
         };
 
         module.exports = requirejs;
