@@ -84,7 +84,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Next args can include a build file path as well as other build args.
             //build file path comes first. If it does not contain an = then it is
             //a build file path. Otherwise, just all build args.
-    debugger;
             if (args[0].indexOf("=") === -1) {
                 buildFile = args[0];
                 args.splice(0, 1);
@@ -581,6 +580,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (config[prop]) {
                 config[prop] = build.makeAbsPath(config[prop], absFilePath);
             }
+        }
+
+        //Do final input verification
+        if (config.context) {
+            throw new Error('The build argument "context" is not supported' +
+                            ' in a build. It should only be used in web' +
+                            ' pages.');
         }
 
         return config;
