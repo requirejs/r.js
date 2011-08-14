@@ -1,20 +1,13 @@
-define(['canvas'], function (Canvas) {
+define(['uglify-js', 'fs', 'module'], function (uglify, fs, module) {
 
-    var canvas = new Canvas(200, 200),
-        ctx = canvas.getContext('2d');
+    var source = fs.readFileSync(module.uri, 'utf8'),
+        parser = uglify.parser,
+        minify = uglify.uglify,
+        ast = parser.parse(source);
 
-    ctx.font = '30px Impact';
-    ctx.rotate(0.1);
-    ctx.fillText("Awesome!", 50, 100);
-
-    var te = ctx.measureText('Awesome!');
-    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-    ctx.beginPath();
-    ctx.lineTo(50, 102);
-    ctx.lineTo(50 + te.width, 102);
-    ctx.stroke();
+    ast = minify.ast_mangle(ast);
 
     return {
-        data: canvas.toDataURL()
+        data: minify.gen_code(minify.ast_squeeze(ast))
     };
 });

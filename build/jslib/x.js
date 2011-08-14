@@ -150,7 +150,7 @@ var requirejs, require, define;
     //If in Node, and included via a require('requirejs'), just export and
     //THROW IT ON THE GROUND!
     if (env === 'node' && reqMain !== module) {
-        setBaseUrl(path.resolve(reqMain.filename));
+        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
 
         //Create a method that will run the optimzer given an object
         //config.

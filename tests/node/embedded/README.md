@@ -6,7 +6,7 @@ requirejs module.
 ## Setup
 
 * mkdir node_modules
-* npm install coffee-script canvas
+* npm install coffee-script uglify-js
 
 Make sure there is a node_modules/requirejs directory with a package.json
 that has a 'main': 'bin/r.js' property, and create a bin directory with
