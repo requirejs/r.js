@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+    <h1>One script via RequireJS optimizer</h1>
+
+    <p><strong>Be sure to start up the server: node httpBuild.js</strong></p>
+
+    <p>Demonstrates how to use the RequireJS optimizer to only load
+    one script in the page using Node as the server to serve the optimized
+    script. Using the "excludeShallow" build config option inside httpBuild.js
+    allows debugging one script separate from the rest of the optimized file.</p>
+
+    <p>See httpBuild.js in the same directory as this file for more information.</p>
+
+    <hr>
+
+    <!-- Successful load will print something after the hr tag -->
+
+    <!-- httpBuild.js will return optimized content no matter what the URL
+         is below. For deployment, replace this script tag to one that
+         loads main-built.js, or whatever the config.out name value is
+         inside httpBuild.js -->
+    <script src="http://127.0.0.1:4304/main.js"></script>
+</body>
+</html>

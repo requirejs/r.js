@@ -113,9 +113,47 @@
     //excludeStart/excludeEnd and includeStart/includeEnd work, and the
     //the pragmas value to the includeStart or excludeStart lines
     //is evaluated to see if the code between the Start and End pragma
-    //lines should be included or excluded.
+    //lines should be included or excluded. If you have a choice to use
+    //"has" code or pragmas, use "has" code instead. Pragmas are harder
+    //to read, but they can be a bit more flexible on code removal vs.
+    //has-based code, which must follow JavaScript language rules.
+    //Pragmas also remove code in non-minified source, where has branch
+    //trimming is only done if the code is minified via UglifyJS or
+    //Closure Compiler.
     pragmas: {
         fooExclude: true
+    },
+
+    //Same as "pragmas", but only applied once during the file save phase
+    //of an optimization. "pragmas" are applied both during the dependency
+    //mapping and file saving phases on an optimization. Some pragmas
+    //should not be processed during the dependency mapping phase of an
+    //operation, such as the pragma in the CoffeeScript loader plugin,
+    //which wants the CoffeeScript compiler during the dependency mapping
+    //phase, but once files are saved as plain JavaScript, the CoffeeScript
+    //compiler is no longer needed. In that case, pragmasOnSave would be used
+    //to exclude the compiler code during the save phase.
+    pragmasOnSave: {
+        //Just an example
+        excludeCoffeeScript: true
+    },
+
+    //Allows trimming of code branches that use has.js-based feature detection:
+    //https://github.com/phiggins42/has.js
+    //The code branch trimming only happens if minification with UglifyJS or
+    //Closure Compiler is done. For more information, see:
+    //http://requirejs.org/docs/optimization.html#hasjs
+    has: {
+        'function-bind': true,
+        'string-trim': false
+    },
+
+    //Similar to pragmasOnSave, but for has tests -- only applied during the
+    //file save phase of optimization, where "has" is applied to both
+    //dependency mapping and file save phases.
+    hasOnSave: {
+        'function-bind': true,
+        'string-trim': false
     },
 
     //Allows namespacing requirejs, require and define calls to a new name.
