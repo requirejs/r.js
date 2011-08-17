@@ -118,6 +118,11 @@ function (file,           pragma,   parse) {
                 layer.buildPathMap[moduleName] = url;
                 layer.buildFileToModule[url] = moduleName;
 
+                if (moduleName in context.plugins) {
+                    //plugins need to have their source evaled as-is.
+                    context._plugins[moduleName] = true;
+                }
+
                 try {
                     if (url in cachedFileContents) {
                         contents = cachedFileContents[url];
@@ -145,9 +150,6 @@ function (file,           pragma,   parse) {
                                 builderName = context.normalize(pluginBuilderMatch[3], moduleName);
                                 contents = file.readFile(context.nameToUrl(builderName));
                             }
-
-                            //plugins need to have their source evaled as-is.
-                            context._plugins[moduleName] = true;
                         }
 
                         //Parse out the require and define calls.
