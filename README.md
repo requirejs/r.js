@@ -69,6 +69,17 @@ The optimizer can be run by passing the **-o** command to r.js:
 See the [Optimization doc](http://requirejs.org/docs/optimization.html) for more
 information on the optimizer.
 
+If running in **Java**, be sure to grab the Rhino and Closure Compiler jar files in the lib/ directory, then run this command:
+
+### OS X/Linux/Unix:
+
+    java -classpath path/to/rhino/js.jar:path/to/closure/compiler.jar org.mozilla.javascript.tools.shell.Main r.js -o path/to/buildconfig.js
+
+### Windows
+
+    java -classpath path/to/rhino/js.jar;path/to/closure/compiler.jar org.mozilla.javascript.tools.shell.Main r.js -o path/to/buildconfig.js
+
+
 ## What makes it special
 
 The optimizer is better than using a plain concatenation script because it runs
