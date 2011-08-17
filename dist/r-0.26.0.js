@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.25.0+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.26.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -11,7 +11,7 @@
  * the shell of the r.js file.
  */
 
-/*jslint strict: false, evil: true */
+/*jslint strict: false, evil: true, nomen: false */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false */
 
@@ -19,12 +19,9 @@ var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists, reqMain,
-        version = '0.25.0+',
+        nodeDefine, exists, reqMain, loadedOptimizedLib,
+        version = '0.26.0',
         jsSuffixRegExp = /\.js$/,
-        //Indicates so build/build.js that the modules for the optimizer
-        //are built-in.
-        isRjs = true,
         commandOption = '',
         //Used by jslib/rhino/args.js
         rhinoArgs = args,
@@ -104,7 +101,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 0.25.0+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 0.26.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -116,7 +113,7 @@ var requirejs, require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "0.25.0+",
+    var version = "0.26.0",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -279,7 +276,8 @@ var requirejs, require, define;
                 waitSeconds: 7,
                 baseUrl: s.baseUrl || "./",
                 paths: {},
-                pkgs: {}
+                pkgs: {},
+                catchError: {}
             },
             defQueue = [],
             specified = {
@@ -647,10 +645,14 @@ var requirejs, require, define;
                     }
                 }
 
-                try {
+                if (config.catchError.define) {
+                    try {
+                        ret = req.execCb(fullName, manager.callback, args, defined[fullName]);
+                    } catch (e) {
+                        err = e;
+                    }
+                } else {
                     ret = req.execCb(fullName, manager.callback, args, defined[fullName]);
-                } catch (e) {
-                    err = e;
                 }
 
                 if (fullName) {
@@ -1370,7 +1372,7 @@ var requirejs, require, define;
                         resume();
                     }
                 }
-                return undefined;
+                return context.require;
             },
 
             /**
@@ -1583,6 +1585,14 @@ var requirejs, require, define;
     };
 
     /**
+     * Support require.config() to make it easier to cooperate with other
+     * AMD loaders on globally agreed names.
+     */
+    req.config = function (config) {
+        return req(config);
+    };
+
+    /**
      * Export require as a global, but only if it does not already exist.
      */
     if (typeof require === "undefined") {
@@ -1730,13 +1740,12 @@ var requirejs, require, define;
         //work.
         if (useInteractive) {
             node = currentlyAddingScript || getInteractiveScript();
-            if (!node) {
-                return req.onError(makeError("interactive", "No matching script interactive for " + callback));
+            if (node) {
+                if (!name) {
+                    name = node.getAttribute("data-requiremodule");
+                }
+                context = contexts[node.getAttribute("data-requirecontext")];
             }
-            if (!name) {
-                name = node.getAttribute("data-requiremodule");
-            }
-            context = contexts[node.getAttribute("data-requirecontext")];
         }
 
         //Always save off evaluating the def call until the script onload handler.
@@ -2413,6 +2422,10 @@ define('node/file', ['fs', 'path'], function (fs, path) {
     var isWindows = process.platform === 'win32',
         file;
 
+    function frontSlash(path) {
+        return path.replace(/\\/g, '/');
+    }
+
     function exists(path) {
         if (isWindows && path.charAt(path.length - 1) === '/' &&
             path.charAt(path.length - 2) !== ':') {
@@ -2471,11 +2484,11 @@ define('node/file', ['fs', 'path'], function (fs, path) {
          * @param {String} fileName
          */
         absPath: function (fileName) {
-            return path.normalize(fs.realpathSync(fileName).replace(/\\/g, '/'));
+            return frontSlash(path.normalize(frontSlash(fs.realpathSync(fileName))));
         },
 
         normalize: function (fileName) {
-            return path.normalize(fileName);
+            return frontSlash(path.normalize(fileName));
         },
 
         isFile: function (path) {
@@ -2509,7 +2522,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
                         if (makeUnixPaths) {
                             //Make sure we have a JS string.
                             if (filePath.indexOf("/") === -1) {
-                                filePath = filePath.replace(/\\/g, "/");
+                                filePath = frontSlash(filePath);
                             }
                         }
 
@@ -2995,6 +3008,7 @@ define('logger', ['env!env/print'], function (print) {
         INFO: 1,
         WARN: 2,
         ERROR: 3,
+        SILENT: 4,
         level: 0,
         logPrefix: "",
 
@@ -6985,8 +6999,8 @@ define('rhino/optimize', ['logger'], function (logger) {
             }
             options.prettyPrint = keepLines || options.prettyPrint;
 
-            FLAG_compilation_level = flags.Flag.value(jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS']);
-            FLAG_compilation_level.get().setOptionsForCompilationLevel(options);
+            FLAG_compilation_level = jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS'];
+            FLAG_compilation_level.setOptionsForCompilationLevel(options);
 
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
@@ -6994,10 +7008,12 @@ define('rhino/optimize', ['logger'], function (logger) {
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
             if (!result.success) {
-                throw new Error("Closure Compiler compilation failed");
+                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
+            } else {
+                fileContents = compiler.toSource();
             }
 
-            return compiler.toSource();
+            return fileContents;
         }
     };
 
@@ -7403,6 +7419,11 @@ function (file,           pragma,   parse) {
                 layer.buildPathMap[moduleName] = url;
                 layer.buildFileToModule[url] = moduleName;
 
+                if (moduleName in context.plugins) {
+                    //plugins need to have their source evaled as-is.
+                    context._plugins[moduleName] = true;
+                }
+
                 try {
                     if (url in cachedFileContents) {
                         contents = cachedFileContents[url];
@@ -7430,9 +7451,6 @@ function (file,           pragma,   parse) {
                                 builderName = context.normalize(pluginBuilderMatch[3], moduleName);
                                 contents = file.readFile(context.nameToUrl(builderName));
                             }
-
-                            //plugins need to have their source evaled as-is.
-                            context._plugins[moduleName] = true;
                         }
 
                         //Parse out the require and define calls.
@@ -7669,7 +7687,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     var build, buildBaseConfig;
 
     buildBaseConfig = {
-            requireBuildPath: "../",
             appDir: "",
             pragmas: {},
             paths: {},
@@ -7719,10 +7736,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * If it is an object, then in addition to the normal properties allowed in
      * a build profile file, the object should contain one other property:
      *
-     * requireBuildPath: a string that is the path to find require.js and the
-     * require/ directory. This should be a pristine require.js with only
-     * require.js contents (no plugins or jQuery).
-     *
      * The object could also contain a "buildFile" property, which is a string
      * that is the file path to a build profile that contains the rest
      * of the build profile directives.
@@ -7731,39 +7744,31 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * there is a problem completing the build.
      */
     build = function (args) {
-        var requireBuildPath, buildFile, cmdConfig;
+        var buildFile, cmdConfig;
 
         if (!args || lang.isArray(args)) {
-            if (!args || args.length < 2) {
-                logger.error("build.js directory/containing/build.js/ buildProfile.js\n" +
+            if (!args || args.length < 1) {
+                logger.error("build.js buildProfile.js\n" +
                       "where buildProfile.js is the name of the build file (see example.build.js for hints on how to make a build file).");
-                return;
+                return undefined;
             }
-
-            //Second argument should be the directory on where to find this script.
-            //This path should end in a slash.
-            requireBuildPath = args[0];
-            requireBuildPath = endsWithSlash(requireBuildPath);
 
             //Next args can include a build file path as well as other build args.
             //build file path comes first. If it does not contain an = then it is
             //a build file path. Otherwise, just all build args.
-            if (args[1].indexOf("=") === -1) {
-                buildFile = args[1];
-                args.splice(0, 2);
-            } else {
+            if (args[0].indexOf("=") === -1) {
+                buildFile = args[0];
                 args.splice(0, 1);
             }
 
             //Remaining args are options to the build
             cmdConfig = build.convertArrayToObject(args);
             cmdConfig.buildFile = buildFile;
-            cmdConfig.requireBuildPath = requireBuildPath;
         } else {
             cmdConfig = args;
         }
 
-        build._run(cmdConfig);
+        return build._run(cmdConfig);
     };
 
     build._run = function (cmdConfig) {
@@ -8041,7 +8046,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Print out what was built into which layers.
         if (buildFileContents) {
             logger.info(buildFileContents);
+            return buildFileContents;
         }
+
+        return '';
     };
 
     /**
@@ -8125,19 +8133,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
-
-        //Normalize on front slashes
-        cfg.requireBuildPath = cfg.requireBuildPath.replace(lang.backSlashRegExp, '/');
-
-        //Normalize build directory location, and set up path to require.js
-        if (config.requireBuildPath.charAt(config.requireBuildPath.length - 1) !== "/") {
-            config.requireBuildPath += "/";
-            //Also adjust the override config params, since it
-            //may be re-applied later after reading the build file.
-            if (cfg.requireBuildPath) {
-                cfg.requireBuildPath = config.requireBuildPath;
-            }
-        }
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -8257,6 +8252,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (config[prop]) {
                 config[prop] = build.makeAbsPath(config[prop], absFilePath);
             }
+        }
+
+        //Do final input verification
+        if (config.context) {
+            throw new Error('The build argument "context" is not supported' +
+                            ' in a build. It should only be used in web' +
+                            ' pages.');
         }
 
         return config;
@@ -8511,7 +8513,42 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     //If in Node, and included via a require('requirejs'), just export and
     //THROW IT ON THE GROUND!
     if (env === 'node' && reqMain !== module) {
-        setBaseUrl(path.resolve(reqMain.filename));
+        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
+
+        //Create a method that will run the optimzer given an object
+        //config.
+        requirejs.optimize = function (config, callback) {
+            if (!loadedOptimizedLib) {
+                loadLib();
+                loadedOptimizedLib = true;
+            }
+
+            //Create the function that will be called once build modules
+            //have been loaded.
+            var runBuild = function (build, logger) {
+                //Make sure config has a log level, and if not,
+                //make it "silent" by default.
+                config.logLevel = config.logLevel || logger.SILENT;
+
+                var result = build(config);
+
+                //Reset build internals on each run.
+                requirejs._buildReset();
+
+                callback(result);
+            };
+
+            //Enable execution of this callback in a build setting.
+            //Normally, once requirePatch is run, by default it will
+            //not execute callbacks, unless this property is set on
+            //the callback.
+            runBuild.__requireJsBuild = true;
+
+            requirejs({
+                context: 'build'
+            }, ['build', 'logger'], runBuild);
+        };
+
         module.exports = requirejs;
         return;
     }
@@ -8531,7 +8568,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
  * build file to this file to do the build. See example.build.js for more information.
  */
 
-/*jslint strict: false */
+/*jslint strict: false, nomen: false */
 /*global require: false */
 
 require({
@@ -8541,28 +8578,7 @@ require({
     context: 'build'
 },       ['env!env/args', 'build'],
 function (args,            build) {
-    var buildArgs = args, rjsBuildDir;
-
-    if (typeof isRjs !== 'undefined' && isRjs) {
-        //Shift on a base path used to find optimizer modules. However,
-        //since this case is for r.js that has them built in, just
-        //use some arbitrary path.
-        buildArgs.unshift('.');
-    } else {
-        //This is call was done in a script that does not include the built
-        //modules so take off the first argument since it is for
-        //are a path inside r.js for use by the bootstrap.
-        buildArgs = buildArgs.slice(1);
-        rjsBuildDir = buildArgs[0].replace(/\\/g, '/');
-
-        //The second arg is the full path for this script. The
-        //directory portion is the only part needed though, so adjust it.
-        rjsBuildDir = rjsBuildDir.split('/');
-        rjsBuildDir.pop();
-        buildArgs[0] = rjsBuildDir.length ? rjsBuildDir.join('/') : '.';
-    }
-
-    build(buildArgs);
+    build(args);
 });
 
 
