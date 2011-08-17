@@ -78,8 +78,8 @@ define(['logger'], function (logger) {
             }
             options.prettyPrint = keepLines || options.prettyPrint;
 
-            FLAG_compilation_level = flags.Flag.value(jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS']);
-            FLAG_compilation_level.get().setOptionsForCompilationLevel(options);
+            FLAG_compilation_level = jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS'];
+            FLAG_compilation_level.setOptionsForCompilationLevel(options);
 
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
@@ -87,10 +87,12 @@ define(['logger'], function (logger) {
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
             if (!result.success) {
-                throw new Error("Closure Compiler compilation failed");
+                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
+            } else {
+                fileContents = compiler.toSource();
             }
 
-            return compiler.toSource();
+            return fileContents;
         }
     };
 
