@@ -16,7 +16,10 @@ require({
     baseUrl: require.s.contexts._.config.baseUrl,
     //Use a separate context than the default context so that the
     //build can use the default context.
-    context: 'build'
+    context: 'build',
+    catchError: {
+        define: true
+    }
 },       ['env!env/args', 'build'],
 function (args,            build) {
     build(args);

@@ -29,6 +29,30 @@ function (file,           pragma,   parse) {
             oldDef,
             cachedFileContents = {};
 
+
+        /** Print out some extrs info about the module tree that caused the error. **/
+        require.onError = function (err) {
+
+            var msg = '\nIn module tree:\n',
+                standardIndent = '  ',
+                tree = err.moduleTree,
+                i, j, mod;
+
+            if (tree && tree.length > 0) {
+                for (i = tree.length - 1; i > -1 && (mod = tree[i]); i--) {
+                    for (j = tree.length - i; j > -1; j--) {
+                        msg += standardIndent;
+                    }
+                    msg += mod + '\n';
+                }
+
+                err = new Error(err.toString() + msg);
+            }
+
+            throw err;
+        };
+
+
         /** Reset state for each build layer pass. */
         require._buildReset = function () {
             var oldContext = require.s.contexts._;
@@ -166,13 +190,20 @@ function (file,           pragma,   parse) {
                         eval(contents);
 
                         //Support anonymous modules.
-                        context.completeLoad(moduleName);
+                        try {
+                            context.completeLoad(moduleName);
+                        } catch (e) {
+                            //Track which module could not complete loading.
+                            (e.moduleTree || (e.moduleTree = [])).push(moduleName);
+                            throw e;
+                        }
                     }
 
-                } catch (e) {
-                    e.fileName = url;
-                    e.lineNumber = e.line;
-                    throw e;
+                } catch (eOuter) {
+                    if (!eOuter.fileName) {
+                        eOuter.fileName = url;
+                    }
+                    throw eOuter;
                 }
 
                 // remember the list of dependencies for this layer.
