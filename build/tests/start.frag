@@ -1,0 +1,4 @@
+/**
+ * LICENSE GOES HERE
+ */
+(function () {

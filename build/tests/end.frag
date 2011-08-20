@@ -1,0 +1,3 @@
+
+window.one = requirejs("one");
+}());

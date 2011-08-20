@@ -381,6 +381,20 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     };
 
     /**
+     * Converts command line args like "paths.foo=../some/path"
+     * result.paths = { foo: '../some/path' } where prop = paths,
+     * name = paths.foo and value = ../some/path, so it assumes the
+     * name=value splitting has already happened.
+     */
+    function stringDotToObj(result, prop, name, value) {
+        if (!result[prop]) {
+            result[prop] = {};
+        }
+        name = name.substring((prop + '.').length, name.length);
+        result[prop][name] = value;
+    }
+
+    /**
      * Converts an array that has String members of "name=value"
      * into an object, where the properties on the object are the names in the array.
      * Also converts the strings "true" and "false" to booleans for the values.
@@ -416,14 +430,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 value = value.split(",");
             }
 
-            if (prop.indexOf("paths.") === 0) {
-                //Special handling of paths properties. paths.foo=bar is transformed
-                //to data.paths = {foo: 'bar'}
-                if (!result.paths) {
-                    result.paths = {};
-                }
-                prop = prop.substring("paths.".length, prop.length);
-                result.paths[prop] = value;
+            if (prop.indexOf("paths.") === 0 || prop.indexOf("wrap.") === 0) {
+                stringDotToObj(result, prop.split('.')[0], prop, value);
             } else {
                 result[prop] = value;
             }
@@ -580,6 +588,19 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (config[prop]) {
                 config[prop] = build.makeAbsPath(config[prop], absFilePath);
             }
+        }
+
+        //Get any wrap text.
+        try {
+            if (config.wrap) {
+                config.wrap.start = config.wrap.start ||
+                        file.readFile(build.makeAbsPath(config.wrap.startFile, absFilePath));
+                config.wrap.end = config.wrap.end ||
+                        file.readFile(build.makeAbsPath(config.wrap.endFile, absFilePath));
+            }
+        } catch (wrapError) {
+            throw new Error('Malformed wrap config: need both start/end or ' +
+                            'startFile/endFile: ' + wrapError.toString());
         }
 
         //Do final input verification
@@ -779,7 +800,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
 
         return {
-            text: fileContents,
+            text: config.wrap ?
+                    config.wrap.start + fileContents + config.wrap.end :
+                    fileContents,
             buildText: buildFileContents
         };
     };

@@ -58,6 +58,41 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    doh.register("buildOneJsFileWrapped",
+        [
+            function buildOneJsFile(t) {
+                build(["name=one", "include=dimple", "out=builds/outSingleWrap.js",
+                       "baseUrl=../../../requirejs/tests", "optimize=none",
+                       "wrap.start=START", "wrap.end=END"]);
+
+                t.is(nol("START" + oneResult + "END"), nol(c("builds/outSingleWrap.js")));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+    doh.register("buildOneJsFileWrappedFile",
+        [
+            function buildOneJsFile(t) {
+                build(["name=one", "include=dimple", "out=builds/outSingleWrap.js",
+                       "baseUrl=../../../requirejs/tests", "optimize=none",
+                       "wrap.startFile=start.frag", "wrap.endFile=end.frag"]);
+
+                t.is(nol(c("start.frag") + oneResult + c("end.frag")), nol(c("builds/outSingleWrap.js")));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
     doh.register("buildSimple",
         [
             function buildSimple(t) {
