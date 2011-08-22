@@ -76,6 +76,23 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("buildOneJsFileWrappedTrue",
+        [
+            function buildOneJsFile(t) {
+                build(["name=one", "include=dimple", "out=builds/outSingleWrapTrue.js",
+                       "baseUrl=../../../requirejs/tests", "optimize=none",
+                       "wrap=true"]);
+
+                t.is(nol("(function () {" + oneResult + "}());"), nol(c("builds/outSingleWrapTrue.js")));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
     doh.register("buildOneJsFileWrappedFile",
         [
             function buildOneJsFile(t) {

@@ -251,6 +251,10 @@
         end: "}());"
     },
 
+    //Another way to use wrap, but uses default wrapping of:
+    //(function() { + content + }());
+    wrap: true,
+
     //Another way to use wrap, but uses file paths. This makes it easier
     //to have the start text contain license information and the end text
     //to contain the global variable exports, like

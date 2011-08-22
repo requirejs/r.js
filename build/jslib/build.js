@@ -593,10 +593,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Get any wrap text.
         try {
             if (config.wrap) {
-                config.wrap.start = config.wrap.start ||
-                        file.readFile(build.makeAbsPath(config.wrap.startFile, absFilePath));
-                config.wrap.end = config.wrap.end ||
-                        file.readFile(build.makeAbsPath(config.wrap.endFile, absFilePath));
+                if (config.wrap === true) {
+                    //Use default values.
+                    config.wrap = {
+                        start: '(function () {',
+                        end: '}());'
+                    };
+                } else {
+                    config.wrap.start = config.wrap.start ||
+                            file.readFile(build.makeAbsPath(config.wrap.startFile, absFilePath));
+                    config.wrap.end = config.wrap.end ||
+                            file.readFile(build.makeAbsPath(config.wrap.endFile, absFilePath));
+                }
             }
         } catch (wrapError) {
             throw new Error('Malformed wrap config: need both start/end or ' +
