@@ -167,8 +167,8 @@
     //Skip processing for pragmas.
     skipPragmas: false,
 
-    //If skipModuleInsertion is false, then files that do not use require.def
-    //to define modules will get a require.def() placeholder inserted for them.
+    //If skipModuleInsertion is false, then files that do not use define()
+    //to define modules will get a define() placeholder inserted for them.
     //Also, require.pause/resume calls will be inserted.
     //Set it to true to avoid this. This is useful if you are building code that
     //does not use require() in the built project or in the JS files, but you

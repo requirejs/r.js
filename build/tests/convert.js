@@ -6,8 +6,8 @@ define(['commonJs'], function (commonJs) {
         "convert",
         [
             function commonJsConvert(t) {
-                var source1 = 'require.def("fake", {lol: "you guise"});',
-                    source2 = 'require.def("fake", [],\nfunction(){\nreturn{lol : \'you guise\'};\n});';
+                var source1 = 'define("fake", {lol: "you guise"});',
+                    source2 = 'define("fake", [],\nfunction(){\nreturn{lol : \'you guise\'};\n});';
 
                 t.is(source1, commonJs.convert('fake.js', source1));
                 t.is(source2, commonJs.convert('fake.js', source2));

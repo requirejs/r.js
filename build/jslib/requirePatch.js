@@ -100,15 +100,15 @@ function (file,           pragma,   parse) {
                    url.indexOf('empty:') !== 0;
         };
 
-        //Override require.def to catch modules that just define an object, so that
-        //a dummy require.def call is not put in the build file for them. They do
+        //Override define() to catch modules that just define an object, so that
+        //a dummy define call is not put in the build file for them. They do
         //not end up getting defined via require.execCb, so we need to catch them
-        //at the require.def call.
-        oldDef = require.def;
+        //at the define call.
+        oldDef = define;
 
         //This function signature does not have to be exact, just match what we
         //are looking for.
-        define = require.def = function (name, obj) {
+        define = function (name, obj) {
             if (typeof name === "string") {
                 layer.modulesWithNames[name] = true;
             }
@@ -158,7 +158,7 @@ function (file,           pragma,   parse) {
 
                         //Find out if the file contains a require() definition. Need to know
                         //this so we can inject plugins right after it, but before they are needed,
-                        //and to make sure this file is first, so that require.def calls work.
+                        //and to make sure this file is first, so that define calls work.
                         //This situation mainly occurs when the build is done on top of the output
                         //of another build, where the first build may include require somewhere in it.
                         if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {

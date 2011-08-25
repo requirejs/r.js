@@ -84,7 +84,7 @@ define(['env!env/file', 'uglifyjs/index'], function (file, uglify) {
          * Regexp for testing if there is already a require.def call in the file,
          * in which case do not try to convert it.
          */
-        defRegExp: /(require\s*\.\s*def|define)\s*\(/,
+        defRegExp: /define\s*\(/,
 
         /**
          * Regexp for testing if there is a require([]) or require(function(){})
