@@ -14,7 +14,6 @@
         require.s.isDone = false;
 
         //Indicate a the module is in process of loading.
-        context.loaded[moduleName] = false;
         context.scriptCount += 1;
 
         load(url);

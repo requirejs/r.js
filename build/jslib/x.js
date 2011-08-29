@@ -107,6 +107,7 @@ var requirejs, require, define;
     } else if (env === 'node') {
         this.requirejsVars = {
             require: require,
+            requirejs: require,
             define: define,
             nodeRequire: nodeRequire
         };

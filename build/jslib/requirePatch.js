@@ -131,7 +131,6 @@ function (file,           pragma,   parse) {
                 url = context.config.dirBaseUrl + url;
             }
 
-            context.loaded[moduleName] = false;
             context.scriptCount += 1;
 
             //Only handle urls that can be inlined, so that means avoiding some

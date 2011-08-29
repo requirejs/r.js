@@ -52,9 +52,9 @@
     //API instead of the Node API, and it is done lexically so
     //that it survives later execution.
     req.makeNodeWrapper = function (contents) {
-        return '(function (require, define) { ' +
+        return '(function (require, requirejs, define) { ' +
                 contents +
-                '\n}(requirejsVars.require, requirejsVars.define));';
+                '\n}(requirejsVars.require, requirejsVars.requirejs, requirejsVars.define));';
     };
 
     req.load = function (context, moduleName, url) {
@@ -64,7 +64,6 @@
         req.s.isDone = false;
 
         //Indicate a the module is in process of loading.
-        context.loaded[moduleName] = false;
         context.scriptCount += 1;
 
         if (path.existsSync(url)) {
