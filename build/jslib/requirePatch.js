@@ -187,15 +187,16 @@ function (file,           pragma,   parse) {
 
                     if (contents) {
                         eval(contents);
+                    }
 
-                        //Support anonymous modules.
-                        try {
-                            context.completeLoad(moduleName);
-                        } catch (e) {
-                            //Track which module could not complete loading.
-                            (e.moduleTree || (e.moduleTree = [])).push(moduleName);
-                            throw e;
-                        }
+                    //Need to close out completion of this module
+                    //so that listeners will get notified that it is available.
+                    try {
+                        context.completeLoad(moduleName);
+                    } catch (e) {
+                        //Track which module could not complete loading.
+                        (e.moduleTree || (e.moduleTree = [])).push(moduleName);
+                        throw e;
                     }
 
                 } catch (eOuter) {
