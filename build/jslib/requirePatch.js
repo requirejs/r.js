@@ -73,10 +73,6 @@ function (file,           pragma,   parse) {
                 context: require.s.contexts._
             };
 
-            //Set up a per-context list of plugins/pluginBuilders.
-            layer.context.pluginBuilders = {};
-            layer.context._plugins = {};
-
             //Return the previous context in case it is needed, like for
             //the basic config object.
             return oldContext;
@@ -115,7 +111,7 @@ function (file,           pragma,   parse) {
             return oldDef.apply(require, arguments);
         };
 
-        //Add some utilities for plugins/pluginBuilders
+        //Add some utilities for plugins
         require._readFile = file.readFile;
         require._fileExists = function (path) {
             return file.exists(path);
@@ -143,11 +139,12 @@ function (file,           pragma,   parse) {
 
                 if (moduleName in context.plugins) {
                     //plugins need to have their source evaled as-is.
-                    context._plugins[moduleName] = true;
+                    context.needFullExec[moduleName] = true;
                 }
 
                 try {
-                    if (url in cachedFileContents) {
+                    if (url in cachedFileContents &&
+                        (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
                         contents = cachedFileContents[url];
                     } else {
                         //Load the file contents, process for conditionals, then
@@ -178,7 +175,7 @@ function (file,           pragma,   parse) {
                         //Parse out the require and define calls.
                         //Do this even for plugins in case they have their own
                         //dependencies that may be separate to how the pluginBuilder works.
-                        if (!context._plugins[moduleName]) {
+                        if (!context.needFullExec[moduleName]) {
                             contents = parse(url, contents);
                         }
 
@@ -212,11 +209,6 @@ function (file,           pragma,   parse) {
 
             //Mark the module loaded.
             context.loaded[moduleName] = true;
-
-            //Get a handle on the pluginBuilder
-            if (context._plugins[moduleName]) {
-                context.pluginBuilders[moduleName] = context.defined[moduleName];
-            }
         };
 
         //This method is called when a plugin specifies a loaded value. Use
@@ -241,7 +233,7 @@ function (file,           pragma,   parse) {
                 layer.loadedFiles[url] = true;
                 layer.modulesWithNames[name] = true;
             }
-            if (cb.__requireJsBuild || layer.context._plugins[name]) {
+            if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
                 return cb.apply(exports, args);
             }
             return undefined;

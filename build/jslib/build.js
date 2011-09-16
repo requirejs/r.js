@@ -762,7 +762,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Figure out if the module is a result of a build plugin, and if so,
             //then delegate to that plugin.
             parts = context.makeModuleMap(moduleName);
-            builder = parts.prefix && context.pluginBuilders[parts.prefix];
+            builder = parts.prefix && context.defined[parts.prefix];
             if (builder) {
                 if (builder.write) {
                     writeApi = function (input) {
