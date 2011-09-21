@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.26.0+ 20110916 4:50pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.26.0+ 20110921 1:20pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '0.26.0+ 20110916 4:50pm Pacific',
+        version = '0.26.0+ 20110921 1:20pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -785,9 +785,6 @@ var requirejs, require, define;
                 deps = manager.deps,
                 i, depArg, depName, depPrefix, cjsMod;
 
-            manager.depArray = depArray;
-            manager.callback = callback;
-
             if (fullName) {
                 //If module already defined for context, or already loaded,
                 //then leave. Also leave if jQuery is registering but it does
@@ -810,6 +807,13 @@ var requirejs, require, define;
                     jQueryCheck(callback());
                 }
             }
+
+            //Attach real depArray and callback to the manager. Do this
+            //only if the module has not been defined already, so do this after
+            //the fullName checks above. IE can call main() more than once
+            //for a module.
+            manager.depArray = depArray;
+            manager.callback = callback;
 
             //Add the dependencies to the deps field, and register for callbacks
             //on the dependencies.
@@ -843,7 +847,8 @@ var requirejs, require, define;
                             exports: defined[fullName]
                         };
                     } else if (depName in defined && !(depName in waiting) &&
-                               (!(fullName in needFullExec) || !fullExec[depName])) {
+                               (!(fullName in needFullExec) ||
+                                (fullName in needFullExec && fullExec[depName]))) {
                         //Module already defined, and not in a build situation
                         //where the module is a something that needs full
                         //execution and this dependency has not been fully
@@ -855,6 +860,10 @@ var requirejs, require, define;
                         //the current module needs full exec.
                         if (fullName in needFullExec) {
                             needFullExec[depName] = true;
+                            //Reset state so fully executed code will get
+                            //picked up correctly.
+                            delete defined[depName];
+                            urlFetched[depArg.url] = false;
                         }
 
                         //Either a resource that is not loaded yet, or a plugin
@@ -8364,6 +8373,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         var buildFileContents = "",
             namespace = config.namespace ? config.namespace + '.' : '',
             context = layer.context,
+            anonDefRegExp = build.makeAnonDefRegExp(namespace),
             path, reqIndex, fileContents, currContents,
             i, moduleName,
             parts, builder, writeApi;
@@ -8403,7 +8413,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         fileContents += input;
                     };
                     writeApi.asModule = function (moduleName, input) {
-                        fileContents += "\n" + build.toTransport(namespace, moduleName, path, input, layer);
+                        fileContents += "\n" + build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer);
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -8414,7 +8424,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = pragma.namespace(currContents, config.namespace);
                 }
 
-                currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
+                currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
 
                 fileContents += "\n" + currContents;
             }
@@ -8449,15 +8459,24 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         };
     };
 
-    //This regexp is not bullet-proof, and it has one optional part to
-    //avoid issues with some Dojo transition modules that use a
-    //define(\n//begin v1.x content
-    //for a comment.
-    build.anonDefRegExp = /(^|[^\.])(define)\s*\(\s*(\/\/[^\n\r]*[\r\n])?(\[|f|\{)/;
+    /**
+     * Creates the regexp to find anonymous defines.
+     * @param {String} namespace an optional namespace to use. The namespace
+     * should *include* a trailing dot. So a valid value would be 'foo.'
+     * @returns {RegExp}
+     */
+    build.makeAnonDefRegExp = function (namespace) {
+        //This regexp is not bullet-proof, and it has one optional part to
+        //avoid issues with some Dojo transition modules that use a
+        //define(\n//begin v1.x content
+        //for a comment.
+        return new RegExp('(^|[^\\.])(' + (namespace || '') +
+                          'define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{)');
+    };
 
-    build.toTransport = function (namespace, moduleName, path, contents, layer) {
+    build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
         //If anonymous module, insert the module name.
-        return contents.replace(build.anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
+        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
             layer.modulesWithNames[moduleName] = true;
 
             //Look for CommonJS require calls inside the function if this is

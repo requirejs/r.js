@@ -11,7 +11,7 @@ define(['build'], function (build) {
                         modulesWithNames: {}
                     };
 
-                t.is(bad1, build.toTransport('', 'bad/1', 'bad1', bad1, layer));
+                t.is(bad1, build.toTransport(build.makeAnonDefRegExp(), '', 'bad/1', 'bad1', bad1, layer));
             }
         ]
     );

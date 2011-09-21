@@ -730,6 +730,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         var buildFileContents = "",
             namespace = config.namespace ? config.namespace + '.' : '',
             context = layer.context,
+            anonDefRegExp = build.makeAnonDefRegExp(namespace),
             path, reqIndex, fileContents, currContents,
             i, moduleName,
             parts, builder, writeApi;
@@ -769,7 +770,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         fileContents += input;
                     };
                     writeApi.asModule = function (moduleName, input) {
-                        fileContents += "\n" + build.toTransport(namespace, moduleName, path, input, layer);
+                        fileContents += "\n" + build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer);
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -780,7 +781,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = pragma.namespace(currContents, config.namespace);
                 }
 
-                currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
+                currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
 
                 fileContents += "\n" + currContents;
             }
@@ -815,15 +816,24 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         };
     };
 
-    //This regexp is not bullet-proof, and it has one optional part to
-    //avoid issues with some Dojo transition modules that use a
-    //define(\n//begin v1.x content
-    //for a comment.
-    build.anonDefRegExp = /(^|[^\.])(define)\s*\(\s*(\/\/[^\n\r]*[\r\n])?(\[|f|\{)/;
+    /**
+     * Creates the regexp to find anonymous defines.
+     * @param {String} namespace an optional namespace to use. The namespace
+     * should *include* a trailing dot. So a valid value would be 'foo.'
+     * @returns {RegExp}
+     */
+    build.makeAnonDefRegExp = function (namespace) {
+        //This regexp is not bullet-proof, and it has one optional part to
+        //avoid issues with some Dojo transition modules that use a
+        //define(\n//begin v1.x content
+        //for a comment.
+        return new RegExp('(^|[^\\.])(' + (namespace || '') +
+                          'define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{)');
+    };
 
-    build.toTransport = function (namespace, moduleName, path, contents, layer) {
+    build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
         //If anonymous module, insert the module name.
-        return contents.replace(build.anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
+        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
             layer.modulesWithNames[moduleName] = true;
 
             //Look for CommonJS require calls inside the function if this is

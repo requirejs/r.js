@@ -187,4 +187,20 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    doh.register("buildNamespace",
+        [
+            function buildPluginAsModule(t) {
+                build(["baseUrl=lib/namespace", "optimize=none", "namespace=foo",
+                       "name=main", "out=lib/namespace/foo.js"]);
+
+                t.is(c("lib/namespace/foo.js"),
+                     c("lib/namespace/expected.js"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });
