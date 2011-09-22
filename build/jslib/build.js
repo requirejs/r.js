@@ -50,9 +50,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
     //Method used by plugin writeFile calls, defined up here to avoid
     //jslint warning about "making a function in a loop".
-    function writeFile(name, contents) {
-        logger.trace('Saving plugin-optimized file: ' + name);
-        file.saveUtf8File(name, contents);
+    function makeWriteFile(anonDefRegExp, namespaceWithDot, layer) {
+        function writeFile(name, contents) {
+            logger.trace('Saving plugin-optimized file: ' + name);
+            file.saveUtf8File(name, contents);
+        }
+
+        writeFile.asModule = function (moduleName, fileName, contents) {
+            writeFile(fileName,
+                build.toTransport(anonDefRegExp, namespaceWithDot, moduleName, fileName, contents, layer));
+        };
+
+        return writeFile;
     }
 
     /**
@@ -347,7 +356,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                     moduleMap.prefix,
                                     moduleMap.name,
                                     require,
-                                    writeFile,
+                                    makeWriteFile(
+                                        config.anonDefRegExp,
+                                        config.namespaceWithDot
+                                    ),
                                     context.config
                                 );
                             }
@@ -611,6 +623,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             'startFile/endFile: ' + wrapError.toString());
         }
 
+
+        //Set up proper info for namespaces and using namespaces in transport
+        //wrappings.
+        config.namespaceWithDot = config.namespace ? config.namespace + '.' : '';
+        config.anonDefRegExp = build.makeAnonDefRegExp(config.namespaceWithDot);
+
         //Do final input verification
         if (config.context) {
             throw new Error('The build argument "context" is not supported' +
@@ -730,7 +748,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         var buildFileContents = "",
             namespace = config.namespace ? config.namespace + '.' : '',
             context = layer.context,
-            anonDefRegExp = build.makeAnonDefRegExp(namespace),
+            anonDefRegExp = config.anonDefRegExp,
             path, reqIndex, fileContents, currContents,
             i, moduleName,
             parts, builder, writeApi;
@@ -827,14 +845,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //avoid issues with some Dojo transition modules that use a
         //define(\n//begin v1.x content
         //for a comment.
-        return new RegExp('(^|[^\\.])(' + (namespace || '') +
-                          'define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{)');
+        return new RegExp('(^|[^\\.])(' + (namespace || '').replace(/\./g, '\\.') +
+                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{)');
     };
 
     build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
         //If anonymous module, insert the module name.
         return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
-            layer.modulesWithNames[moduleName] = true;
+            if (layer) {
+                layer.modulesWithNames[moduleName] = true;
+            }
 
             //Look for CommonJS require calls inside the function if this is
             //an anonymous define call that just has a function registered.

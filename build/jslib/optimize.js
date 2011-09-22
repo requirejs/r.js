@@ -151,25 +151,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             fileContents = file.readFile(fileName);
 
             //Apply pragmas/namespace renaming
-            fileContents = pragma.process(fileName, fileContents, config, 'OnSave');
-
-            //If there is a plugin collector, scan the file for plugin resources.
-            if (config.optimizeAllPluginResources && pluginCollector) {
-                try {
-                    deps = parse.findDependencies(fileName, fileContents);
-                    if (deps.length) {
-                        for (i = 0; (dep = deps[i]); i++) {
-                            if (dep.indexOf('!') !== -1) {
-                                (pluginCollector[moduleName] ||
-                                 (pluginCollector[moduleName] = [])).push(dep);
-                            }
-                        }
-                    }
-                } catch (e) {
-                    logger.error('Parse error looking for plugin resources in ' +
-                                 fileName + ', skipping.');
-                }
-            }
+            fileContents = pragma.process(fileName, fileContents, config, 'OnSave', pluginCollector);
 
             //Optimize the JS files if asked.
             if (optimizerName && optimizerName !== 'none') {
