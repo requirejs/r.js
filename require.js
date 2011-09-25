@@ -1114,6 +1114,10 @@ var requirejs, require, define;
                     config.paths = paths;
                 }
 
+                if(typeof hashed_file_path != 'undefined' && hashed_file_path) {
+                    mixin(config.paths, hashed_file_path, true);
+                } 
+
                 packagePaths = cfg.packagePaths;
                 if (packagePaths || cfg.packages) {
                     //Convert packagePaths into a packages config.
