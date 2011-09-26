@@ -34,6 +34,7 @@ define(['parse', 'logger'], function (parse, logger) {
         useStrictRegExp: /['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
         nsRegExp: /(^|[^\.])(requirejs|require|define)\s*\(/,
+        nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
 
         removeStrict: function (contents, config) {
@@ -59,6 +60,22 @@ define(['parse', 'logger'], function (parse, logger) {
                                     ns + ".require = require;" +
                                     ns + ".define = define;\n" +
                                     "}());";
+                }
+
+                //Finally, if the file wants a special wrapper because it ties
+                //in to the requirejs internals in a way that would not fit
+                //the above matches, do that. Look for /*requirejs namespace: true*/
+                if (pragma.nsWrapRegExp.test(fileContents)) {
+                    //Remove the pragma.
+                    fileContents = fileContents.replace(pragma.nsWrapRegExp, '');
+
+                    //Alter the contents.
+                    fileContents = '(function () {\n' +
+                                   'var require = ' + ns + '.require,' +
+                                   'requirejs = ' + ns + '.requirejs,' +
+                                   'define = ' + ns + '.define;\n' +
+                                   fileContents +
+                                   '\n}());'
                 }
             }
 
