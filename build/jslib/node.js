@@ -60,9 +60,6 @@
     req.load = function (context, moduleName, url) {
         var contents, err;
 
-        //isDone is used by require.ready()
-        req.s.isDone = false;
-
         //Indicate a the module is in process of loading.
         context.scriptCount += 1;
 

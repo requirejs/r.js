@@ -10,9 +10,6 @@
 (function () {
 
     require.load = function (context, moduleName, url) {
-        //isDone is used by require.ready()
-        require.s.isDone = false;
-
         //Indicate a the module is in process of loading.
         context.scriptCount += 1;
 
