@@ -103,30 +103,132 @@ define(['uglifyjs/index'], function (uglify) {
     }
 
     /**
+     * Gets dependencies from a node, but only if it is an array literal,
+     * and only if the dependency is a string literal.
+     *
+     * This function does not need to worry about comments, they are not
+     * present in this AST.
+     *
+     * @param {Node} node an AST node.
+     *
+     * @returns {Array} of valid dependencies.
+     * If null is returned, then it means the input node was not a valid
+     * array literal, or did not have any string literals..
+     */
+    function getValidDeps(node) {
+        var newDeps = [],
+            arrayArgs, i, dep;
+
+        if (!node) {
+            return null;
+        }
+
+        if (isObjectLiteral(node) || node[0] === 'function') {
+            return null;
+        }
+
+        //Dependencies can be an object literal or an array.
+        if (!isArrayLiteral(node)) {
+            return null;
+        }
+
+        arrayArgs = node[1];
+
+        for (i = 0; i < arrayArgs.length; i++) {
+            dep = arrayArgs[i];
+            if (dep[0] === 'string') {
+                newDeps.push(dep[1]);
+            }
+        }
+        return newDeps.length ? newDeps : null;
+    }
+
+    /**
      * Main parse function. Returns a string of any valid require or define/require.def
      * calls as part of one JavaScript source string.
+     * @param {String} moduleName the module name that represents this file.
+     * It is used to create a default define if there is not one already for the file.
+     * This allows properly tracing dependencies for builds. Otherwise, if
+     * the file just has a require() call, the file dependencies will not be
+     * properly reflected: the file will come before its dependencies.
+     * @param {String} moduleName
      * @param {String} fileName
      * @param {String} fileContents
+     * @param {Object} options optional options. insertNeedsDefine: true will
+     * add calls to require.needsDefine() if appropriate.
      * @returns {String} JS source string or null, if no require or define/require.def
      * calls are found.
      */
-    function parse(fileName, fileContents) {
-        //Set up source input
-        var matches = [], result = null,
-            astRoot = parser.parse(fileContents);
+    function parse(moduleName, fileName, fileContents, options) {
+        options = options || {};
 
-        parse.recurse(astRoot, function () {
-            var parsed = parse.callToString.apply(parse, arguments);
-            if (parsed) {
-                matches.push(parsed);
+        //Set up source input
+        var moduleDeps = [],
+            result = '',
+            moduleList = [],
+            needsDefine = true,
+            astRoot = parser.parse(fileContents),
+            i, moduleCall, depString;
+
+        parse.recurse(astRoot, function (callName, config, name, deps) {
+            //If name is an array, it means it is an anonymous module,
+            //so adjust args appropriately. An anonymous module could
+            //have a FUNCTION as the name type, but just ignore those
+            //since we just want to find dependencies.
+            if (name && isArrayLiteral(name)) {
+                deps = name;
+                name = null;
+            }
+
+            if (!(deps = getValidDeps(deps))) {
+                deps = [];
+            }
+
+            //Get the name as a string literal, if it is available.
+            if (name && name[0] === 'string') {
+                name = name[1];
+            } else {
+                name = null;
+            }
+
+            if (callName === 'define' && (!name || name === moduleName)) {
+                needsDefine = false;
+            }
+
+            if (!name) {
+                //If there is no module name, the dependencies are for
+                //this file/default module name.
+                moduleDeps = moduleDeps.concat(deps);
+            } else {
+                moduleList.push({
+                    name: name,
+                    deps: deps
+                });
             }
         });
 
-        if (matches.length) {
-            result = matches.join("\n");
+        if (options.insertNeedsDefine && needsDefine) {
+            result += 'require.needsDefine("' + moduleName + '");';
         }
 
-        return result;
+        if (moduleDeps.length || moduleList.length) {
+            for (i = 0; (moduleCall = moduleList[i]); i++) {
+                if (result) {
+                    result += '\n';
+                }
+                depString = moduleCall.deps.length ? '["' + moduleCall.deps.join('","') + '"]' : '[]';
+                result += 'define("' + moduleCall.name + '",' + depString + ');';
+            }
+            if (moduleDeps.length) {
+                if (result) {
+                    result += '\n';
+                }
+                depString = moduleDeps.length ? '["' + moduleDeps.join('","') + '"]' : '[]';
+                result += 'define("' + moduleName + '",' + depString + ');';
+            }
+        }
+
+        return result ? result : null;
     }
 
     //Add some private methods to object for use in derived objects.
@@ -255,8 +357,7 @@ define(['uglifyjs/index'], function (uglify) {
         //calls. Can revisit later, but trying to build out larger functional
         //pieces first.
         var dependencies = parse.getAnonDeps(fileName, fileContents),
-            astRoot = parser.parse(fileContents),
-            i, dep;
+            astRoot = parser.parse(fileContents);
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
             //Normalize the input args.
@@ -265,12 +366,8 @@ define(['uglifyjs/index'], function (uglify) {
                 name = null;
             }
 
-            if (!(deps = validateDeps(deps)) || !isArrayLiteral(deps)) {
-                return;
-            }
-
-            for (i = 0; (dep = deps[1][i]); i++) {
-                dependencies.push(dep[1]);
+            if ((deps = getValidDeps(deps))) {
+                dependencies = dependencies.concat(deps);
             }
         });
 
@@ -347,50 +444,6 @@ define(['uglifyjs/index'], function (uglify) {
             }
         }
         return false;
-    };
-
-    function optionalString(node) {
-        var str = null;
-        if (node) {
-            str = parse.nodeToString(node);
-        }
-        return str;
-    }
-
-    /**
-     * Convert a require/require.def/define call to a string if it is a valid
-     * call via static analysis of dependencies.
-     * @param {String} callName the name of call (require or define)
-     * @param {Array} the config node inside the call
-     * @param {Array} the name node inside the call
-     * @param {Array} the deps node inside the call
-     */
-    parse.callToString = function (callName, config, name, deps) {
-        //If name is an array, it means it is an anonymous module,
-        //so adjust args appropriately. An anonymous module could
-        //have a FUNCTION as the name type, but just ignore those
-        //since we just want to find dependencies.
-        var configString, nameString, depString;
-        if (name && isArrayLiteral(name)) {
-            deps = name;
-            name = null;
-        }
-
-        if (!(deps = validateDeps(deps))) {
-            return null;
-        }
-
-        //Only serialize the call name, config, module name and dependencies,
-        //otherwise could get local variable names for module value.
-        configString = config && isObjectLiteral(config) && optionalString(config);
-        nameString = optionalString(name);
-        depString = optionalString(deps);
-
-        return callName + "(" +
-            (configString ? configString : "") +
-            (nameString ? (configString ? "," : "") + nameString : "") +
-            (depString ? (configString || nameString ? "," : "") + depString : "") +
-            ");";
     };
 
     /**

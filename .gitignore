@@ -2,5 +2,6 @@
 r.js
 build/tests/builds
 build/tests/lib/namespace/foo.js
+build/tests/lib/plugins/main-built.js
 tests/node/node_modules
 tests/node/embedded/node_modules
