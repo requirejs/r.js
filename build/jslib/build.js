@@ -36,7 +36,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             throw new Error('Path is not supported: ' + path +
                             '\nOptimizer can only handle' +
                             ' local paths. Download the locally if necessary' +
-                            ' and update the config to use a local path.');
+                            ' and update the config to use a local path.\n' +
+                            'http://requirejs.org/docs/errors.html#pathnotsupported');
         }
     }
 
