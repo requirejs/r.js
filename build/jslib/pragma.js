@@ -36,6 +36,7 @@ define(['parse', 'logger'], function (parse, logger) {
         nsRegExp: /(^|[^\.])(requirejs|require|define)\s*\(/,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
+        defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
@@ -45,6 +46,10 @@ define(['parse', 'logger'], function (parse, logger) {
             if (ns) {
                 //Namespace require/define calls
                 fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
+
+                //Namespace define checks.
+                fileContents = fileContents.replace(pragma.defineCheckRegExp,
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
 
                 //Check for require.js with the require/define definitions
                 if (pragma.apiDefRegExp.test(fileContents) &&
