@@ -55,11 +55,11 @@ define(['parse', 'logger'], function (parse, logger) {
                                     ns + " === 'undefined') {\n" +
                                     ns + ' = {};\n' +
                                     fileContents +
-                                    "\n}\n" +
+                                    "\n" +
                                     ns + ".requirejs = requirejs;" +
                                     ns + ".require = require;" +
                                     ns + ".define = define;\n" +
-                                    "}());";
+                                    "}\n}());";
                 }
 
                 //Finally, if the file wants a special wrapper because it ties
