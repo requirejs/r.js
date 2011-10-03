@@ -194,8 +194,8 @@ define(['build', 'env!env/file'], function (build, file) {
                 build(["baseUrl=lib/namespace", "optimize=none", "namespace=foo",
                        "name=main", "out=lib/namespace/foo.js"]);
 
-                t.is(c("lib/namespace/foo.js"),
-                     c("lib/namespace/expected.js"));
+                t.is(nol(c("lib/namespace/foo.js")),
+                     nol(c("lib/namespace/expected.js")));
 
                 require._buildReset();
             }
