@@ -67,7 +67,7 @@ function (file,           pragma,   parse) {
                 buildPathMap: {},
                 buildFileToModule: {},
                 buildFilePaths: [],
-                loadedFiles: {},
+                pathAdded: {},
                 modulesWithNames: {},
                 needsDefine: {},
                 existingRequireUrl: "",
@@ -233,16 +233,24 @@ function (file,           pragma,   parse) {
 
             //A plugin.
             if (map.prefix) {
-                layer.buildFilePaths.push(fullName);
-                //For plugins the real path is not knowable, use the name
-                //for both module to file and file to module mappings.
-                layer.buildPathMap[fullName] = fullName;
-                layer.buildFileToModule[fullName] = fullName;
-                layer.modulesWithNames[fullName] = true;
+                if (!layer.pathAdded[fullName]) {
+                    layer.buildFilePaths.push(fullName);
+                    //For plugins the real path is not knowable, use the name
+                    //for both module to file and file to module mappings.
+                    layer.buildPathMap[fullName] = fullName;
+                    layer.buildFileToModule[fullName] = fullName;
+                    layer.modulesWithNames[fullName] = true;
+                    layer.pathAdded[fullName] = true;
+                }
             } else if (map.url) {
-                url = normalizeUrlWithBase(context, map.fullName, map.url);
-                //Remember the list of dependencies for this layer.
-                layer.buildFilePaths.push(url);
+                //If the url has not been added to the layer yet, and it
+                //is from an actual file that was loaded, add it now.
+                if (!layer.pathAdded[url] && layer.buildPathMap[fullName]) {
+                    url = normalizeUrlWithBase(context, map.fullName, map.url);
+                    //Remember the list of dependencies for this layer.
+                    layer.buildFilePaths.push(url);
+                    layer.pathAdded[url] = true;
+                }
             }
         };
 
@@ -254,17 +262,11 @@ function (file,           pragma,   parse) {
             layer.needsDefine[moduleName] = true;
         };
 
-        //Marks the module as part of the loaded set, and puts
-        //it in the right position for output in the build layer,
-        //since require() already did the dependency checks and should have
-        //called this method already for those dependencies.
+        //Marks module has having a name, and optionally executes the
+        //callback, but only if it meets certain criteria.
         require.execCb = function (name, cb, args, exports) {
-            var url = name && layer.buildPathMap[name];
-            if (url && !layer.loadedFiles[url]) {
-                layer.loadedFiles[url] = true;
-                if (!layer.needsDefine[name]) {
-                    layer.modulesWithNames[name] = true;
-                }
+            if (!layer.needsDefine[name]) {
+                layer.modulesWithNames[name] = true;
             }
             if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
                 return cb.apply(exports, args);
