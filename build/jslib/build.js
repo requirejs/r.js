@@ -240,7 +240,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Run CSS optimizations before doing JS module tracing, to allow
         //things like text loader plugins loading CSS to get the optimized
         //CSS.
-        if (config.optimizeCss && config.optimizeCss !== "none") {
+        if (config.optimizeCss && config.optimizeCss !== "none" && config.dir) {
             optimize.css(config.dir, config);
         }
 
