@@ -142,9 +142,10 @@ define(['fs', 'path'], function (fs, path) {
             //file should be copied. Returns a list file name strings of the destinations that were copied.
             regExpFilter = regExpFilter || /\w/;
 
-            //Normalize th directory names.
-            srcDir = path.normalize(srcDir);
-            destDir = path.normalize(destDir);
+            //Normalize th directory names, but keep front slashes.
+            //path module on windows now returns backslashed paths.
+            srcDir = frontSlash(path.normalize(srcDir));
+            destDir = frontSlash(path.normalize(destDir));
 
             var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
             copiedFiles = [], i, srcFileName, destFileName;
