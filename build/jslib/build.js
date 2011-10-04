@@ -483,6 +483,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
 
+        absFilePath = file.absPath('.');
+
         if (config.buildFile) {
             //A build file exists, load it to get more config.
             buildFile = file.absPath(config.buildFile);
@@ -508,22 +510,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Re-apply the override config values, things like command line
             //args should take precedence over build file values.
             lang.mixin(config, cfg, true);
-        } else {
-            if (!config.out && !config.cssIn) {
-                throw new Error("ERROR: 'out' or 'cssIn' option missing.");
-            }
+        } else if (config.cssIn) {
             if (!config.out) {
                 throw new Error("ERROR: 'out' option missing.");
             } else {
                 config.out = config.out.replace(lang.backSlashRegExp, "/");
             }
+        }
 
-            if (!config.cssIn && !cfg.baseUrl) {
-                throw new Error("ERROR: 'baseUrl' option missing.");
-            }
-
-            //In this scenario, the absFile path is current directory
-            absFilePath = file.absPath('.');
+        if (!config.cssIn && !config.baseUrl) {
+            throw new Error("ERROR: 'baseUrl' option missing.");
         }
 
         if (config.out && !config.cssIn) {

@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.27.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.27.0+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '0.27.0',
+        version = '0.27.0+',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -166,7 +166,8 @@ var requirejs, require, define;
             var runBuild = function (build, logger) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
-                config.logLevel = config.logLevel || logger.SILENT;
+                config.logLevel = config.hasOwnProperty('logLevel') ?
+                                  config.logLevel : logger.SILENT;
 
                 var result = build(config);
 
@@ -186,6 +187,8 @@ var requirejs, require, define;
                 context: 'build'
             }, ['build', 'logger'], runBuild);
         };
+
+        requirejs.define = define;
 
         module.exports = requirejs;
         return;
