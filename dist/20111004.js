@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.27.0+ 20111004 12:15pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.27.0+ 20111004 1:25pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '0.27.0+ 20111004 12:15pm Pacific',
+        version = '0.27.0+ 20111004 1:25pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -2520,10 +2520,9 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
             var text = fs.readFileSync(path, encoding);
 
-            //Looks like a weird bug in the native node.exe for windows,
-            //at least in 0.5.3, where UTF-8 BOM is being fed back.
-            //May be able to remove this after more node releases.
-            if (isWindows && text.indexOf('\uFEFF') === 0) {
+            //Hmm, would not expect to get A BOM, but it seems to happen,
+            //remove it just in case.
+            if (text.indexOf('\uFEFF') === 0) {
                 text = text.substring(1, text.length);
             }
 

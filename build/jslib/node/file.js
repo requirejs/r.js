@@ -202,10 +202,9 @@ define(['fs', 'path'], function (fs, path) {
 
             var text = fs.readFileSync(path, encoding);
 
-            //Looks like a weird bug in the native node.exe for windows,
-            //at least in 0.5.3, where UTF-8 BOM is being fed back.
-            //May be able to remove this after more node releases.
-            if (isWindows && text.indexOf('\uFEFF') === 0) {
+            //Hmm, would not expect to get A BOM, but it seems to happen,
+            //remove it just in case.
+            if (text.indexOf('\uFEFF') === 0) {
                 text = text.substring(1, text.length);
             }
 
