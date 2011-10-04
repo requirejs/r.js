@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.27.0+ 20111004 1:25pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.27.0+ 20111004 4:20pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '0.27.0+ 20111004 1:25pm Pacific',
+        version = '0.27.0+ 20111004 4:20pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -7502,6 +7502,10 @@ function (file,           pragma,   parse) {
                     }
                     throw eOuter;
                 }
+            } else {
+                //With unsupported URLs still need to call completeLoad to
+                //finish loading.
+                context.completeLoad(moduleName);
             }
 
             //Mark the module loaded.
@@ -7533,7 +7537,7 @@ function (file,           pragma,   parse) {
                     layer.modulesWithNames[fullName] = true;
                     layer.pathAdded[fullName] = true;
                 }
-            } else if (map.url) {
+            } else if (map.url && require._isSupportedBuildUrl(map.url)) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
                 if (!layer.pathAdded[url] && layer.buildPathMap[fullName]) {

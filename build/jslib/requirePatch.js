@@ -211,6 +211,10 @@ function (file,           pragma,   parse) {
                     }
                     throw eOuter;
                 }
+            } else {
+                //With unsupported URLs still need to call completeLoad to
+                //finish loading.
+                context.completeLoad(moduleName);
             }
 
             //Mark the module loaded.
@@ -242,7 +246,7 @@ function (file,           pragma,   parse) {
                     layer.modulesWithNames[fullName] = true;
                     layer.pathAdded[fullName] = true;
                 }
-            } else if (map.url) {
+            } else if (map.url && require._isSupportedBuildUrl(map.url)) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
                 if (!layer.pathAdded[url] && layer.buildPathMap[fullName]) {
