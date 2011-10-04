@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.26.0+ 20110927 11:00am Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.27.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '0.26.0+ 20110927 11:00am Pacific',
+        version = '0.27.0',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -101,7 +101,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 0.26.0+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 0.27.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -113,7 +113,7 @@ var requirejs, require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "0.26.0+",
+    var version = "0.27.0",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -1292,6 +1292,11 @@ var requirejs, require, define;
             require: function (deps, callback, relModuleMap) {
                 var moduleName, fullName, moduleMap;
                 if (typeof deps === "string") {
+                    if (isFunction(callback)) {
+                        //Invalid call
+                        return req.onError(makeError("requireargs", "Invalid require call"));
+                    }
+
                     //Synchronous access to one module. If require.get is
                     //available (as in the Node adapter), prefer that.
                     //In this case deps is the moduleName and callback is
@@ -2455,9 +2460,10 @@ define('node/file', ['fs', 'path'], function (fs, path) {
             //file should be copied. Returns a list file name strings of the destinations that were copied.
             regExpFilter = regExpFilter || /\w/;
 
-            //Normalize th directory names.
-            srcDir = path.normalize(srcDir);
-            destDir = path.normalize(destDir);
+            //Normalize th directory names, but keep front slashes.
+            //path module on windows now returns backslashed paths.
+            srcDir = frontSlash(path.normalize(srcDir));
+            destDir = frontSlash(path.normalize(destDir));
 
             var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
             copiedFiles = [], i, srcFileName, destFileName;
@@ -6715,6 +6721,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         nsRegExp: /(^|[^\.])(requirejs|require|define)\s*\(/,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
+        defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
@@ -6725,6 +6732,10 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 //Namespace require/define calls
                 fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
 
+                //Namespace define checks.
+                fileContents = fileContents.replace(pragma.defineCheckRegExp,
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
+
                 //Check for require.js with the require/define definitions
                 if (pragma.apiDefRegExp.test(fileContents) &&
                     fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
@@ -6734,11 +6745,11 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                                     ns + " === 'undefined') {\n" +
                                     ns + ' = {};\n' +
                                     fileContents +
-                                    "\n}\n" +
+                                    "\n" +
                                     ns + ".requirejs = requirejs;" +
                                     ns + ".require = require;" +
                                     ns + ".define = define;\n" +
-                                    "}());";
+                                    "}\n}());";
                 }
 
                 //Finally, if the file wants a special wrapper because it ties
@@ -7348,7 +7359,7 @@ function (file,           pragma,   parse) {
                 buildPathMap: {},
                 buildFileToModule: {},
                 buildFilePaths: [],
-                loadedFiles: {},
+                pathAdded: {},
                 modulesWithNames: {},
                 needsDefine: {},
                 existingRequireUrl: "",
@@ -7402,7 +7413,7 @@ function (file,           pragma,   parse) {
         function normalizeUrlWithBase(context, moduleName, url) {
             //Adjust the URL if it was not transformed to use baseUrl.
             if (require.jsExtRegExp.test(moduleName)) {
-                url = context.config.dirBaseUrl + url;
+                url = context.config.dir + url;
             }
             return url;
         }
@@ -7514,16 +7525,24 @@ function (file,           pragma,   parse) {
 
             //A plugin.
             if (map.prefix) {
-                layer.buildFilePaths.push(fullName);
-                //For plugins the real path is not knowable, use the name
-                //for both module to file and file to module mappings.
-                layer.buildPathMap[fullName] = fullName;
-                layer.buildFileToModule[fullName] = fullName;
-                layer.modulesWithNames[fullName] = true;
+                if (!layer.pathAdded[fullName]) {
+                    layer.buildFilePaths.push(fullName);
+                    //For plugins the real path is not knowable, use the name
+                    //for both module to file and file to module mappings.
+                    layer.buildPathMap[fullName] = fullName;
+                    layer.buildFileToModule[fullName] = fullName;
+                    layer.modulesWithNames[fullName] = true;
+                    layer.pathAdded[fullName] = true;
+                }
             } else if (map.url) {
-                url = normalizeUrlWithBase(context, map.fullName, map.url);
-                //Remember the list of dependencies for this layer.
-                layer.buildFilePaths.push(url);
+                //If the url has not been added to the layer yet, and it
+                //is from an actual file that was loaded, add it now.
+                if (!layer.pathAdded[url] && layer.buildPathMap[fullName]) {
+                    url = normalizeUrlWithBase(context, map.fullName, map.url);
+                    //Remember the list of dependencies for this layer.
+                    layer.buildFilePaths.push(url);
+                    layer.pathAdded[url] = true;
+                }
             }
         };
 
@@ -7535,17 +7554,11 @@ function (file,           pragma,   parse) {
             layer.needsDefine[moduleName] = true;
         };
 
-        //Marks the module as part of the loaded set, and puts
-        //it in the right position for output in the build layer,
-        //since require() already did the dependency checks and should have
-        //called this method already for those dependencies.
+        //Marks module has having a name, and optionally executes the
+        //callback, but only if it meets certain criteria.
         require.execCb = function (name, cb, args, exports) {
-            var url = name && layer.buildPathMap[name];
-            if (url && !layer.loadedFiles[url]) {
-                layer.loadedFiles[url] = true;
-                if (!layer.needsDefine[name]) {
-                    layer.modulesWithNames[name] = true;
-                }
+            if (!layer.needsDefine[name]) {
+                layer.modulesWithNames[name] = true;
             }
             if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
                 return cb.apply(exports, args);
@@ -7744,7 +7757,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             throw new Error('Path is not supported: ' + path +
                             '\nOptimizer can only handle' +
                             ' local paths. Download the locally if necessary' +
-                            ' and update the config to use a local path.');
+                            ' and update the config to use a local path.\n' +
+                            'http://requirejs.org/docs/errors.html#pathnotsupported');
         }
     }
 
@@ -7947,7 +7961,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Run CSS optimizations before doing JS module tracing, to allow
         //things like text loader plugins loading CSS to get the optimized
         //CSS.
-        if (config.optimizeCss && config.optimizeCss !== "none") {
+        if (config.optimizeCss && config.optimizeCss !== "none" && config.dir) {
             optimize.css(config.dir, config);
         }
 
