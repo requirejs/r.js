@@ -782,10 +782,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (builder) {
                 if (builder.write) {
                     writeApi = function (input) {
-                        fileContents += input;
+                        fileContents += "\n" + input + "\n;";
                     };
                     writeApi.asModule = function (moduleName, input) {
-                        fileContents += "\n" + build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer);
+                        fileContents += "\n" +
+                                        build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer) +
+                                        "\n;";
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -798,7 +800,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
 
-                fileContents += "\n" + currContents;
+                //Semicolon is for files that are not well formed when
+                //concatenated with other content.
+                fileContents += "\n" + currContents + '\n;';
             }
 
             buildFileContents += path.replace(config.dir, "") + "\n";
