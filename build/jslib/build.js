@@ -782,12 +782,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (builder) {
                 if (builder.write) {
                     writeApi = function (input) {
-                        fileContents += "\n" + input + "\n;";
+                        fileContents += "\n" + input + ";";
                     };
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
                                         build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer) +
-                                        "\n;";
+                                        ";";
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -802,7 +802,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 //Semicolon is for files that are not well formed when
                 //concatenated with other content.
-                fileContents += "\n" + currContents + '\n;';
+                fileContents += "\n" + currContents + ';';
             }
 
             buildFileContents += path.replace(config.dir, "") + "\n";
