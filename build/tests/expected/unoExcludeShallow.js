@@ -6,7 +6,7 @@ define('tres',[],
     };
   }
 );
-;
+
 define("uno",
   ["dos", "tres"],
   function(dos, tres) {
@@ -21,4 +21,3 @@ define("uno",
     };
   }
 );
-;

@@ -12,6 +12,8 @@ define(function () {
     var file = {
         backSlashRegExp: /\\/g,
 
+        dirExclusionRegExp: /^\./,
+
         getLineSeparator: function () {
             return file.lineSeparator;
         },
@@ -91,7 +93,8 @@ define(function () {
                         if (ok && !fileObj.getName().match(/^\./)) {
                             files.push(filePath);
                         }
-                    } else if (fileObj.isDirectory() && !fileObj.getName().match(/^\./)) {
+                    } else if (fileObj.isDirectory() &&
+                              (!file.dirExclusionRegExp || !fileObj.getName().match(file.dirExclusionRegExp))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
                         files.push.apply(files, dirFiles);
                     }

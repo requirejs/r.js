@@ -23,9 +23,7 @@ define(['build', 'env!env/file'], function (build, file) {
     var requireTextContents = c("builds/text.js"),
         oneResult = [
             c("../../../requirejs/tests/dimple.js"),
-            ";",
             c("../../../requirejs/tests/two.js"),
-            ";",
             c("../../../requirejs/tests/one.js"),
             ";"
         ].join("");
@@ -148,7 +146,7 @@ define(['build', 'env!env/file'], function (build, file) {
                 build(["name=uno", "exclude=dos", "out=builds/unoExclude.js",
                        "baseUrl=../../../requirejs/tests", "optimize=none"]);
 
-                t.is(nol(c("../../../requirejs/tests/uno.js")) + ";", nol(c("builds/unoExclude.js")));
+                t.is(nol(c("../../../requirejs/tests/uno.js")), nol(c("builds/unoExclude.js")));
                 require._buildReset();
             }
         ]
@@ -162,7 +160,7 @@ define(['build', 'env!env/file'], function (build, file) {
                        "baseUrl=../../../requirejs/tests", "paths.text=../text", "optimize=none"]);
 
                 t.is(nol(requireTextContents +
-                         nol(c("../../../requirejs/tests/two.js") + ";" +
+                         nol(c("../../../requirejs/tests/two.js") +
                          c("../../../requirejs/tests/one.js") + ";")), nol(c("builds/oneText.js")));
                 require._buildReset();
             }
@@ -179,7 +177,7 @@ define(['build', 'env!env/file'], function (build, file) {
                        "exclude=text,refine",
                        "paths.text=../../../text", "optimize=none"]);
 
-                t.is(nol(nol((c("../../../requirejs/tests/plugins/fromText/a.refine") + ";")
+                t.is(nol(nol((c("../../../requirejs/tests/plugins/fromText/a.refine"))
                              .replace(/refine/g, 'define')))
                              .replace(/define\(\{/, "define('refine!a',{"),
                          nol(c("builds/refineATest.js")));
@@ -226,4 +224,22 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    doh.register("useDotPackage",
+        [
+            function useDotPackage(t) {
+                file.deleteFile("lib/dotpackage/built");
+
+                build(["lib/dotpackage/scripts/app.build.js"]);
+
+                t.is(nol(c("lib/dotpackage/scripts/main-expected.js")),
+                     nol(c("lib/dotpackage/built/scripts/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

@@ -54,6 +54,7 @@ define(['fs', 'path'], function (fs, path) {
 
     file = {
         backSlashRegExp: /\\/g,
+        dirExclusionRegExp: /^\./,
         getLineSeparator: function () {
             return '/';
         },
@@ -127,7 +128,8 @@ define(['fs', 'path'], function (fs, path) {
                         if (ok && !fileName.match(/^\./)) {
                             files.push(filePath);
                         }
-                    } else if (stat.isDirectory() && !fileName.match(/^\./)) {
+                    } else if (stat.isDirectory() &&
+                              (!file.dirExclusionRegExp || !fileName.match(file.dirExclusionRegExp))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
                         files.push.apply(files, dirFiles);
                     }

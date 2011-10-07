@@ -264,5 +264,13 @@
     wrap: {
         startFile: "part/start.frag",
         endFile: "parts/end.frag"
-    }
+    },
+
+    //When the optimizer copies files from the source location to the
+    //destination directory, it will skip directories that start with a ".".
+    //If you want to copy .directories, for instance if you keep some
+    //packages in a .packages directory, you will want to set this to null.
+    //If you want to change the exclusion rules, change it to a different
+    //regexp. If the regexp matches, it means the directory will be excluded.
+    dirExclusionRegExp: /^\./
 })

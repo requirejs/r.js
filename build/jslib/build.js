@@ -12,7 +12,8 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
          'env!env/load', 'requirePatch'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
           load,           requirePatch) {
-    var build, buildBaseConfig;
+    var build, buildBaseConfig,
+        endsWithSemiColonRegExp = /;\s*$/;
 
     buildBaseConfig = {
             appDir: "",
@@ -22,8 +23,24 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             optimizeCss: "standard.keepLines",
             inlineText: true,
             isBuild: true,
-            optimizeAllPluginResources: false
+            optimizeAllPluginResources: false,
+            //By default, all files/directories are copied, unless
+            //they match this regexp, by default just excludes .folders
+            dirExclusionRegExp: file.dirExclusionRegExp
         };
+
+    /**
+     * Some JS may not be valid if concatenated with other JS, in particular
+     * the style of omitting semicolons and rely on ASI. Add a semicolon in
+     * those cases.
+     */
+    function addSemiColon(text) {
+        if (endsWithSemiColonRegExp.test(text)) {
+            return text;
+        } else {
+            return text + ";";
+        }
+    }
 
     /**
      * If the path looks like an URL, throw an error. This is to prevent
@@ -633,6 +650,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' pages.');
         }
 
+        //Set file.dirExclusionRegExp if desired
+        if ('dirExclusionRegExp' in config) {
+            file.dirExclusionRegExp = config.dirExclusionRegExp;
+        }
+
         return config;
     };
 
@@ -782,12 +804,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (builder) {
                 if (builder.write) {
                     writeApi = function (input) {
-                        fileContents += "\n" + input + ";";
+                        fileContents += "\n" + addSemiColon(input);
                     };
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
-                                        build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer) +
-                                        ";";
+                                        addSemiColon(
+                                            build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer));
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -802,7 +824,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 //Semicolon is for files that are not well formed when
                 //concatenated with other content.
-                fileContents += "\n" + currContents + ';';
+                fileContents += "\n" + addSemiColon(currContents);
             }
 
             buildFileContents += path.replace(config.dir, "") + "\n";
