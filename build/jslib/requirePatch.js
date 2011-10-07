@@ -121,7 +121,7 @@ function (file,           pragma,   parse) {
         function normalizeUrlWithBase(context, moduleName, url) {
             //Adjust the URL if it was not transformed to use baseUrl.
             if (require.jsExtRegExp.test(moduleName)) {
-                url = context.config.dir + url;
+                url = (context.config.dir || context.config.dirBaseUrl) + url;
             }
             return url;
         }
