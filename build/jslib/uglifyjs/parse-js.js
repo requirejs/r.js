@@ -191,7 +191,7 @@ var OPERATORS = array_to_hash([
         "||"
 ]);
 
-var WHITESPACE_CHARS = array_to_hash(characters(" \u00a0\n\r\t\f\v\u200b"));
+var WHITESPACE_CHARS = array_to_hash(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
 
 var PUNC_BEFORE_EXPRESSION = array_to_hash(characters("[{}(,.;:"));
 
@@ -259,13 +259,7 @@ function JS_Parse_Error(message, line, col, pos) {
         this.line = line;
         this.col = col;
         this.pos = pos;
-        /*
-        try {
-                ({})();
-        } catch(ex) {
-                this.stack = ex.stack;
-        };
-        */
+        this.stack = new Error().stack;
 };
 
 JS_Parse_Error.prototype.toString = function() {
@@ -408,11 +402,12 @@ function tokenizer($TEXT) {
                     case "r" : return "\r";
                     case "t" : return "\t";
                     case "b" : return "\b";
-                    case "v" : return "\v";
+                    case "v" : return "\u000b";
                     case "f" : return "\f";
                     case "0" : return "\0";
                     case "x" : return String.fromCharCode(hex_bytes(2));
                     case "u" : return String.fromCharCode(hex_bytes(4));
+                    case "\n": return "";
                     default  : return ch;
                 }
         };
@@ -511,9 +506,9 @@ function tokenizer($TEXT) {
                 return name;
         };
 
-        function read_regexp() {
+        function read_regexp(regexp) {
                 return with_eof_error("Unterminated regular expression", function(){
-                        var prev_backslash = false, regexp = "", ch, in_class = false;
+                        var prev_backslash = false, ch, in_class = false;
                         while ((ch = next(true))) if (prev_backslash) {
                                 regexp += "\\" + ch;
                                 prev_backslash = false;
@@ -562,7 +557,7 @@ function tokenizer($TEXT) {
                         S.regex_allowed = regex_allowed;
                         return next_token();
                 }
-                return S.regex_allowed ? read_regexp() : read_operator("/");
+                return S.regex_allowed ? read_regexp("") : read_operator("/");
         };
 
         function handle_dot() {
@@ -593,8 +588,8 @@ function tokenizer($TEXT) {
         };
 
         function next_token(force_regexp) {
-                if (force_regexp)
-                        return read_regexp();
+                if (force_regexp != null)
+                        return read_regexp(force_regexp);
                 skip_whitespace();
                 start_token();
                 var ch = peek();
@@ -783,9 +778,9 @@ function parse($TEXT, exigent_mode, embed_tokens) {
         };
 
         var statement = maybe_embed_tokens(function() {
-                if (is("operator", "/")) {
+                if (is("operator", "/") || is("operator", "/=")) {
                         S.peeked = null;
-                        S.token = S.input(true); // force regexp
+                        S.token = S.input(S.token.value.substr(1)); // force regexp
                 }
                 switch (S.token.type) {
                     case "num":
@@ -855,6 +850,8 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                                 return as("switch", parenthesised(), switch_block_());
 
                             case "throw":
+                                if (S.token.nlb)
+                                        croak("Illegal newline after 'throw'");
                                 return as("throw", prog1(expression, semicolon));
 
                             case "try":
@@ -1230,7 +1227,7 @@ function parse($TEXT, exigent_mode, embed_tokens) {
 
         function is_assignable(expr) {
                 if (!exigent_mode) return true;
-                switch (expr[0]) {
+                switch (expr[0]+"") {
                     case "dot":
                     case "sub":
                     case "new":
@@ -1304,7 +1301,7 @@ function array_to_hash(a) {
 };
 
 function slice(a, start) {
-        return Array.prototype.slice.call(a, start == null ? 0 : start);
+        return Array.prototype.slice.call(a, start || 0);
 };
 
 function characters(str) {
@@ -1342,6 +1339,5 @@ exports.is_alphanumeric_char = is_alphanumeric_char;
 exports.set_logger = function(logger) {
         warn = logger;
 };
-
 
 });

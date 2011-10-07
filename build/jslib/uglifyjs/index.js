@@ -1,6 +1,5 @@
 define(["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 
-
 //convienence function(src, [options]);
 function uglify(orig_code, options){
   options || (options = {});
@@ -18,6 +17,5 @@ uglify.parser = require("./parse-js");
 uglify.uglify = require("./process");
 
 module.exports = uglify
-
 
 });
