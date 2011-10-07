@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.27.0+ 20111007 1:25pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 0.27.0+ 20111007 3:30pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '0.27.0+ 20111007 1:25pm Pacific',
+        version = '0.27.0+ 20111007 3:30pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -2379,6 +2379,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
     file = {
         backSlashRegExp: /\\/g,
+        dirExclusionRegExp: /^\./,
         getLineSeparator: function () {
             return '/';
         },
@@ -2452,7 +2453,8 @@ define('node/file', ['fs', 'path'], function (fs, path) {
                         if (ok && !fileName.match(/^\./)) {
                             files.push(filePath);
                         }
-                    } else if (stat.isDirectory() && !fileName.match(/^\./)) {
+                    } else if (stat.isDirectory() &&
+                              (!file.dirExclusionRegExp || !fileName.match(file.dirExclusionRegExp))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
                         files.push.apply(files, dirFiles);
                     }
@@ -2600,6 +2602,8 @@ define('rhino/file', function () {
     var file = {
         backSlashRegExp: /\\/g,
 
+        dirExclusionRegExp: /^\./,
+
         getLineSeparator: function () {
             return file.lineSeparator;
         },
@@ -2679,7 +2683,8 @@ define('rhino/file', function () {
                         if (ok && !fileObj.getName().match(/^\./)) {
                             files.push(filePath);
                         }
-                    } else if (fileObj.isDirectory() && !fileObj.getName().match(/^\./)) {
+                    } else if (fileObj.isDirectory() &&
+                              (!file.dirExclusionRegExp || !fileObj.getName().match(file.dirExclusionRegExp))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
                         files.push.apply(files, dirFiles);
                     }
@@ -7752,7 +7757,8 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
          'env!env/load', 'requirePatch'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
           load,           requirePatch) {
-    var build, buildBaseConfig;
+    var build, buildBaseConfig,
+        endsWithSemiColonRegExp = /;\s*$/;
 
     buildBaseConfig = {
             appDir: "",
@@ -7762,8 +7768,24 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             optimizeCss: "standard.keepLines",
             inlineText: true,
             isBuild: true,
-            optimizeAllPluginResources: false
+            optimizeAllPluginResources: false,
+            //By default, all files/directories are copied, unless
+            //they match this regexp, by default just excludes .folders
+            dirExclusionRegExp: file.dirExclusionRegExp
         };
+
+    /**
+     * Some JS may not be valid if concatenated with other JS, in particular
+     * the style of omitting semicolons and rely on ASI. Add a semicolon in
+     * those cases.
+     */
+    function addSemiColon(text) {
+        if (endsWithSemiColonRegExp.test(text)) {
+            return text;
+        } else {
+            return text + ";";
+        }
+    }
 
     /**
      * If the path looks like an URL, throw an error. This is to prevent
@@ -8373,6 +8395,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' pages.');
         }
 
+        //Set file.dirExclusionRegExp if desired
+        if ('dirExclusionRegExp' in config) {
+            file.dirExclusionRegExp = config.dirExclusionRegExp;
+        }
+
         return config;
     };
 
@@ -8522,12 +8549,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (builder) {
                 if (builder.write) {
                     writeApi = function (input) {
-                        fileContents += "\n" + input + ";";
+                        fileContents += "\n" + addSemiColon(input);
                     };
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
-                                        build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer) +
-                                        ";";
+                                        addSemiColon(
+                                            build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer));
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -8542,7 +8569,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 //Semicolon is for files that are not well formed when
                 //concatenated with other content.
-                fileContents += "\n" + currContents + ';';
+                fileContents += "\n" + addSemiColon(currContents);
             }
 
             buildFileContents += path.replace(config.dir, "") + "\n";
