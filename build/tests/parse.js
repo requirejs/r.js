@@ -48,6 +48,7 @@ define(['parse'], function (parse) {
                         '        }\n' +
                         '   };\n' +
                         '});\n',
+                    good6 = 'function baz(){ var foo = { bar: function() { define("one", function(){ var two = require("two"); }); } };}',
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
                 t.is('define("one",["two","three"]);', parse("good1", "good1", good1));
@@ -55,6 +56,7 @@ define(['parse'], function (parse) {
                 t.is('define("one",["two"]);', parse("good3", "good3", good3));
                 t.is('define("one",[]);', parse("good4", "good4", good4));
                 t.is('define("good5",["require","../index!0?./a:./b:./c","../index!2?./a:./b:./c","../index!1?./a:./b:./c"]);', parse("good5", "good5", good5));
+                t.is('define("one",["two"]);', parse("good6", "good6", good6));
                 t.is('define("foo",[]);', parse("nested1", "nested1", nested1));
                 t.is('define("one",["me"]);', parse("bad1", "bad1", bad1));
                 t.is(null, parse("bad2", "bad2", bad2));

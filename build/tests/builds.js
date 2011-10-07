@@ -135,8 +135,7 @@ define(['build', 'env!env/file'], function (build, file) {
                 build(["name=uno", "excludeShallow=dos", "out=builds/unoExcludeShallow.js",
                        "baseUrl=../../../requirejs/tests", "optimize=none"]);
 
-                t.is(nol(c("../../../requirejs/tests/tres.js") + ";" +
-                     c("../../../requirejs/tests/uno.js") + ";"), nol(c("builds/unoExcludeShallow.js")));
+                t.is(nol(c("expected/unoExcludeShallow.js")), nol(c("builds/unoExcludeShallow.js")));
                 require._buildReset();
             }
         ]
@@ -192,14 +191,34 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    doh.register("buildUniversal",
+        [
+            function buildUniversal(t) {
+                build(["baseUrl=../../../requirejs/tests/universal",
+                       "name=universal-tests",
+                       "out=../../../requirejs/tests/universal/universal-tests-built.js",
+                       "optimize=none"]);
+
+                t.is(nol(c("../../../requirejs/tests/universal/universal-tests-built-expected.js")),
+                     nol(c("../../../requirejs/tests/universal/universal-tests-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     doh.register("buildNamespace",
         [
-            function buildPluginAsModule(t) {
+            function buildNamespace(t) {
                 build(["baseUrl=lib/namespace", "optimize=none", "namespace=foo",
                        "name=main", "out=lib/namespace/foo.js"]);
 
-                t.is(nol(c("lib/namespace/foo.js")),
-                     nol(c("lib/namespace/expected.js")));
+                t.is(nol(c("lib/namespace/expected.js")),
+                     nol(c("lib/namespace/foo.js")));
 
                 require._buildReset();
             }

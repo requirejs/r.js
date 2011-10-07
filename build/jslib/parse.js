@@ -267,7 +267,7 @@ define(['uglifyjs/index'], function (uglify) {
 
     /**
      * Finds require("") calls inside a CommonJS anonymous module wrapped in a
-     * define/require.def(function(require, exports, module){}) wrapper. These dependencies
+     * define(function(require, exports, module){}) wrapper. These dependencies
      * will be added to a modified define() call that lists the dependencies
      * on the outside of the function.
      * @param {String} fileName
@@ -277,7 +277,7 @@ define(['uglifyjs/index'], function (uglify) {
      */
     parse.getAnonDeps = function (fileName, fileContents) {
         var astRoot = parser.parse(fileContents),
-            defFunc = this.findAnonRequireDefCallback(astRoot);
+            defFunc = this.findAnonDefineFactory(astRoot);
 
         return parse.getAnonDepsFromNode(defFunc);
     };
@@ -309,11 +309,11 @@ define(['uglifyjs/index'], function (uglify) {
     };
 
     /**
-     * Finds the function in require.def or define(function (require, exports, module){});
+     * Finds the function in define(function (require, exports, module){});
      * @param {Array} node
      * @returns {Boolean}
      */
-    parse.findAnonRequireDefCallback = function (node) {
+    parse.findAnonDefineFactory = function (node) {
         var callback, i, n, call, args;
 
         if (isArray(node)) {
@@ -323,18 +323,21 @@ define(['uglifyjs/index'], function (uglify) {
                 if ((call[0] === 'name' && call[1] === 'define') ||
                            (call[0] === 'dot' && call[1][1] === 'require' && call[2] === 'def')) {
 
-                    //There should only be one argument and it should be a function.
+                    //There should only be one argument and it should be a function,
+                    //or a named module with function as second arg
                     if (args.length === 1 && args[0][0] === 'function') {
                         return args[0];
+                    } else if (args.length === 2 && args[0][0] === 'string' &&
+                               args[1][0] === 'function') {
+                        return args[1];
                     }
-
                 }
             }
 
             //Check child nodes
             for (i = 0; i < node.length; i++) {
                 n = node[i];
-                if ((callback = this.findAnonRequireDefCallback(n))) {
+                if ((callback = this.findAnonDefineFactory(n))) {
                     return callback;
                 }
             }
@@ -508,10 +511,16 @@ define(['uglifyjs/index'], function (uglify) {
 
                         //If first arg is a function, could be a commonjs wrapper,
                         //look inside for commonjs dependencies.
+                        //Also, if deps is a function look for commonjs deps.
                         if (name && name[0] === 'function') {
                             cjsDeps = parse.getAnonDepsFromNode(name);
                             if (cjsDeps.length) {
                                 name = toAstArray(cjsDeps);
+                            }
+                        } else if (deps && deps[0] === 'function') {
+                            cjsDeps = parse.getAnonDepsFromNode(deps);
+                            if (cjsDeps.length) {
+                                deps = toAstArray(cjsDeps);
                             }
                         }
 

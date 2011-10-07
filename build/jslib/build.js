@@ -847,20 +847,34 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //define(\n//begin v1.x content
         //for a comment.
         return new RegExp('(^|[^\\.])(' + (namespace || '').replace(/\./g, '\\.') +
-                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{)');
+                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{|["\']([^"\']+)["\'])(\\s*,\\s*f)?');
     };
 
+    build.leadingCommaRegExp = /^\s*,/;
+
     build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
+
         //If anonymous module, insert the module name.
-        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
+        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix, namedModule, namedFuncStart) {
+            //A named module with either listed dependencies or an object
+            //literal for a value. Skip it. If named module, only want ones
+            //whose next argument is a function literal to scan for
+            //require('') dependecies.
+            if (namedModule && !namedFuncStart) {
+                return match;
+            }
+
             if (layer) {
                 layer.modulesWithNames[moduleName] = true;
             }
 
+            var deps = null;
+
             //Look for CommonJS require calls inside the function if this is
             //an anonymous define call that just has a function registered.
-            var deps = null;
-            if (suffix.indexOf('f') !== -1) {
+            //Also look if a named define function but has a factory function
+            //as the second arg that should be scanned for dependencies.
+            if (suffix.indexOf('f') !== -1 || (namedModule)) {
                 deps = parse.getAnonDeps(path, contents);
 
                 if (deps.length) {
@@ -874,7 +888,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
             return start + namespace + "define('" + moduleName + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
-                   suffix;
+                   (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
         });
 
     };
