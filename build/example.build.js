@@ -20,7 +20,8 @@
 
     //By default, all modules are located relative to this path. If baseUrl
     //is not explicitly set, then all modules are loaded relative to
-    //the directory that holds the build file.
+    //the directory that holds the build file. If appDir is set, then
+    //baseUrl should be specified as relative to the appDir.
     baseUrl: "./",
 
     //Set paths for modules. If relative paths, set relative to baseUrl above.
