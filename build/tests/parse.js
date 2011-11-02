@@ -49,6 +49,8 @@ define(['parse'], function (parse) {
                         '   };\n' +
                         '});\n',
                     good6 = 'function baz(){ var foo = { bar: function() { define("one", function(){ var two = require("two"); }); } };}',
+                    good7 = "(function (factory){\nif(typeof define === 'function' && define.amd){\ndefine(['dep'], factory);\n}else{\nfactory(this.dep);\n}\n}(function(dep){\n}));",
+                    good8 = "(function (factory){\nif(typeof define === 'function' && define.amd){\ndefine('some/name', ['dep1', 'dep2'], factory);\n}else{\nfactory(this.dep);\n}\n}(function(dep){\n}));",
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
                 t.is('define("one",["two","three"]);', parse("good1", "good1", good1));
@@ -57,6 +59,8 @@ define(['parse'], function (parse) {
                 t.is('define("one",[]);', parse("good4", "good4", good4));
                 t.is('define("good5",["require","../index!0?./a:./b:./c","../index!2?./a:./b:./c","../index!1?./a:./b:./c"]);', parse("good5", "good5", good5));
                 t.is('define("one",["two"]);', parse("good6", "good6", good6));
+                t.is('define("good7",["dep"]);', parse("good7", "good7", good7));
+                t.is('define("some/name",["dep1","dep2"]);', parse("good8", "good8", good8));
                 t.is('define("foo",[]);', parse("nested1", "nested1", nested1));
                 t.is('define("one",["me"]);', parse("bad1", "bad1", bad1));
                 t.is(null, parse("bad2", "bad2", bad2));

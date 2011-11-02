@@ -487,11 +487,9 @@ define(['uglifyjs/index'], function (uglify) {
 
                     return onMatch("require", null, null, deps);
 
-                } else if ((call[0] === 'name' && call[1] === 'define') ||
-                           (call[0] === 'dot' && call[1][1] === 'require' &&
-                            call[2] === 'def')) {
+                } else if (call[0] === 'name' && call[1] === 'define') {
 
-                    //A define or require.def call
+                    //A define call
                     name = args[0];
                     deps = args[1];
                     //Only allow define calls that match what is expected
@@ -507,7 +505,9 @@ define(['uglifyjs/index'], function (uglify) {
                     if (((name[0] === 'string' || isArrayLiteral(name) ||
                           name[0] === 'function' || isObjectLiteral(name))) &&
                         (!deps || isArrayLiteral(deps) ||
-                         deps[0] === 'function' || isObjectLiteral(deps))) {
+                         deps[0] === 'function' || isObjectLiteral(deps) ||
+                         // allow define(['dep'], factory) pattern
+                         (isArrayLiteral(name) && deps[0] === 'name' && args.length === 2))) {
 
                         //If first arg is a function, could be a commonjs wrapper,
                         //look inside for commonjs dependencies.
