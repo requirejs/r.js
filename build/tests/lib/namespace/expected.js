@@ -1,15 +1,44 @@
 
-foo.define('modules/one',[],function ( ){
-   return { name: 'one' };
+(function (define) {
+    foo.define('modules/one',[],function ( ){
+       return { name: 'one' };
+    });
+
+}(typeof foo.define === 'function' && foo.define.amd ? foo.define : function () {
+
+
+}));
+
+if (typeof foo.define === 'function' && foo.define.amd && foo.define.jQuery) {
+    foo.define('modules/two',[],function () {
+       return { name: 'two' };
+    });
+}
+;
+foo.define('modules/four',{
+    name: 'four'
 });
 
-foo.define('modules/two',[],function () {
-   return { name: 'two' };
-});
+(function (define) {
+    foo.define('modules/three',[], function (require) {
+        //If have dependencies, get them here
+        var four = foo.require('./four');
 
-foo.require(['modules/one', 'modules/two'], function (one, two) {
+        //Return the module definition.
+        return {
+            name: 'three',
+            fourName: four.name
+        };
+    });
+}(typeof foo.define === 'function' && foo.define.amd ? foo.define : function (id, factory) {
+
+}));
+
+foo.require(['modules/one', 'modules/two', 'modules/three'], function (one, two, three) {
     console.log("One's name is: " + one.name);
     console.log("Two's name is: " + two.name);
+    console.log("Two's name is: " + three.name);
+    console.log("Three's fourName is: " + three.fourName);
 });
 
 foo.define("main", function(){});
