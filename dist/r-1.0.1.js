@@ -1,5 +1,5 @@
 /**
- * @license r.js 0.27.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.1 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '0.27.0',
+        version = '1.0.1',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -101,7 +101,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 0.27.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.1 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -113,8 +113,8 @@ var requirejs, require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "0.27.0",
-        commentRegExp = /(\/\*([\s\S]*?)\*\/|\/\/(.*)$)/mg,
+    var version = "1.0.1",
+        commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
         jsSuffixRegExp = /\.js$/,
@@ -645,6 +645,13 @@ var requirejs, require, define;
                 execManager(depManager);
 
                 loaded[depManager.id] = true;
+
+                //The loading of this plugin
+                //might have placed other things
+                //in the paused queue. In particular,
+                //a loader plugin that depends on
+                //a different plugin loaded resource.
+                resume();
             };
 
             //Allow plugins to load other code without having to know the
@@ -1667,7 +1674,7 @@ var requirejs, require, define;
 
         //If no name, and callback is a function, then figure out if it a
         //CommonJS thing with dependencies.
-        if (!name && !deps.length && isFunction(callback)) {
+        if (!deps.length && isFunction(callback)) {
             //Remove comments from the callback string,
             //look for require calls, and pull them into the dependencies,
             //but only if there are function args.
@@ -2372,6 +2379,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
     file = {
         backSlashRegExp: /\\/g,
+        dirExclusionRegExp: /^\./,
         getLineSeparator: function () {
             return '/';
         },
@@ -2445,7 +2453,8 @@ define('node/file', ['fs', 'path'], function (fs, path) {
                         if (ok && !fileName.match(/^\./)) {
                             files.push(filePath);
                         }
-                    } else if (stat.isDirectory() && !fileName.match(/^\./)) {
+                    } else if (stat.isDirectory() &&
+                              (!file.dirExclusionRegExp || !fileName.match(file.dirExclusionRegExp))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
                         files.push.apply(files, dirFiles);
                     }
@@ -2520,10 +2529,9 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
             var text = fs.readFileSync(path, encoding);
 
-            //Looks like a weird bug in the native node.exe for windows,
-            //at least in 0.5.3, where UTF-8 BOM is being fed back.
-            //May be able to remove this after more node releases.
-            if (isWindows && text.indexOf('\uFEFF') === 0) {
+            //Hmm, would not expect to get A BOM, but it seems to happen,
+            //remove it just in case.
+            if (text.indexOf('\uFEFF') === 0) {
                 text = text.substring(1, text.length);
             }
 
@@ -2593,6 +2601,8 @@ if(env === 'rhino') {
 define('rhino/file', function () {
     var file = {
         backSlashRegExp: /\\/g,
+
+        dirExclusionRegExp: /^\./,
 
         getLineSeparator: function () {
             return file.lineSeparator;
@@ -2673,7 +2683,8 @@ define('rhino/file', function () {
                         if (ok && !fileObj.getName().match(/^\./)) {
                             files.push(filePath);
                         }
-                    } else if (fileObj.isDirectory() && !fileObj.getName().match(/^\./)) {
+                    } else if (fileObj.isDirectory() &&
+                              (!file.dirExclusionRegExp || !fileObj.getName().match(file.dirExclusionRegExp))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
                         files.push.apply(files, dirFiles);
                     }
@@ -3165,7 +3176,7 @@ var OPERATORS = array_to_hash([
         "||"
 ]);
 
-var WHITESPACE_CHARS = array_to_hash(characters(" \u00a0\n\r\t\f\v\u200b"));
+var WHITESPACE_CHARS = array_to_hash(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
 
 var PUNC_BEFORE_EXPRESSION = array_to_hash(characters("[{}(,.;:"));
 
@@ -3233,13 +3244,7 @@ function JS_Parse_Error(message, line, col, pos) {
         this.line = line;
         this.col = col;
         this.pos = pos;
-        /*
-        try {
-                ({})();
-        } catch(ex) {
-                this.stack = ex.stack;
-        };
-        */
+        this.stack = new Error().stack;
 };
 
 JS_Parse_Error.prototype.toString = function() {
@@ -3382,11 +3387,12 @@ function tokenizer($TEXT) {
                     case "r" : return "\r";
                     case "t" : return "\t";
                     case "b" : return "\b";
-                    case "v" : return "\v";
+                    case "v" : return "\u000b";
                     case "f" : return "\f";
                     case "0" : return "\0";
                     case "x" : return String.fromCharCode(hex_bytes(2));
                     case "u" : return String.fromCharCode(hex_bytes(4));
+                    case "\n": return "";
                     default  : return ch;
                 }
         };
@@ -3485,9 +3491,9 @@ function tokenizer($TEXT) {
                 return name;
         };
 
-        function read_regexp() {
+        function read_regexp(regexp) {
                 return with_eof_error("Unterminated regular expression", function(){
-                        var prev_backslash = false, regexp = "", ch, in_class = false;
+                        var prev_backslash = false, ch, in_class = false;
                         while ((ch = next(true))) if (prev_backslash) {
                                 regexp += "\\" + ch;
                                 prev_backslash = false;
@@ -3536,7 +3542,7 @@ function tokenizer($TEXT) {
                         S.regex_allowed = regex_allowed;
                         return next_token();
                 }
-                return S.regex_allowed ? read_regexp() : read_operator("/");
+                return S.regex_allowed ? read_regexp("") : read_operator("/");
         };
 
         function handle_dot() {
@@ -3567,8 +3573,8 @@ function tokenizer($TEXT) {
         };
 
         function next_token(force_regexp) {
-                if (force_regexp)
-                        return read_regexp();
+                if (force_regexp != null)
+                        return read_regexp(force_regexp);
                 skip_whitespace();
                 start_token();
                 var ch = peek();
@@ -3757,9 +3763,9 @@ function parse($TEXT, exigent_mode, embed_tokens) {
         };
 
         var statement = maybe_embed_tokens(function() {
-                if (is("operator", "/")) {
+                if (is("operator", "/") || is("operator", "/=")) {
                         S.peeked = null;
-                        S.token = S.input(true); // force regexp
+                        S.token = S.input(S.token.value.substr(1)); // force regexp
                 }
                 switch (S.token.type) {
                     case "num":
@@ -3829,6 +3835,8 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                                 return as("switch", parenthesised(), switch_block_());
 
                             case "throw":
+                                if (S.token.nlb)
+                                        croak("Illegal newline after 'throw'");
                                 return as("throw", prog1(expression, semicolon));
 
                             case "try":
@@ -4204,7 +4212,7 @@ function parse($TEXT, exigent_mode, embed_tokens) {
 
         function is_assignable(expr) {
                 if (!exigent_mode) return true;
-                switch (expr[0]) {
+                switch (expr[0]+"") {
                     case "dot":
                     case "sub":
                     case "new":
@@ -4278,7 +4286,7 @@ function array_to_hash(a) {
 };
 
 function slice(a, start) {
-        return Array.prototype.slice.call(a, start == null ? 0 : start);
+        return Array.prototype.slice.call(a, start || 0);
 };
 
 function characters(str) {
@@ -4317,28 +4325,55 @@ exports.set_logger = function(logger) {
         warn = logger;
 };
 
-
-});
-define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
+});define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 
 var jsp = require("./parse-js"),
     pro = require("./process"),
     slice = jsp.slice,
     member = jsp.member,
+    curry = jsp.curry,
+    MAP = pro.MAP,
     PRECEDENCE = jsp.PRECEDENCE,
     OPERATORS = jsp.OPERATORS;
 
 function ast_squeeze_more(ast) {
-        var w = pro.ast_walker(), walk = w.walk;
+        var w = pro.ast_walker(), walk = w.walk, scope;
+        function with_scope(s, cont) {
+                var save = scope, ret;
+                scope = s;
+                ret = cont();
+                scope = save;
+                return ret;
+        };
+        function _lambda(name, args, body) {
+                return [ this[0], name, args, with_scope(body.scope, curry(MAP, body, walk)) ];
+        };
         return w.with_walkers({
+                "toplevel": function(body) {
+                        return [ this[0], with_scope(this.scope, curry(MAP, body, walk)) ];
+                },
+                "function": _lambda,
+                "defun": _lambda,
+                "new": function(ctor, args) {
+                        if (ctor[0] == "name" && ctor[1] == "Array" && !scope.has("Array")) {
+                                if (args.length != 1) {
+                                        return [ "array", args ];
+                                } else {
+                                        return walk([ "call", [ "name", "Array" ], args ]);
+                                }
+                        }
+                },
                 "call": function(expr, args) {
                         if (expr[0] == "dot" && expr[2] == "toString" && args.length == 0) {
                                 // foo.toString()  ==>  foo+""
                                 return [ "binary", "+", expr[1], [ "string", "" ]];
                         }
+                        if (expr[0] == "name" && expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
+                                return [ "array", args ];
+                        }
                 }
         }, function() {
-                return walk(ast);
+                return walk(pro.ast_add_scope(ast));
         });
 };
 
@@ -4414,7 +4449,7 @@ var jsp = require("./parse-js"),
 
 /* -----[ helper for AST traversal ]----- */
 
-function ast_walker(ast) {
+function ast_walker() {
         function _vardefs(defs) {
                 return [ this[0], MAP(defs, function(def){
                         var a = [ def[0] ];
@@ -4571,6 +4606,17 @@ function ast_walker(ast) {
                 }
         };
 
+        function dive(ast) {
+                if (ast == null)
+                        return null;
+                try {
+                        stack.push(ast);
+                        return walkers[ast[0]].apply(ast, ast.slice(1));
+                } finally {
+                        stack.pop();
+                }
+        };
+
         function with_walkers(walkers, cont){
                 var save = {}, i;
                 for (i in walkers) if (HOP(walkers, i)) {
@@ -4587,6 +4633,7 @@ function ast_walker(ast) {
 
         return {
                 walk: walk,
+                dive: dive,
                 with_walkers: with_walkers,
                 parent: function() {
                         return stack[stack.length - 2]; // last one is current node
@@ -4699,9 +4746,15 @@ Scope.prototype = {
                 if (!newMangle) return name;                      // not found and no mangling requested
                 return s.set_mangle(name, s.next_mangled());
         },
-        define: function(name) {
-                if (name != null)
-                        return this.names[name] = name;
+        references: function(name) {
+                return name && !this.parent || this.uses_with || this.uses_eval || this.refs[name];
+        },
+        define: function(name, type) {
+                if (name != null) {
+                        if (type == "var" || !HOP(this.names, name))
+                                this.names[name] = type || "var";
+                        return name;
+                }
         }
 };
 
@@ -4719,8 +4772,8 @@ function ast_add_scope(ast) {
                 return ret;
         };
 
-        function define(name) {
-                return current_scope.define(name);
+        function define(name, type) {
+                return current_scope.define(name, type);
         };
 
         function reference(name) {
@@ -4729,11 +4782,20 @@ function ast_add_scope(ast) {
 
         function _lambda(name, args, body) {
                 var is_defun = this[0] == "defun";
-                return [ this[0], is_defun ? define(name) : name, args, with_new_scope(function(){
-                        if (!is_defun) define(name);
-                        MAP(args, define);
+                return [ this[0], is_defun ? define(name, "defun") : name, args, with_new_scope(function(){
+                        if (!is_defun) define(name, "lambda");
+                        MAP(args, function(name){ define(name, "arg") });
                         return MAP(body, walk);
                 })];
+        };
+
+        function _vardefs(type) {
+                return function(defs) {
+                        MAP(defs, function(d){
+                                define(d[0], type);
+                                if (d[1]) reference(d[0]);
+                        });
+                };
         };
 
         return with_new_scope(function(){
@@ -4741,21 +4803,20 @@ function ast_add_scope(ast) {
                 var ret = w.with_walkers({
                         "function": _lambda,
                         "defun": _lambda,
+                        "label": function(name, stat) { define(name, "label") },
+                        "break": function(label) { if (label) reference(label) },
+                        "continue": function(label) { if (label) reference(label) },
                         "with": function(expr, block) {
                                 for (var s = current_scope; s; s = s.parent)
                                         s.uses_with = true;
                         },
-                        "var": function(defs) {
-                                MAP(defs, function(d){ define(d[0]) });
-                        },
-                        "const": function(defs) {
-                                MAP(defs, function(d){ define(d[0]) });
-                        },
+                        "var": _vardefs("var"),
+                        "const": _vardefs("const"),
                         "try": function(t, c, f) {
                                 if (c != null) return [
                                         this[0],
                                         MAP(t, walk),
-                                        [ define(c[0]), MAP(c[1], walk) ],
+                                        [ define(c[0], "catch"), MAP(c[1], walk) ],
                                         f != null ? MAP(f, walk) : null
                                 ];
                         },
@@ -4883,6 +4944,9 @@ function ast_mangle(ast, options) {
                         }
                         return ast;
                 },
+                "label": function(label, stat) { return [ this[0], get_mangled(label), walk(stat) ] },
+                "break": function(label) { if (label) return [ this[0], get_mangled(label) ] },
+                "continue": function(label) { if (label) return [ this[0], get_mangled(label) ] },
                 "var": _vardefs,
                 "const": _vardefs,
                 "name": function(name) {
@@ -4929,10 +4993,12 @@ function last_stat(b) {
 }
 
 function aborts(t) {
-        if (t) {
-                t = last_stat(t);
-                if (t[0] == "return" || t[0] == "break" || t[0] == "continue" || t[0] == "throw")
-                        return true;
+        if (t) switch (last_stat(t)[0]) {
+            case "return":
+            case "break":
+            case "continue":
+            case "throw":
+                return true;
         }
 };
 
@@ -4959,21 +5025,6 @@ function boolean_expr(expr) {
                  (expr[0] == "seq"
                   && boolean_expr(expr[expr.length - 1]))
                );
-};
-
-function make_conditional(c, t, e) {
-    var make_real_conditional = function() {
-        if (c[0] == "unary-prefix" && c[1] == "!") {
-            return e ? [ "conditional", c[2], e, t ] : [ "binary", "||", c[2], t ];
-        } else {
-            return e ? [ "conditional", c, t, e ] : [ "binary", "&&", c, t ];
-        }
-    };
-    // shortcut the conditional if the expression has a constant value
-    return when_constant(c, function(ast, val){
-        warn_unreachable(val ? e : t);
-        return          (val ? t : e);
-    }, make_real_conditional);
 };
 
 function empty(b) {
@@ -5003,6 +5054,7 @@ var when_constant = (function(){
                         switch (expr[1]) {
                             case "true": return true;
                             case "false": return false;
+                            case "null": return null;
                         }
                         break;
                     case "unary-prefix":
@@ -5025,6 +5077,7 @@ var when_constant = (function(){
                             case "+"          : return evaluate(left) +          evaluate(right);
                             case "*"          : return evaluate(left) *          evaluate(right);
                             case "/"          : return evaluate(left) /          evaluate(right);
+                            case "%"          : return evaluate(left) %          evaluate(right);
                             case "-"          : return evaluate(left) -          evaluate(right);
                             case "<<"         : return evaluate(left) <<         evaluate(right);
                             case ">>"         : return evaluate(left) >>         evaluate(right);
@@ -5121,9 +5174,7 @@ function prepare_ifs(ast) {
                         var conditional = walk(fi[1]);
 
                         var e_body = statements.slice(i + 1);
-                        var e;
-                        if (e_body.length == 1) e = e_body[0];
-                        else e = [ "block", e_body ];
+                        var e = e_body.length == 1 ? e_body[0] : [ "block", e_body ];
 
                         var ret = statements.slice(0, i).concat([ [
                                 fi[0],          // "if"
@@ -5140,14 +5191,11 @@ function prepare_ifs(ast) {
 
         function redo_if_lambda(name, args, body) {
                 body = redo_if(body);
-                return [ this[0], name, args.slice(), body ];
+                return [ this[0], name, args, body ];
         };
 
         function redo_if_block(statements) {
-                var out = [ this[0] ];
-                if (statements != null)
-                        out.push(redo_if(statements));
-                return out;
+                return [ this[0], statements != null ? redo_if(statements) : null ];
         };
 
         return w.with_walkers({
@@ -5171,11 +5219,143 @@ function prepare_ifs(ast) {
         });
 };
 
+function for_side_effects(ast, handler) {
+        var w = ast_walker(), walk = w.walk;
+        var $stop = {}, $restart = {};
+        function stop() { throw $stop };
+        function restart() { throw $restart };
+        function found(){ return handler.call(this, this, w, stop, restart) };
+        function unary(op) {
+                if (op == "++" || op == "--")
+                        return found.apply(this, arguments);
+        };
+        return w.with_walkers({
+                "try": found,
+                "throw": found,
+                "return": found,
+                "new": found,
+                "switch": found,
+                "break": found,
+                "continue": found,
+                "assign": found,
+                "call": found,
+                "if": found,
+                "for": found,
+                "for-in": found,
+                "while": found,
+                "do": found,
+                "return": found,
+                "unary-prefix": unary,
+                "unary-postfix": unary,
+                "defun": found
+        }, function(){
+                while (true) try {
+                        walk(ast);
+                        break;
+                } catch(ex) {
+                        if (ex === $stop) break;
+                        if (ex === $restart) continue;
+                        throw ex;
+                }
+        });
+};
+
+function ast_lift_variables(ast) {
+        var w = ast_walker(), walk = w.walk, scope;
+        function do_body(body, env) {
+                var _scope = scope;
+                scope = env;
+                body = MAP(body, walk);
+                var hash = {}, names = MAP(env.names, function(type, name){
+                        if (type != "var") return MAP.skip;
+                        if (!env.references(name)) return MAP.skip;
+                        hash[name] = true;
+                        return [ name ];
+                });
+                if (names.length > 0) {
+                        // looking for assignments to any of these variables.
+                        // we can save considerable space by moving the definitions
+                        // in the var declaration.
+                        for_side_effects([ "block", body ], function(ast, walker, stop, restart) {
+                                if (ast[0] == "assign"
+                                    && ast[1] === true
+                                    && ast[2][0] == "name"
+                                    && HOP(hash, ast[2][1])) {
+                                        // insert the definition into the var declaration
+                                        for (var i = names.length; --i >= 0;) {
+                                                if (names[i][0] == ast[2][1]) {
+                                                        if (names[i][1]) // this name already defined, we must stop
+                                                                stop();
+                                                        names[i][1] = ast[3]; // definition
+                                                        names.push(names.splice(i, 1)[0]);
+                                                        break;
+                                                }
+                                        }
+                                        // remove this assignment from the AST.
+                                        var p = walker.parent();
+                                        if (p[0] == "seq") {
+                                                var a = p[2];
+                                                a.unshift(0, p.length);
+                                                p.splice.apply(p, a);
+                                        }
+                                        else if (p[0] == "stat") {
+                                                p.splice(0, p.length, "block"); // empty statement
+                                        }
+                                        else {
+                                                stop();
+                                        }
+                                        restart();
+                                }
+                                stop();
+                        });
+                        body.unshift([ "var", names ]);
+                }
+                scope = _scope;
+                return body;
+        };
+        function _vardefs(defs) {
+                var ret = null;
+                for (var i = defs.length; --i >= 0;) {
+                        var d = defs[i];
+                        if (!d[1]) continue;
+                        d = [ "assign", true, [ "name", d[0] ], d[1] ];
+                        if (ret == null) ret = d;
+                        else ret = [ "seq", d, ret ];
+                }
+                if (ret == null) {
+                        if (w.parent()[0] == "for-in")
+                                return [ "name", defs[0][0] ];
+                        return MAP.skip;
+                }
+                return [ "stat", ret ];
+        };
+        function _toplevel(body) {
+                return [ this[0], do_body(body, this.scope) ];
+        };
+        return w.with_walkers({
+                "function": function(name, args, body){
+                        for (var i = args.length; --i >= 0 && !body.scope.references(args[i]);)
+                                args.pop();
+                        if (!body.scope.references(name)) name = null;
+                        return [ this[0], name, args, do_body(body, body.scope) ];
+                },
+                "defun": function(name, args, body){
+                        if (!scope.references(name)) return MAP.skip;
+                        for (var i = args.length; --i >= 0 && !body.scope.references(args[i]);)
+                                args.pop();
+                        return [ this[0], name, args, do_body(body, body.scope) ];
+                },
+                "var": _vardefs,
+                "toplevel": _toplevel
+        }, function(){
+                return walk(ast_add_scope(ast));
+        });
+};
+
 function ast_squeeze(ast, options) {
         options = defaults(options, {
                 make_seqs   : true,
                 dead_code   : true,
-                keep_comps  : true,
                 no_warnings : false
         });
 
@@ -5194,13 +5374,11 @@ function ast_squeeze(ast, options) {
                         return best_of(not_c, [ "conditional", c[1], negate(c[2]), negate(c[3]) ]);
                     case "binary":
                         var op = c[1], left = c[2], right = c[3];
-                        if (!options.keep_comps) switch (op) {
+                        switch (op) {
                             case "<="  : return [ "binary", ">", left, right ];
                             case "<"   : return [ "binary", ">=", left, right ];
                             case ">="  : return [ "binary", "<", left, right ];
                             case ">"   : return [ "binary", "<=", left, right ];
-                        }
-                        switch (op) {
                             case "=="  : return [ "binary", "!=", left, right ];
                             case "!="  : return [ "binary", "==", left, right ];
                             case "===" : return [ "binary", "!==", left, right ];
@@ -5211,6 +5389,24 @@ function ast_squeeze(ast, options) {
                         break;
                 }
                 return not_c;
+        };
+
+        function make_conditional(c, t, e) {
+                var make_real_conditional = function() {
+                        if (c[0] == "unary-prefix" && c[1] == "!") {
+                                return e ? [ "conditional", c[2], e, t ] : [ "binary", "||", c[2], t ];
+                        } else {
+                                return e ? best_of(
+                                        [ "conditional", c, t, e ],
+                                        [ "conditional", negate(c), e, t ]
+                                ) : [ "binary", "&&", c, t ];
+                        }
+                };
+                // shortcut the conditional if the expression has a constant value
+                return when_constant(c, function(ast, val){
+                        warn_unreachable(val ? e : t);
+                        return          (val ? t : e);
+                }, make_real_conditional);
         };
 
         function with_scope(s, cont) {
@@ -5235,15 +5431,14 @@ function ast_squeeze(ast, options) {
         function _lambda(name, args, body) {
                 var is_defun = this[0] == "defun";
                 body = with_scope(body.scope, function(){
-                        var ret = tighten(MAP(body, walk), "lambda");
-                        if (!is_defun && name && !HOP(scope.refs, name))
+                        var ret = tighten(body, "lambda");
+                        if (!is_defun && name && !scope.references(name))
                                 name = null;
                         return ret;
                 });
                 return [ this[0], name, args, body ];
         };
 
-        // we get here for blocks that have been already transformed.
         // this function does a few things:
         // 1. discard useless blocks
         // 2. join consecutive var declarations
@@ -5251,6 +5446,8 @@ function ast_squeeze(ast, options) {
         // 4. transform consecutive statements using the comma operator
         // 5. if block_type == "lambda" and it detects constructs like if(foo) return ... - rewrite like if (!foo) { ... }
         function tighten(statements, block_type) {
+                statements = MAP(statements, walk);
+
                 statements = statements.reduce(function(a, stat){
                         if (stat[0] == "block") {
                                 if (stat[1]) {
@@ -5278,7 +5475,17 @@ function ast_squeeze(ast, options) {
                 if (options.dead_code) statements = (function(a, has_quit){
                         statements.forEach(function(st){
                                 if (has_quit) {
-                                        if (member(st[0], [ "function", "defun" , "var", "const" ])) {
+                                        if (st[0] == "function" || st[0] == "defun") {
+                                                a.push(st);
+                                        }
+                                        else if (st[0] == "var" || st[0] == "const") {
+                                                if (!options.no_warnings)
+                                                        warn("Variables declared in unreachable code");
+                                                st[1] = MAP(st[1], function(def){
+                                                        if (def[1] && !options.no_warnings)
+                                                                warn_unreachable([ "assign", true, [ "name", def[0] ], def[1] ]);
+                                                        return [ def[0] ];
+                                                });
                                                 a.push(st);
                                         }
                                         else if (!options.no_warnings)
@@ -5302,27 +5509,38 @@ function ast_squeeze(ast, options) {
                                         prev = cur;
                                 }
                         });
+                        if (a.length >= 2
+                            && a[a.length-2][0] == "stat"
+                            && (a[a.length-1][0] == "return" || a[a.length-1][0] == "throw")
+                            && a[a.length-1][1])
+                        {
+                                a.splice(a.length - 2, 2,
+                                         [ a[a.length-1][0],
+                                           [ "seq", a[a.length-2][1], a[a.length-1][1] ]]);
+                        }
                         return a;
                 })([]);
 
-                if (block_type == "lambda") statements = (function(i, a, stat){
-                        while (i < statements.length) {
-                                stat = statements[i++];
-                                if (stat[0] == "if" && !stat[3]) {
-                                        if (stat[2][0] == "return" && stat[2][1] == null) {
-                                                a.push(make_if(negate(stat[1]), [ "block", statements.slice(i) ]));
-                                                break;
-                                        }
-                                        var last = last_stat(stat[2]);
-                                        if (last[0] == "return" && last[1] == null) {
-                                                a.push(make_if(stat[1], [ "block", stat[2][1].slice(0, -1) ], [ "block", statements.slice(i) ]));
-                                                break;
-                                        }
-                                }
-                                a.push(stat);
-                        }
-                        return a;
-                })(0, []);
+                // this increases jQuery by 1K.  Probably not such a good idea after all..
+                // part of this is done in prepare_ifs anyway.
+                // if (block_type == "lambda") statements = (function(i, a, stat){
+                //         while (i < statements.length) {
+                //                 stat = statements[i++];
+                //                 if (stat[0] == "if" && !stat[3]) {
+                //                         if (stat[2][0] == "return" && stat[2][1] == null) {
+                //                                 a.push(make_if(negate(stat[1]), [ "block", statements.slice(i) ]));
+                //                                 break;
+                //                         }
+                //                         var last = last_stat(stat[2]);
+                //                         if (last[0] == "return" && last[1] == null) {
+                //                                 a.push(make_if(stat[1], [ "block", stat[2][1].slice(0, -1) ], [ "block", statements.slice(i) ]));
+                //                                 break;
+                //                         }
+                //                 }
+                //                 a.push(stat);
+                //         }
+                //         return a;
+                // })(0, []);
 
                 return statements;
         };
@@ -5330,11 +5548,13 @@ function ast_squeeze(ast, options) {
         function make_if(c, t, e) {
                 return when_constant(c, function(ast, val){
                         if (val) {
+                                t = walk(t);
                                 warn_unreachable(e);
-                                return t;
+                                return t || [ "block" ];
                         } else {
+                                e = walk(e);
                                 warn_unreachable(t);
-                                return e;
+                                return e || [ "block" ];
                         }
                 }, function() {
                         return make_real_if(c, t, e);
@@ -5418,9 +5638,6 @@ function ast_squeeze(ast, options) {
                 });
         };
 
-        ast = prepare_ifs(ast);
-        ast = ast_add_scope(ast);
-
         return w.with_walkers({
                 "sub": function(expr, subscript) {
                         if (subscript[0] == "string") {
@@ -5434,13 +5651,13 @@ function ast_squeeze(ast, options) {
                 "if": make_if,
                 "toplevel": function(body) {
                         return [ "toplevel", with_scope(this.scope, function(){
-                                return tighten(MAP(body, walk));
+                                return tighten(body);
                         }) ];
                 },
                 "switch": function(expr, body) {
                         var last = body.length - 1;
                         return [ "switch", walk(expr), MAP(body, function(branch, i){
-                                var block = tighten(MAP(branch[1], walk));
+                                var block = tighten(branch[1]);
                                 if (i == last && block.length > 0) {
                                         var node = block[block.length - 1];
                                         if (node[0] == "break" && !node[1])
@@ -5452,13 +5669,21 @@ function ast_squeeze(ast, options) {
                 "function": _lambda,
                 "defun": _lambda,
                 "block": function(body) {
-                        if (body) return rmblock([ "block", tighten(MAP(body, walk)) ]);
+                        if (body) return rmblock([ "block", tighten(body) ]);
                 },
                 "binary": function(op, left, right) {
                         return when_constant([ "binary", op, walk(left), walk(right) ], function yes(c){
                                 return best_of(walk(c), this);
                         }, function no() {
-                                return this;
+                                return function(){
+                                        if(op != "==" && op != "!=") return;
+                                        var l = walk(left), r = walk(right);
+                                        if(l && l[0] == "unary-prefix" && l[1] == "!" && l[2][0] == "num")
+                                                left = ['num', +!l[2][1]];
+                                        else if (r && r[0] == "unary-prefix" && r[1] == "!" && r[2][0] == "num")
+                                                right = ['num', +!r[2][1]];
+                                        return ["binary", op, left, right];
+                                }() || this;
                         });
                 },
                 "conditional": function(c, t, e) {
@@ -5467,9 +5692,9 @@ function ast_squeeze(ast, options) {
                 "try": function(t, c, f) {
                         return [
                                 "try",
-                                tighten(MAP(t, walk)),
-                                c != null ? [ c[0], tighten(MAP(c[1], walk)) ] : null,
-                                f != null ? tighten(MAP(f, walk)) : null
+                                tighten(t),
+                                c != null ? [ c[0], tighten(c[1]) ] : null,
+                                f != null ? tighten(f) : null
                         ];
                 },
                 "unary-prefix": function(op, expr) {
@@ -5487,23 +5712,25 @@ function ast_squeeze(ast, options) {
                             case "false": return [ "unary-prefix", "!", [ "num", 1 ]];
                         }
                 },
-                "new": function(ctor, args) {
-                        if (ctor[0] == "name" && ctor[1] == "Array" && !scope.has("Array")) {
-                                if (args.length != 1) {
-                                        return [ "array", args ];
-                                } else {
-                                        return [ "call", [ "name", "Array" ], args ];
-                                }
+                "while": _do_while,
+                "assign": function(op, lvalue, rvalue) {
+                        lvalue = walk(lvalue);
+                        rvalue = walk(rvalue);
+                        var okOps = [ '+', '-', '/', '*', '%', '>>', '<<', '>>>', '|', '^', '&' ];
+                        if (op === true && lvalue[0] === "name" && rvalue[0] === "binary" &&
+                            ~okOps.indexOf(rvalue[1]) && rvalue[2][0] === "name" &&
+                            rvalue[2][1] === lvalue[1]) {
+                                return [ this[0], rvalue[1], lvalue, rvalue[3] ]
                         }
-                },
-                "call": function(expr, args) {
-                        if (expr[0] == "name" && expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
-                                return [ "array", args ];
-                        }
-                },
-                "while": _do_while
+                        return [ this[0], op, lvalue, rvalue ];
+                }
         }, function() {
-                return walk(ast);
+                for (var i = 0; i < 2; ++i) {
+                        ast = prepare_ifs(ast);
+                        ast = ast_add_scope(ast);
+                        ast = walk(ast);
+                }
+                return ast;
         });
 };
 
@@ -5522,7 +5749,7 @@ var DOT_CALL_NO_PARENS = jsp.array_to_hash([
 
 function make_string(str, ascii_only) {
         var dq = 0, sq = 0;
-        str = str.replace(/[\\\b\f\n\r\t\x22\x27\u2028\u2029]/g, function(s){
+        str = str.replace(/[\\\b\f\n\r\t\x22\x27\u2028\u2029\0]/g, function(s){
                 switch (s) {
                     case "\\": return "\\\\";
                     case "\b": return "\\b";
@@ -5534,6 +5761,7 @@ function make_string(str, ascii_only) {
                     case "\u2029": return "\\u2029";
                     case '"': ++dq; return '"';
                     case "'": ++sq; return "'";
+                    case "\0": return "\\0";
                 }
                 return s;
         });
@@ -5648,7 +5876,7 @@ function gen_code(ast, options) {
                         // we're the first in this "seq" and the
                         // parent is "stat", and so on.  Messy stuff,
                         // but it worths the trouble.
-                        var a = slice($stack), self = a.pop(), p = a.pop();
+                        var a = slice(w.stack()), self = a.pop(), p = a.pop();
                         while (p) {
                                 if (p[0] == "stat") return true;
                                 if (((p[0] == "seq" || p[0] == "call" || p[0] == "dot" || p[0] == "sub" || p[0] == "conditional") && p[1] === self) ||
@@ -5666,8 +5894,13 @@ function gen_code(ast, options) {
         function make_num(num) {
                 var str = num.toString(10), a = [ str.replace(/^0\./, ".") ], m;
                 if (Math.floor(num) === num) {
-                        a.push("0x" + num.toString(16).toLowerCase(), // probably pointless
-                               "0" + num.toString(8)); // same.
+                        if (num >= 0) {
+                                a.push("0x" + num.toString(16).toLowerCase(), // probably pointless
+                                       "0" + num.toString(8)); // same.
+                        } else {
+                                a.push("-0x" + (-num).toString(16).toLowerCase(), // probably pointless
+                                       "-0" + (-num).toString(8)); // same.
+                        }
                         if ((m = /^(.*?)(0+)$/.exec(num))) {
                                 a.push(m[1] + "e" + m[2].length);
                         }
@@ -5678,7 +5911,9 @@ function gen_code(ast, options) {
                 return best_of(a);
         };
 
-        var generators = {
+        var w = ast_walker();
+        var make = w.walk;
+        return w.with_walkers({
                 "string": encode_string,
                 "num": make_num,
                 "name": make_name,
@@ -5687,7 +5922,7 @@ function gen_code(ast, options) {
                                 .join(newline + newline);
                 },
                 "splice": function(statements) {
-                        var parent = $stack[$stack.length - 2][0];
+                        var parent = w.parent();
                         if (HOP(SPLICE_NEEDS_BRACKETS, parent)) {
                                 // we need block brackets in this case
                                 return make_block.apply(this, arguments);
@@ -5716,7 +5951,9 @@ function gen_code(ast, options) {
                         return add_spaces([ "throw", make(expr) ]) + ";";
                 },
                 "new": function(ctor, args) {
-                        args = args.length > 0 ? "(" + add_commas(MAP(args, make)) + ")" : "";
+                        args = args.length > 0 ? "(" + add_commas(MAP(args, function(expr){
+                                return parenthesize(expr, "seq");
+                        })) + ")" : "";
                         return add_spaces([ "new", parenthesize(ctor, "seq", "binary", "conditional", "assign", function(expr){
                                 var w = ast_walker(), has_call = {};
                                 try {
@@ -5819,7 +6056,8 @@ function gen_code(ast, options) {
                         //      we need to be smarter.
                         //      adding parens all the time is the safest bet.
                         if (member(lvalue[0], [ "assign", "conditional", "seq" ]) ||
-                            lvalue[0] == "binary" && PRECEDENCE[operator] > PRECEDENCE[lvalue[1]]) {
+                            lvalue[0] == "binary" && PRECEDENCE[operator] > PRECEDENCE[lvalue[1]] ||
+                            lvalue[0] == "function" && needs_parens(this)) {
                                 left = "(" + left + ")";
                         }
                         if (member(rvalue[0], [ "assign", "conditional", "seq" ]) ||
@@ -5852,16 +6090,17 @@ function gen_code(ast, options) {
                         return hash + "[" + make(subscript) + "]";
                 },
                 "object": function(props) {
+                        var obj_needs_parens = needs_parens(this);
                         if (props.length == 0)
-                                return "{}";
-                        return "{" + newline + with_indent(function(){
+                                return obj_needs_parens ? "({})" : "{}";
+                        var out = "{" + newline + with_indent(function(){
                                 return MAP(props, function(p){
                                         if (p.length == 3) {
                                                 // getter/setter.  The name is in p[0], the arg.list in p[1][2], the
                                                 // body in p[1][3] and type ("get" / "set") in p[2].
                                                 return indent(make_function(p[0], p[1][2], p[1][3], p[2]));
                                         }
-                                        var key = p[0], val = make(p[1]);
+                                        var key = p[0], val = parenthesize(p[1], "seq");
                                         if (options.quote_keys) {
                                                 key = encode_string(key);
                                         } else if ((typeof key == "number" || !beautify && +key + "" == key)
@@ -5875,14 +6114,15 @@ function gen_code(ast, options) {
                                                                  : [ key + ":", val ]));
                                 }).join("," + newline);
                         }) + newline + indent("}");
+                        return obj_needs_parens ? "(" + out + ")" : out;
                 },
                 "regexp": function(rx, mods) {
                         return "/" + rx + "/" + mods;
                 },
                 "array": function(elements) {
                         if (elements.length == 0) return "[]";
-                        return add_spaces([ "[", add_commas(MAP(elements, function(el){
-                                if (!beautify && el[0] == "atom" && el[1] == "undefined") return "";
+                        return add_spaces([ "[", add_commas(MAP(elements, function(el, i){
+                                if (!beautify && el[0] == "atom" && el[1] == "undefined") return i === elements.length - 1 ? "," : "";
                                 return parenthesize(el, "seq");
                         })), "]" ]);
                 },
@@ -5901,7 +6141,7 @@ function gen_code(ast, options) {
                 "atom": function(name) {
                         return make_name(name);
                 }
-        };
+        }, function(){ return make(ast) });
 
         // The squeezer replaces "block"-s that contain only a single
         // statement with the statement itself; technically, the AST
@@ -5911,12 +6151,13 @@ function gen_code(ast, options) {
         // to the inner IF).  This function checks for this case and
         // adds the block brackets if needed.
         function make_then(th) {
+                if (th == null) return ";";
                 if (th[0] == "do") {
                         // https://github.com/mishoo/UglifyJS/issues/#issue/57
                         // IE croaks with "syntax error" on code like this:
                         //     if (foo) do ... while(cond); else ...
                         // we need block brackets around do/while
-                        return make([ "block", [ th ]]);
+                        return make_block([ th ]);
                 }
                 var b = th;
                 while (true) {
@@ -5943,20 +6184,31 @@ function gen_code(ast, options) {
                 return add_spaces([ out, make_block(body) ]);
         };
 
+        function must_has_semicolon(node) {
+                switch (node[0]) {
+                    case "with":
+                    case "while":
+                        return empty(node[2]); // `with' or `while' with empty body?
+                    case "for":
+                    case "for-in":
+                        return empty(node[4]); // `for' with empty body?
+                    case "if":
+                        if (empty(node[2]) && !node[3]) return true; // `if' with empty `then' and no `else'
+                        if (node[3]) {
+                                if (empty(node[3])) return true; // `else' present but empty
+                                return must_has_semicolon(node[3]); // dive into the `else' branch
+                        }
+                        return must_has_semicolon(node[2]); // dive into the `then' branch
+                }
+        };
+
         function make_block_statements(statements, noindent) {
                 for (var a = [], last = statements.length - 1, i = 0; i <= last; ++i) {
                         var stat = statements[i];
                         var code = make(stat);
                         if (code != ";") {
-                                if (!beautify && i == last) {
-                                        if ((stat[0] == "while" && empty(stat[2])) ||
-                                            (member(stat[0], [ "for", "for-in"] ) && empty(stat[4])) ||
-                                            (stat[0] == "if" && empty(stat[2]) && !stat[3]) ||
-                                            (stat[0] == "if" && stat[3] && empty(stat[3]))) {
-                                                code = code.replace(/;*\s*$/, ";");
-                                        } else {
-                                                code = code.replace(/;+\s*$/, "");
-                                        }
+                                if (!beautify && i == last && !must_has_semicolon(stat)) {
+                                        code = code.replace(/;+\s*$/, "");
                                 }
                                 a.push(code);
                         }
@@ -5996,20 +6248,6 @@ function gen_code(ast, options) {
                 return name;
         };
 
-        var $stack = [];
-
-        function make(node) {
-                var type = node[0];
-                var gen = generators[type];
-                if (!gen)
-                        throw new Error("Can't find generator for \"" + type + "\"");
-                $stack.push(node);
-                var ret = gen.apply(type, node.slice(1));
-                $stack.pop();
-                return ret;
-        };
-
-        return make(ast);
 };
 
 function split_lines(code, max_line_length) {
@@ -6094,16 +6332,34 @@ var MAP;
 
 (function(){
         MAP = function(a, f, o) {
-                var ret = [];
-                for (var i = 0; i < a.length; ++i) {
+                var ret = [], top = [], i;
+                function doit() {
                         var val = f.call(o, a[i], i);
-                        if (val instanceof AtTop) ret.unshift(val.v);
-                        else ret.push(val);
-                }
-                return ret;
+                        if (val instanceof AtTop) {
+                                val = val.v;
+                                if (val instanceof Splice) {
+                                        top.push.apply(top, val.v);
+                                } else {
+                                        top.push(val);
+                                }
+                        }
+                        else if (val != skip) {
+                                if (val instanceof Splice) {
+                                        ret.push.apply(ret, val.v);
+                                } else {
+                                        ret.push(val);
+                                }
+                        }
+                };
+                if (a instanceof Array) for (i = 0; i < a.length; ++i) doit();
+                else for (i in a) if (HOP(a, i)) doit();
+                return top.concat(ret);
         };
         MAP.at_top = function(val) { return new AtTop(val) };
+        MAP.splice = function(val) { return new Splice(val) };
+        var skip = MAP.skip = {};
         function AtTop(val) { this.v = val };
+        function Splice(val) { this.v = val };
 })();
 
 /* -----[ Exports ]----- */
@@ -6111,6 +6367,7 @@ var MAP;
 exports.ast_walker = ast_walker;
 exports.ast_mangle = ast_mangle;
 exports.ast_squeeze = ast_squeeze;
+exports.ast_lift_variables = ast_lift_variables;
 exports.gen_code = gen_code;
 exports.ast_add_scope = ast_add_scope;
 exports.set_logger = function(logger) { warn = logger };
@@ -6121,9 +6378,7 @@ exports.MAP = MAP;
 // keep this last!
 exports.ast_squeeze_more = require("./squeeze-more").ast_squeeze_more;
 
-});
-define('uglifyjs/index', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
-
+});define('uglifyjs/index', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 
 //convienence function(src, [options]);
 function uglify(orig_code, options){
@@ -6143,9 +6398,7 @@ uglify.uglify = require("./process");
 
 module.exports = uglify
 
-
-});
-/**
+});/**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
@@ -6414,7 +6667,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
 
     /**
      * Finds require("") calls inside a CommonJS anonymous module wrapped in a
-     * define/require.def(function(require, exports, module){}) wrapper. These dependencies
+     * define(function(require, exports, module){}) wrapper. These dependencies
      * will be added to a modified define() call that lists the dependencies
      * on the outside of the function.
      * @param {String} fileName
@@ -6424,7 +6677,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
      */
     parse.getAnonDeps = function (fileName, fileContents) {
         var astRoot = parser.parse(fileContents),
-            defFunc = this.findAnonRequireDefCallback(astRoot);
+            defFunc = this.findAnonDefineFactory(astRoot);
 
         return parse.getAnonDepsFromNode(defFunc);
     };
@@ -6456,11 +6709,11 @@ define('parse', ['uglifyjs/index'], function (uglify) {
     };
 
     /**
-     * Finds the function in require.def or define(function (require, exports, module){});
+     * Finds the function in define(function (require, exports, module){});
      * @param {Array} node
      * @returns {Boolean}
      */
-    parse.findAnonRequireDefCallback = function (node) {
+    parse.findAnonDefineFactory = function (node) {
         var callback, i, n, call, args;
 
         if (isArray(node)) {
@@ -6470,18 +6723,21 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                 if ((call[0] === 'name' && call[1] === 'define') ||
                            (call[0] === 'dot' && call[1][1] === 'require' && call[2] === 'def')) {
 
-                    //There should only be one argument and it should be a function.
+                    //There should only be one argument and it should be a function,
+                    //or a named module with function as second arg
                     if (args.length === 1 && args[0][0] === 'function') {
                         return args[0];
+                    } else if (args.length === 2 && args[0][0] === 'string' &&
+                               args[1][0] === 'function') {
+                        return args[1];
                     }
-
                 }
             }
 
             //Check child nodes
             for (i = 0; i < node.length; i++) {
                 n = node[i];
-                if ((callback = this.findAnonRequireDefCallback(n))) {
+                if ((callback = this.findAnonDefineFactory(n))) {
                     return callback;
                 }
             }
@@ -6631,11 +6887,9 @@ define('parse', ['uglifyjs/index'], function (uglify) {
 
                     return onMatch("require", null, null, deps);
 
-                } else if ((call[0] === 'name' && call[1] === 'define') ||
-                           (call[0] === 'dot' && call[1][1] === 'require' &&
-                            call[2] === 'def')) {
+                } else if (call[0] === 'name' && call[1] === 'define') {
 
-                    //A define or require.def call
+                    //A define call
                     name = args[0];
                     deps = args[1];
                     //Only allow define calls that match what is expected
@@ -6651,14 +6905,22 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                     if (((name[0] === 'string' || isArrayLiteral(name) ||
                           name[0] === 'function' || isObjectLiteral(name))) &&
                         (!deps || isArrayLiteral(deps) ||
-                         deps[0] === 'function' || isObjectLiteral(deps))) {
+                         deps[0] === 'function' || isObjectLiteral(deps) ||
+                         // allow define(['dep'], factory) pattern
+                         (isArrayLiteral(name) && deps[0] === 'name' && args.length === 2))) {
 
                         //If first arg is a function, could be a commonjs wrapper,
                         //look inside for commonjs dependencies.
+                        //Also, if deps is a function look for commonjs deps.
                         if (name && name[0] === 'function') {
                             cjsDeps = parse.getAnonDepsFromNode(name);
                             if (cjsDeps.length) {
                                 name = toAstArray(cjsDeps);
+                            }
+                        } else if (deps && deps[0] === 'function') {
+                            cjsDeps = parse.getAnonDepsFromNode(deps);
+                            if (cjsDeps.length) {
+                                deps = toAstArray(cjsDeps);
                             }
                         }
 
@@ -6722,6 +6984,8 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
+        defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
+        defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
@@ -6732,7 +6996,18 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 //Namespace require/define calls
                 fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
 
+
+                //Namespace define ternary use:
+                fileContents = fileContents.replace(pragma.defineTernaryRegExp,
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd ? " + ns + ".define");
+
+                //Namespace define jquery use:
+                fileContents = fileContents.replace(pragma.defineJQueryRegExp,
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd && " + ns + ".define.jQuery");
+
                 //Namespace define checks.
+                //Do this one last, since it is a subset of the more specific
+                //checks above.
                 fileContents = fileContents.replace(pragma.defineCheckRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
 
@@ -7413,7 +7688,7 @@ function (file,           pragma,   parse) {
         function normalizeUrlWithBase(context, moduleName, url) {
             //Adjust the URL if it was not transformed to use baseUrl.
             if (require.jsExtRegExp.test(moduleName)) {
-                url = context.config.dir + url;
+                url = (context.config.dir || context.config.dirBaseUrl) + url;
             }
             return url;
         }
@@ -7503,6 +7778,10 @@ function (file,           pragma,   parse) {
                     }
                     throw eOuter;
                 }
+            } else {
+                //With unsupported URLs still need to call completeLoad to
+                //finish loading.
+                context.completeLoad(moduleName);
             }
 
             //Mark the module loaded.
@@ -7534,7 +7813,7 @@ function (file,           pragma,   parse) {
                     layer.modulesWithNames[fullName] = true;
                     layer.pathAdded[fullName] = true;
                 }
-            } else if (map.url) {
+            } else if (map.url && require._isSupportedBuildUrl(map.url)) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
                 if (!layer.pathAdded[url] && layer.buildPathMap[fullName]) {
@@ -7653,7 +7932,7 @@ define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
          * Regexp for testing if there is already a require.def call in the file,
          * in which case do not try to convert it.
          */
-        defRegExp: /define\s*\(/,
+        defRegExp: /define\s*\(\s*("|'|\[|function)/,
 
         /**
          * Regexp for testing if there is a require([]) or require(function(){})
@@ -7733,7 +8012,8 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
          'env!env/load', 'requirePatch'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
           load,           requirePatch) {
-    var build, buildBaseConfig;
+    var build, buildBaseConfig,
+        endsWithSemiColonRegExp = /;\s*$/;
 
     buildBaseConfig = {
             appDir: "",
@@ -7743,8 +8023,24 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             optimizeCss: "standard.keepLines",
             inlineText: true,
             isBuild: true,
-            optimizeAllPluginResources: false
+            optimizeAllPluginResources: false,
+            //By default, all files/directories are copied, unless
+            //they match this regexp, by default just excludes .folders
+            dirExclusionRegExp: file.dirExclusionRegExp
         };
+
+    /**
+     * Some JS may not be valid if concatenated with other JS, in particular
+     * the style of omitting semicolons and rely on ASI. Add a semicolon in
+     * those cases.
+     */
+    function addSemiColon(text) {
+        if (endsWithSemiColonRegExp.test(text)) {
+            return text;
+        } else {
+            return text + ";";
+        }
+    }
 
     /**
      * If the path looks like an URL, throw an error. This is to prevent
@@ -8204,6 +8500,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
 
+        absFilePath = file.absPath('.');
+
         if (config.buildFile) {
             //A build file exists, load it to get more config.
             buildFile = file.absPath(config.buildFile);
@@ -8229,22 +8527,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Re-apply the override config values, things like command line
             //args should take precedence over build file values.
             lang.mixin(config, cfg, true);
-        } else {
-            if (!config.out && !config.cssIn) {
-                throw new Error("ERROR: 'out' or 'cssIn' option missing.");
-            }
+        } else if (config.cssIn) {
             if (!config.out) {
                 throw new Error("ERROR: 'out' option missing.");
             } else {
                 config.out = config.out.replace(lang.backSlashRegExp, "/");
             }
+        }
 
-            if (!config.cssIn && !cfg.baseUrl) {
-                throw new Error("ERROR: 'baseUrl' option missing.");
-            }
-
-            //In this scenario, the absFile path is current directory
-            absFilePath = file.absPath('.');
+        if (!config.cssIn && !config.baseUrl) {
+            throw new Error("ERROR: 'baseUrl' option missing.");
         }
 
         if (config.out && !config.cssIn) {
@@ -8356,6 +8648,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             throw new Error('The build argument "context" is not supported' +
                             ' in a build. It should only be used in web' +
                             ' pages.');
+        }
+
+        //Set file.dirExclusionRegExp if desired
+        if ('dirExclusionRegExp' in config) {
+            file.dirExclusionRegExp = config.dirExclusionRegExp;
         }
 
         return config;
@@ -8507,10 +8804,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (builder) {
                 if (builder.write) {
                     writeApi = function (input) {
-                        fileContents += input;
+                        fileContents += "\n" + addSemiColon(input);
                     };
                     writeApi.asModule = function (moduleName, input) {
-                        fileContents += "\n" + build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer);
+                        fileContents += "\n" +
+                                        addSemiColon(
+                                            build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer));
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
@@ -8523,7 +8822,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
 
-                fileContents += "\n" + currContents;
+                //Semicolon is for files that are not well formed when
+                //concatenated with other content.
+                fileContents += "\n" + addSemiColon(currContents);
             }
 
             buildFileContents += path.replace(config.dir, "") + "\n";
@@ -8568,20 +8869,34 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //define(\n//begin v1.x content
         //for a comment.
         return new RegExp('(^|[^\\.])(' + (namespace || '').replace(/\./g, '\\.') +
-                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{)');
+                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|f|\\{|["\']([^"\']+)["\'])(\\s*,\\s*f)?');
     };
 
+    build.leadingCommaRegExp = /^\s*,/;
+
     build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
+
         //If anonymous module, insert the module name.
-        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix) {
+        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix, namedModule, namedFuncStart) {
+            //A named module with either listed dependencies or an object
+            //literal for a value. Skip it. If named module, only want ones
+            //whose next argument is a function literal to scan for
+            //require('') dependecies.
+            if (namedModule && !namedFuncStart) {
+                return match;
+            }
+
             if (layer) {
                 layer.modulesWithNames[moduleName] = true;
             }
 
+            var deps = null;
+
             //Look for CommonJS require calls inside the function if this is
             //an anonymous define call that just has a function registered.
-            var deps = null;
-            if (suffix.indexOf('f') !== -1) {
+            //Also look if a named define function but has a factory function
+            //as the second arg that should be scanned for dependencies.
+            if (suffix.indexOf('f') !== -1 || (namedModule)) {
                 deps = parse.getAnonDeps(path, contents);
 
                 if (deps.length) {
@@ -8595,7 +8910,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
             return start + namespace + "define('" + moduleName + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
-                   suffix;
+                   (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
         });
 
     };
@@ -8639,7 +8954,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             var runBuild = function (build, logger) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
-                config.logLevel = config.logLevel || logger.SILENT;
+                config.logLevel = config.hasOwnProperty('logLevel') ?
+                                  config.logLevel : logger.SILENT;
 
                 var result = build(config);
 
@@ -8659,6 +8975,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 context: 'build'
             }, ['build', 'logger'], runBuild);
         };
+
+        requirejs.define = define;
 
         module.exports = requirejs;
         return;
