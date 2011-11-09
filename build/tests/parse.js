@@ -51,6 +51,7 @@ define(['parse'], function (parse) {
                     good6 = 'function baz(){ var foo = { bar: function() { define("one", function(){ var two = require("two"); }); } };}',
                     good7 = "(function (factory){\nif(typeof define === 'function' && define.amd){\ndefine(['dep'], factory);\n}else{\nfactory(this.dep);\n}\n}(function(dep){\n}));",
                     good8 = "(function (factory){\nif(typeof define === 'function' && define.amd){\ndefine('some/name', ['dep1', 'dep2'], factory);\n}else{\nfactory(this.dep);\n}\n}(function(dep){\n}));",
+                    good9 = "define(function (require) {\n//Dependencies with no usable return value.\nrequire('plugin!some/value');\n});",
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
                 t.is('define("one",["two","three"]);', parse("good1", "good1", good1));
@@ -61,6 +62,7 @@ define(['parse'], function (parse) {
                 t.is('define("one",["two"]);', parse("good6", "good6", good6));
                 t.is('define("good7",["dep"]);', parse("good7", "good7", good7));
                 t.is('define("some/name",["dep1","dep2"]);', parse("good8", "good8", good8));
+                t.is('define("good9",["require","plugin!some/value"]);', parse("good9", "good9", good9));
                 t.is('define("foo",[]);', parse("nested1", "nested1", nested1));
                 t.is('define("one",["me"]);', parse("bad1", "bad1", bad1));
                 t.is(null, parse("bad2", "bad2", bad2));
@@ -70,6 +72,7 @@ define(['parse'], function (parse) {
                 t.is(['require', 'foo'], parse.getAnonDeps("goodAnon1", goodAnon1));
                 t.is(['require', 'exports', 'module', 'bar'], parse.getAnonDeps("goodAnon2", goodAnon2));
                 t.is(['require', 'exports', 'module'], parse.getAnonDeps("goodAnon3", goodAnon3));
+                t.is(['require', 'plugin!some/value'], parse.getAnonDeps("good9", good9));
                 t.is(0, parse.getAnonDeps("emptyAnon1", emptyAnon1).length);
             }
         ]

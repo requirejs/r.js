@@ -112,6 +112,8 @@ function (file,           pragma,   parse) {
             return oldDef.apply(require, arguments);
         };
 
+        define.amd = oldDef.amd;
+
         //Add some utilities for plugins
         require._readFile = file.readFile;
         require._fileExists = function (path) {
