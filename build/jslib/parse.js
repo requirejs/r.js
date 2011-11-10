@@ -385,7 +385,7 @@ define(['uglifyjs/index'], function (uglify) {
                 call = node[1];
                 args = node[2];
 
-                if (call[0] === 'name' && call[1] === 'require') {
+                if (call && call[0] === 'name' && call[1] === 'require') {
                     moduleName = args[0];
                     if (moduleName[0] === 'string') {
                         deps.push(moduleName[1]);
