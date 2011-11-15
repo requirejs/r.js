@@ -242,4 +242,22 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("multipleEmpty",
+        [
+            function multipleEmpty(t) {
+                file.deleteFile("lib/empty/built");
+
+                build(["lib/empty/build.js"]);
+
+                t.is(nol(c("lib/empty/expected.js")),
+                     nol(c("lib/empty/built/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
 });
