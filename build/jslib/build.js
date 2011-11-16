@@ -650,9 +650,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' pages.');
         }
 
-        //Set file.dirExclusionRegExp if desired
-        if ('dirExclusionRegExp' in config) {
-            file.dirExclusionRegExp = config.dirExclusionRegExp;
+        //Set file.fileExclusionRegExp if desired
+        if ('fileExclusionRegExp' in config) {
+            file.exclusionRegExp = config.fileExclusionRegExp;
+        } else if ('dirExclusionRegExp' in config) {
+            //Set file.dirExclusionRegExp if desired, this is the old
+            //name for fileExclusionRegExp before 1.0.2. Support for backwards
+            //compatibility
+            file.exclusionRegExp = config.dirExclusionRegExp;
         }
 
         return config;

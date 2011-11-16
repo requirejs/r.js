@@ -12,7 +12,7 @@ define(function () {
     var file = {
         backSlashRegExp: /\\/g,
 
-        dirExclusionRegExp: /^\./,
+        exclusionRegExp: /^\./,
 
         getLineSeparator: function () {
             return file.lineSeparator;
@@ -56,7 +56,8 @@ define(function () {
             //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
             //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
             //and it will be treated as the "include" case.
-            //Ignores files/directories that start with a period (.).
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
             var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
                 i, fileObj, filePath, ok, dirFiles;
 
@@ -90,11 +91,12 @@ define(function () {
                             ok = !filePath.match(regExpExclude);
                         }
 
-                        if (ok && !fileObj.getName().match(/^\./)) {
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileObj.getName()))) {
                             files.push(filePath);
                         }
                     } else if (fileObj.isDirectory() &&
-                              (!file.dirExclusionRegExp || !fileObj.getName().match(file.dirExclusionRegExp))) {
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.getName()))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
                         files.push.apply(files, dirFiles);
                     }

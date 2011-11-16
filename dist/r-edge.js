@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.1+ 20111114 9:50pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.1+ 20111116 2:10pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.1+ 20111114 9:50pm Pacific',
+        version = '1.0.1+ 20111116 2:10pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -2393,7 +2393,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
     file = {
         backSlashRegExp: /\\/g,
-        dirExclusionRegExp: /^\./,
+        exclusionRegExp: /^\./,
         getLineSeparator: function () {
             return '/';
         },
@@ -2433,7 +2433,8 @@ define('node/file', ['fs', 'path'], function (fs, path) {
             //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
             //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
             //and it will be treated as the "include" case.
-            //Ignores files/directories that start with a period (.).
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
             var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
                 i, stat, filePath, ok, dirFiles, fileName;
 
@@ -2464,11 +2465,12 @@ define('node/file', ['fs', 'path'], function (fs, path) {
                             ok = !filePath.match(regExpExclude);
                         }
 
-                        if (ok && !fileName.match(/^\./)) {
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileName))) {
                             files.push(filePath);
                         }
                     } else if (stat.isDirectory() &&
-                              (!file.dirExclusionRegExp || !fileName.match(file.dirExclusionRegExp))) {
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileName))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
                         files.push.apply(files, dirFiles);
                     }
@@ -2616,7 +2618,7 @@ define('rhino/file', function () {
     var file = {
         backSlashRegExp: /\\/g,
 
-        dirExclusionRegExp: /^\./,
+        exclusionRegExp: /^\./,
 
         getLineSeparator: function () {
             return file.lineSeparator;
@@ -2660,7 +2662,8 @@ define('rhino/file', function () {
             //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
             //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
             //and it will be treated as the "include" case.
-            //Ignores files/directories that start with a period (.).
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
             var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
                 i, fileObj, filePath, ok, dirFiles;
 
@@ -2694,11 +2697,12 @@ define('rhino/file', function () {
                             ok = !filePath.match(regExpExclude);
                         }
 
-                        if (ok && !fileObj.getName().match(/^\./)) {
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileObj.getName()))) {
                             files.push(filePath);
                         }
                     } else if (fileObj.isDirectory() &&
-                              (!file.dirExclusionRegExp || !fileObj.getName().match(file.dirExclusionRegExp))) {
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.getName()))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
                         files.push.apply(files, dirFiles);
                     }
@@ -8666,9 +8670,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' pages.');
         }
 
-        //Set file.dirExclusionRegExp if desired
-        if ('dirExclusionRegExp' in config) {
-            file.dirExclusionRegExp = config.dirExclusionRegExp;
+        //Set file.fileExclusionRegExp if desired
+        if ('fileExclusionRegExp' in config) {
+            file.exclusionRegExp = config.fileExclusionRegExp;
+        } else if ('dirExclusionRegExp' in config) {
+            //Set file.dirExclusionRegExp if desired, this is the old
+            //name for fileExclusionRegExp before 1.0.2. Support for backwards
+            //compatibility
+            file.exclusionRegExp = config.dirExclusionRegExp;
         }
 
         return config;

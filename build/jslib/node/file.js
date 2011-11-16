@@ -54,7 +54,7 @@ define(['fs', 'path'], function (fs, path) {
 
     file = {
         backSlashRegExp: /\\/g,
-        dirExclusionRegExp: /^\./,
+        exclusionRegExp: /^\./,
         getLineSeparator: function () {
             return '/';
         },
@@ -94,7 +94,8 @@ define(['fs', 'path'], function (fs, path) {
             //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
             //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
             //and it will be treated as the "include" case.
-            //Ignores files/directories that start with a period (.).
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
             var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
                 i, stat, filePath, ok, dirFiles, fileName;
 
@@ -125,11 +126,12 @@ define(['fs', 'path'], function (fs, path) {
                             ok = !filePath.match(regExpExclude);
                         }
 
-                        if (ok && !fileName.match(/^\./)) {
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileName))) {
                             files.push(filePath);
                         }
                     } else if (stat.isDirectory() &&
-                              (!file.dirExclusionRegExp || !fileName.match(file.dirExclusionRegExp))) {
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileName))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
                         files.push.apply(files, dirFiles);
                     }
