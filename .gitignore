@@ -1,6 +1,8 @@
 .DS_Store
 r.js
 build/tests/builds
+build/tests/lib/comments/built.js
+build/tests/lib/empty/built
 build/tests/lib/namespace/foo.js
 build/tests/lib/plugins/main-built.js
 build/tests/lib/dotpackage/built

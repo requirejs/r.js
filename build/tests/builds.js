@@ -259,5 +259,22 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("preserveLicense",
+        [
+            function preserveLicense(t) {
+                file.deleteFile("lib/comments/built.js");
+
+                build(["lib/comments/build.js"]);
+
+                t.is(nol(c("lib/comments/expected.js")),
+                     nol(c("lib/comments/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 
 });
