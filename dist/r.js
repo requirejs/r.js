@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.1 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.1',
+        version = '1.0.2',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -101,7 +101,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.1 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.2 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -113,7 +113,7 @@ var requirejs, require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "1.0.1",
+    var version = "1.0.2",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -370,6 +370,10 @@ var requirejs, require, define;
                     if (pkgConfig && name === pkgName + '/' + pkgConfig.main) {
                         name = pkgName;
                     }
+                } else if (name.indexOf("./") === 0) {
+                    // No baseName, so this is ID is resolved relative
+                    // to baseUrl, pull off the leading dot.
+                    name = name.substring(2);
                 }
             }
             return name;
@@ -509,7 +513,8 @@ var requirejs, require, define;
                 map = manager.map,
                 fullName = map.fullName,
                 args = manager.deps,
-                listeners = manager.listeners;
+                listeners = manager.listeners,
+                cjsModule;
 
             //Call the callback to define the module, if necessary.
             if (cb && isFunction(cb)) {
@@ -527,7 +532,11 @@ var requirejs, require, define;
                     //If setting exports via "module" is in play,
                     //favor that over return value and exports. After that,
                     //favor a non-undefined return value over exports use.
-                    if (manager.cjsModule && manager.cjsModule.exports !== undefined) {
+                    cjsModule = manager.cjsModule;
+                    if (cjsModule &&
+                        cjsModule.exports !== undefined &&
+                        //Make sure it is not already the exports value
+                        cjsModule.exports !== defined[fullName]) {
                         ret = defined[fullName] = manager.cjsModule.exports;
                     } else if (ret === undefined && manager.usingExports) {
                         //exports already set the defined value.
@@ -1150,7 +1159,16 @@ var requirejs, require, define;
                             //Regular dependency.
                             if (!urlFetched[url] && !loaded[fullName]) {
                                 req.load(context, fullName, url);
-                                urlFetched[url] = true;
+
+                                //Mark the URL as fetched, but only if it is
+                                //not an empty: URL, used by the optimizer.
+                                //In that case we need to be sure to call
+                                //load() for each module that is mapped to
+                                //empty: so that dependencies are satisfied
+                                //correctly.
+                                if (url.indexOf('empty:') !== 0) {
+                                    urlFetched[url] = true;
+                                }
                             }
                         }
                     }
@@ -2379,7 +2397,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
     file = {
         backSlashRegExp: /\\/g,
-        dirExclusionRegExp: /^\./,
+        exclusionRegExp: /^\./,
         getLineSeparator: function () {
             return '/';
         },
@@ -2419,7 +2437,8 @@ define('node/file', ['fs', 'path'], function (fs, path) {
             //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
             //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
             //and it will be treated as the "include" case.
-            //Ignores files/directories that start with a period (.).
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
             var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
                 i, stat, filePath, ok, dirFiles, fileName;
 
@@ -2450,11 +2469,12 @@ define('node/file', ['fs', 'path'], function (fs, path) {
                             ok = !filePath.match(regExpExclude);
                         }
 
-                        if (ok && !fileName.match(/^\./)) {
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileName))) {
                             files.push(filePath);
                         }
                     } else if (stat.isDirectory() &&
-                              (!file.dirExclusionRegExp || !fileName.match(file.dirExclusionRegExp))) {
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileName))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
                         files.push.apply(files, dirFiles);
                     }
@@ -2602,7 +2622,7 @@ define('rhino/file', function () {
     var file = {
         backSlashRegExp: /\\/g,
 
-        dirExclusionRegExp: /^\./,
+        exclusionRegExp: /^\./,
 
         getLineSeparator: function () {
             return file.lineSeparator;
@@ -2646,7 +2666,8 @@ define('rhino/file', function () {
             //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
             //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
             //and it will be treated as the "include" case.
-            //Ignores files/directories that start with a period (.).
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
             var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
                 i, fileObj, filePath, ok, dirFiles;
 
@@ -2680,11 +2701,12 @@ define('rhino/file', function () {
                             ok = !filePath.match(regExpExclude);
                         }
 
-                        if (ok && !fileObj.getName().match(/^\./)) {
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileObj.getName()))) {
                             files.push(filePath);
                         }
                     } else if (fileObj.isDirectory() &&
-                              (!file.dirExclusionRegExp || !fileObj.getName().match(file.dirExclusionRegExp))) {
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.getName()))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
                         files.push.apply(files, dirFiles);
                     }
@@ -6785,7 +6807,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                 call = node[1];
                 args = node[2];
 
-                if (call[0] === 'name' && call[1] === 'require') {
+                if (call && call[0] === 'name' && call[1] === 'require') {
                     moduleName = args[0];
                     if (moduleName[0] === 'string') {
                         deps.push(moduleName[1]);
@@ -7434,6 +7456,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
     }
 
     optimize = {
+        licenseCommentRegExp: /\/\*[\s\S]*?\*\//g,
+
         /**
          * Optimizes a file that contains JavaScript content. Optionally collects
          * plugin resources mentioned in a file, and then passes the content
@@ -7452,7 +7476,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
             var parts = (config.optimize + "").split('.'),
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
-                fileContents, optFunc, deps, i, dep;
+                licenseContents = '',
+                fileContents, optFunc, match, comment;
 
             fileContents = file.readFile(fileName);
 
@@ -7467,7 +7492,19 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     optimizerName +
                                     '" not found for this environment');
                 }
-                fileContents = optFunc(fileName, fileContents, keepLines,
+
+                //Pull out any license comments for prepending after optimization.
+                optimize.licenseCommentRegExp.lastIndex = 0;
+                while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
+                    comment = match[0];
+                    //Only keep the comments if they are license comments.
+                    if (comment.indexOf('@license') !== -1 ||
+                        comment.indexOf('/*!') === 0) {
+                        licenseContents += comment + '\n';
+                    }
+                }
+
+                fileContents = licenseContents + optFunc(fileName, fileContents, keepLines,
                                         config[optimizerName]);
             }
 
@@ -7678,6 +7715,8 @@ function (file,           pragma,   parse) {
             }
             return oldDef.apply(require, arguments);
         };
+
+        define.amd = oldDef.amd;
 
         //Add some utilities for plugins
         require._readFile = file.readFile;
@@ -8650,9 +8689,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' pages.');
         }
 
-        //Set file.dirExclusionRegExp if desired
-        if ('dirExclusionRegExp' in config) {
-            file.dirExclusionRegExp = config.dirExclusionRegExp;
+        //Set file.fileExclusionRegExp if desired
+        if ('fileExclusionRegExp' in config) {
+            file.exclusionRegExp = config.fileExclusionRegExp;
+        } else if ('dirExclusionRegExp' in config) {
+            //Set file.dirExclusionRegExp if desired, this is the old
+            //name for fileExclusionRegExp before 1.0.2. Support for backwards
+            //compatibility
+            file.exclusionRegExp = config.dirExclusionRegExp;
         }
 
         return config;
