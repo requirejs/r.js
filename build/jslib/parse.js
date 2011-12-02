@@ -205,6 +205,10 @@ define(['uglifyjs/index'], function (uglify) {
                     deps: deps
                 });
             }
+
+            //If define was found, no need to dive deeper, unless
+            //the config explicitly wants to dig deeper.
+            return !options.findNestedDependencies;
         });
 
         if (options.insertNeedsDefine && needsDefine) {
@@ -247,7 +251,11 @@ define(['uglifyjs/index'], function (uglify) {
             for (i = 0; i < parentNode.length; i++) {
                 node = parentNode[i];
                 if (isArray(node)) {
-                    this.parseNode(node, onMatch);
+                    if (this.parseNode(node, onMatch)) {
+                        //The onMatch indicated parsing should
+                        //stop for children of this node.
+                        continue;
+                    }
                     this.recurse(node, onMatch);
                 }
             }
@@ -463,7 +471,7 @@ define(['uglifyjs/index'], function (uglify) {
         var call, name, config, deps, args, cjsDeps;
 
         if (!isArray(node)) {
-            return null;
+            return false;
         }
 
         if (node[0] === 'call') {
@@ -530,7 +538,7 @@ define(['uglifyjs/index'], function (uglify) {
             }
         }
 
-        return null;
+        return false;
     };
 
     /**

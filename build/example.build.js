@@ -185,6 +185,13 @@
     //will be placed on another domain.
     optimizeAllPluginResources: false,
 
+    //Finds require() dependencies inside a require() or define call. By default
+    //this value is false, because those resources should be considered dynamic/runtime
+    //calls. However, for some optimization scenarios,
+    //Introduced in 1.0.3. Previous versions incorrectly found the nested calls
+    //by default.
+    findNestedDependencies: false,
+
     //List the modules that will be optimized. All their immediate and deep
     //dependencies will be included in the module's file when the build is
     //done. If that module or any of its dependencies includes i18n bundles,

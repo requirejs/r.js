@@ -24,6 +24,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             inlineText: true,
             isBuild: true,
             optimizeAllPluginResources: false,
+            findNestedDependencies: false,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp

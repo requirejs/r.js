@@ -276,5 +276,48 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("nestedFind",
+        [
+            function nestedFind(t) {
+                file.deleteFile("lib/nested/main-builtWithCE.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nested/buildWithCE.js"]);
+
+                t.is(nol(c("lib/nested/expected-builtWithCE.js")),
+                     nol(c("lib/nested/main-builtWithCE.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("nestedSkip",
+        [
+            function nestedSkip(t) {
+                file.deleteFile("lib/nested/main-built.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nested/build.js"]);
+
+                t.is(nol(c("lib/nested/expected-built.js")),
+                     nol(c("lib/nested/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 
 });

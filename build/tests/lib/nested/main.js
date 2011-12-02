@@ -1,0 +1,3 @@
+require(['top', 'd'], function () {
+
+});

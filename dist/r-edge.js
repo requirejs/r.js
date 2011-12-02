@@ -6627,6 +6627,10 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                     deps: deps
                 });
             }
+
+            //If define was found, no need to dive deeper, unless
+            //the config explicitly wants to dig deeper.
+            return !options.findNestedDependencies;
         });
 
         if (options.insertNeedsDefine && needsDefine) {
@@ -6669,7 +6673,11 @@ define('parse', ['uglifyjs/index'], function (uglify) {
             for (i = 0; i < parentNode.length; i++) {
                 node = parentNode[i];
                 if (isArray(node)) {
-                    this.parseNode(node, onMatch);
+                    if (this.parseNode(node, onMatch)) {
+                        //The onMatch indicated parsing should
+                        //stop for children of this node.
+                        continue;
+                    }
                     this.recurse(node, onMatch);
                 }
             }
@@ -6885,7 +6893,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
         var call, name, config, deps, args, cjsDeps;
 
         if (!isArray(node)) {
-            return null;
+            return false;
         }
 
         if (node[0] === 'call') {
@@ -6952,7 +6960,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
             }
         }
 
-        return null;
+        return false;
     };
 
     /**
@@ -7630,8 +7638,7 @@ function (file,           pragma,   parse) {
 
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
-            oldDef,
-            cachedFileContents = {};
+            oldDef;
 
 
         /** Print out some extrs info about the module tree that caused the error. **/
@@ -7656,6 +7663,8 @@ function (file,           pragma,   parse) {
             throw err;
         };
 
+        //Stored cached file contents for reuse in other layers.
+        require._cachedFileContents = {};
 
         /** Reset state for each build layer pass. */
         require._buildReset = function () {
@@ -7756,9 +7765,9 @@ function (file,           pragma,   parse) {
                 }
 
                 try {
-                    if (url in cachedFileContents &&
+                    if (url in require._cachedFileContents &&
                         (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
-                        contents = cachedFileContents[url];
+                        contents = require._cachedFileContents[url];
                     } else {
                         //Load the file contents, process for conditionals, then
                         //evaluate it.
@@ -7790,11 +7799,12 @@ function (file,           pragma,   parse) {
                         //dependencies that may be separate to how the pluginBuilder works.
                         if (!context.needFullExec[moduleName]) {
                             contents = parse(moduleName, url, contents, {
-                                insertNeedsDefine: true
+                                insertNeedsDefine: true,
+                                findNestedDependencies: context.config.findNestedDependencies
                             });
                         }
 
-                        cachedFileContents[url] = contents;
+                        require._cachedFileContents[url] = contents;
                     }
 
                     if (contents) {
@@ -8063,6 +8073,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             inlineText: true,
             isBuild: true,
             optimizeAllPluginResources: false,
+            findNestedDependencies: false,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp

@@ -26,8 +26,7 @@ function (file,           pragma,   parse) {
 
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
-            oldDef,
-            cachedFileContents = {};
+            oldDef;
 
 
         /** Print out some extrs info about the module tree that caused the error. **/
@@ -52,6 +51,8 @@ function (file,           pragma,   parse) {
             throw err;
         };
 
+        //Stored cached file contents for reuse in other layers.
+        require._cachedFileContents = {};
 
         /** Reset state for each build layer pass. */
         require._buildReset = function () {
@@ -152,9 +153,9 @@ function (file,           pragma,   parse) {
                 }
 
                 try {
-                    if (url in cachedFileContents &&
+                    if (url in require._cachedFileContents &&
                         (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
-                        contents = cachedFileContents[url];
+                        contents = require._cachedFileContents[url];
                     } else {
                         //Load the file contents, process for conditionals, then
                         //evaluate it.
@@ -186,11 +187,12 @@ function (file,           pragma,   parse) {
                         //dependencies that may be separate to how the pluginBuilder works.
                         if (!context.needFullExec[moduleName]) {
                             contents = parse(moduleName, url, contents, {
-                                insertNeedsDefine: true
+                                insertNeedsDefine: true,
+                                findNestedDependencies: context.config.findNestedDependencies
                             });
                         }
 
-                        cachedFileContents[url] = contents;
+                        require._cachedFileContents[url] = contents;
                     }
 
                     if (contents) {
