@@ -1,5 +1,4 @@
 define(["require", "exports", "module"], function(require, exports, module) {
-
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -293,12 +292,12 @@ function tokenizer($TEXT) {
 
         function peek() { return S.text.charAt(S.pos); };
 
-        function next(signal_eof) {
+        function next(signal_eof, in_string) {
                 var ch = S.text.charAt(S.pos++);
                 if (signal_eof && !ch)
                         throw EX_EOF;
                 if (ch == "\n") {
-                        S.newline_before = true;
+                        S.newline_before = S.newline_before || !in_string;
                         ++S.line;
                         S.col = 0;
                 } else {
@@ -395,8 +394,8 @@ function tokenizer($TEXT) {
                 }
         };
 
-        function read_escaped_char() {
-                var ch = next(true);
+        function read_escaped_char(in_string) {
+                var ch = next(true, in_string);
                 switch (ch) {
                     case "n" : return "\n";
                     case "r" : return "\r";
@@ -444,7 +443,7 @@ function tokenizer($TEXT) {
                                                 return false;
                                         });
                                         if (octal_len > 0) ch = String.fromCharCode(parseInt(ch, 8));
-                                        else ch = read_escaped_char();
+                                        else ch = read_escaped_char(true);
                                 }
                                 else if (ch == quote) break;
                                 ret += ch;

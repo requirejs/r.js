@@ -975,7 +975,8 @@ function ast_squeeze(ast, options) {
         options = defaults(options, {
                 make_seqs   : true,
                 dead_code   : true,
-                no_warnings : false
+                no_warnings : false,
+                keep_comps  : true
         });
 
         var w = ast_walker(), walk = w.walk, scope;
@@ -993,11 +994,13 @@ function ast_squeeze(ast, options) {
                         return best_of(not_c, [ "conditional", c[1], negate(c[2]), negate(c[3]) ]);
                     case "binary":
                         var op = c[1], left = c[2], right = c[3];
-                        switch (op) {
+                        if (!options.keep_comps) switch (op) {
                             case "<="  : return [ "binary", ">", left, right ];
                             case "<"   : return [ "binary", ">=", left, right ];
                             case ">="  : return [ "binary", "<", left, right ];
                             case ">"   : return [ "binary", "<=", left, right ];
+                        }
+                        switch (op) {
                             case "=="  : return [ "binary", "!=", left, right ];
                             case "!="  : return [ "binary", "==", left, right ];
                             case "===" : return [ "binary", "!==", left, right ];
@@ -1363,7 +1366,8 @@ var DOT_CALL_NO_PARENS = jsp.array_to_hash([
         "dot",
         "sub",
         "call",
-        "regexp"
+        "regexp",
+        "defun"
 ]);
 
 function make_string(str, ascii_only) {
@@ -1627,7 +1631,7 @@ function gen_code(ast, options) {
                 },
                 "call": function(func, args) {
                         var f = make(func);
-                        if (needs_parens(func))
+                        if (f.charAt(0) != "(" && needs_parens(func))
                                 f = "(" + f + ")";
                         return f + "(" + add_commas(MAP(args, function(expr){
                                 return parenthesize(expr, "seq");
@@ -1800,7 +1804,8 @@ function gen_code(ast, options) {
                         out += " " + make_name(name);
                 }
                 out += "(" + add_commas(MAP(args, make_name)) + ")";
-                return add_spaces([ out, make_block(body) ]);
+                out = add_spaces([ out, make_block(body) ]);
+                return needs_parens(this) ? "(" + out + ")" : out;
         };
 
         function must_has_semicolon(node) {
