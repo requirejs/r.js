@@ -320,4 +320,136 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("nestedHas",
+        [
+            function nestedHas(t) {
+                file.deleteFile("lib/nestedHas/main-built.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nestedHas/build.js"]);
+
+                t.is(nol(c("lib/nestedHas/expected-built.js")),
+                     nol(c("lib/nestedHas/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("nestedHasNeedAll",
+        [
+            function nestedHasNeedAll(t) {
+                file.deleteFile("lib/nestedHas/main-builtNeedAll.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nestedHas/buildNeedAll.js"]);
+
+                t.is(nol(c("lib/nestedHas/expected-builtNeedAll.js")),
+                     nol(c("lib/nestedHas/main-builtNeedAll.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("nestedHasNeedB",
+        [
+            function nestedHasNeed(t) {
+                file.deleteFile("lib/nestedHas/main-builtNeedB.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nestedHas/buildNeedB.js"]);
+
+                t.is(nol(c("lib/nestedHas/expected-builtNeedB.js")),
+                     nol(c("lib/nestedHas/main-builtNeedB.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("nestedHasNeedC",
+        [
+            function nestedHasNeed(t) {
+                file.deleteFile("lib/nestedHas/main-builtNeedC.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nestedHas/buildNeedC.js"]);
+
+                t.is(nol(c("lib/nestedHas/expected-builtNeedC.js")),
+                     nol(c("lib/nestedHas/main-builtNeedC.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("nestedHasNeedD",
+        [
+            function nestedHasNeedD(t) {
+                file.deleteFile("lib/nestedHas/main-builtNeedD.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nestedHas/buildNeedD.js"]);
+
+                t.is(nol(c("lib/nestedHas/expected-builtNeedD.js")),
+                     nol(c("lib/nestedHas/main-builtNeedD.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("nestedHasNested",
+        [
+            function nestedHasNested(t) {
+                file.deleteFile("lib/nestedHas/main-builtNested.js");
+
+                //Clear the cached file contents since the
+                //findNestedDependencies config actually modifies
+                //what the contents could be.
+                require._cachedFileContents = {};
+
+                build(["lib/nestedHas/buildNested.js"]);
+
+                t.is(nol(c("lib/nestedHas/expected-builtNested.js")),
+                     nol(c("lib/nestedHas/main-builtNested.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

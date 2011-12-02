@@ -8,6 +8,12 @@ build/tests/lib/plugins/main-built.js
 build/tests/lib/dotpackage/built
 build/tests/lib/nested/main-built.js
 build/tests/lib/nested/main-builtWithCE.js
+build/tests/lib/nestedHas/main-built.js
+build/tests/lib/nestedHas/main-builtNeedAll.js
+build/tests/lib/nestedHas/main-builtNeedB.js
+build/tests/lib/nestedHas/main-builtNeedC.js
+build/tests/lib/nestedHas/main-builtNeedD.js
+build/tests/lib/nestedHas/main-builtNested.js
 build/tests/override/node_modules
 build/tests/override/one-built.js
 tests/node/node_modules

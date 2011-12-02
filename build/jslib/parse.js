@@ -209,7 +209,7 @@ define(['uglifyjs/index'], function (uglify) {
             //If define was found, no need to dive deeper, unless
             //the config explicitly wants to dig deeper.
             return !options.findNestedDependencies;
-        });
+        }, options);
 
         if (options.insertNeedsDefine && needsDefine) {
             result += 'require.needsDefine("' + moduleName + '");';
@@ -244,19 +244,44 @@ define(['uglifyjs/index'], function (uglify) {
      * Handles parsing a file recursively for require calls.
      * @param {Array} parentNode the AST node to start with.
      * @param {Function} onMatch function to call on a parse match.
+     * @param {Object} [options] This is normally the build config options if
+     * it is passed.
      */
-    parse.recurse = function (parentNode, onMatch) {
-        var i, node;
+    parse.recurse = function (parentNode, onMatch, options) {
+        var hasHas = options && options.has,
+            i, node;
+
         if (isArray(parentNode)) {
             for (i = 0; i < parentNode.length; i++) {
                 node = parentNode[i];
                 if (isArray(node)) {
-                    if (this.parseNode(node, onMatch)) {
-                        //The onMatch indicated parsing should
-                        //stop for children of this node.
-                        continue;
+                    //If has config is in play, if calls have been converted
+                    //by this point to be true/false values. So, if
+                    //options has a 'has' value, skip if branches that have
+                    //literal false values.
+
+                    //uglify returns if constructs in an array:
+                    //[0]: 'if'
+                    //[1]: the condition, ['name', true | false] for the has replaced case.
+                    //[2]: the block to process if true
+                    //[3]: the block to process if false
+                    //For if/else if/else, the else if is in the [3],
+                    //so only ever have to deal with this structure.
+                    if (hasHas && node[0] === 'if' && node[1] && node[1][0] === 'name' &&
+                        (node[1][1] === 'true' || node[1][1] === 'false')) {
+                        if (node[1][1] === 'true') {
+                            this.recurse([node[2]], onMatch, options);
+                        } else {
+                            this.recurse([node[3]], onMatch, options);
+                        }
+                    } else {
+                        if (this.parseNode(node, onMatch)) {
+                            //The onMatch indicated parsing should
+                            //stop for children of this node.
+                            continue;
+                        }
+                        this.recurse(node, onMatch, options);
                     }
-                    this.recurse(node, onMatch);
                 }
             }
         }

@@ -188,6 +188,7 @@ function (file,           pragma,   parse) {
                         if (!context.needFullExec[moduleName]) {
                             contents = parse(moduleName, url, contents, {
                                 insertNeedsDefine: true,
+                                has: context.config.has,
                                 findNestedDependencies: context.config.findNestedDependencies
                             });
                         }
