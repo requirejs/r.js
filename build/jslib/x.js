@@ -174,7 +174,7 @@ var requirejs, require, define;
                 //Reset build internals on each run.
                 requirejs._buildReset();
 
-                if (typeof callback !== "undefined" && callback !== null) {
+                if (callback) {
                     callback(result);
                 }
             };
