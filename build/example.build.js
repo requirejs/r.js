@@ -282,5 +282,7 @@
     //the exclusion rules, change it to a different regexp. If the regexp
     //matches, it means the directory will be excluded. This used to be
     //called dirExclusionRegExp before the 1.0.2 release.
+    //As of 1.0.3, this value can also be a string that is converted to a
+    //RegExp via new RegExp().
     fileExclusionRegExp: /^\./
 })
