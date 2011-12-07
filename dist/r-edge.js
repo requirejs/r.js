@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111201 9:25pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111206 9pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111201 9:25pm Pacific',
+        version = '1.0.2+ 20111206 9pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -8734,7 +8734,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Set file.fileExclusionRegExp if desired
         if ('fileExclusionRegExp' in config) {
-            file.exclusionRegExp = config.fileExclusionRegExp;
+            if (typeof config.fileExclusionRegExp === "string") {
+              file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
+            } else {
+              file.exclusionRegExp = config.fileExclusionRegExp;
+            }
         } else if ('dirExclusionRegExp' in config) {
             //Set file.dirExclusionRegExp if desired, this is the old
             //name for fileExclusionRegExp before 1.0.2. Support for backwards
@@ -9049,7 +9053,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //Reset build internals on each run.
                 requirejs._buildReset();
 
-                callback(result);
+                if (callback) {
+                    callback(result);
+                }
             };
 
             //Enable execution of this callback in a build setting.
