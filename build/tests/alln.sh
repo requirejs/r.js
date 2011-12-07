@@ -1,3 +1,6 @@
+#Stop after any error
+set -e
+
 rm -rf ./builds/
 echo "Running tests embedded in Node"
 echo "=============================="
