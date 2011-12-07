@@ -7,9 +7,12 @@ echo "=============================="
 node nodeOptimize.js
 rm -rf ./builds/
 
+node nodeOptimizeNoCallback.js
+rm -rf ./builds/
+
 node nodeAll.js
 rm -rf ./builds/
 
-echo "Running tests via bootstrap"
+echo "\nRunning tests via bootstrap"
 echo "=============================="
 node ../../r.js all.js
