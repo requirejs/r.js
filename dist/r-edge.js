@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111206 9pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111207 10:15pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111206 9pm Pacific',
+        version = '1.0.2+ 20111207 10:15pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -6932,7 +6932,8 @@ define('parse', ['uglifyjs/index'], function (uglify) {
             args = node[2];
 
             if (call) {
-                if (call[0] === 'name' && call[1] === 'require') {
+                if (call[0] === 'name' &&
+                   (call[1] === 'require' || call[1] === 'requirejs')) {
 
                     //It is a plain require() call.
                     config = args[0];

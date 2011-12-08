@@ -8,11 +8,15 @@ define(['parse'], function (parse) {
             function parseRequire(t) {
                 var good1 = "require(['one', 'two'], function(){});",
                     good2 = "require({baseUrl: './'}, ['one', 'two']);",
+                    good3 = "requirejs(['one', 'two'], function(){});",
+                    good4 = "requirejs({baseUrl: './'}, ['one', 'two']);",
                     bad1 = "require([foo, 'me'], function() {});",
                     bad2 = "require({baseUrl: './'});";
 
                 t.is('define("good1",["one","two"]);', parse("good1", "good1", good1));
                 t.is('define("good2",["one","two"]);', parse("good2", "good2", good2));
+                t.is('define("good3",["one","two"]);', parse("good3", "good3", good3));
+                t.is('define("good4",["one","two"]);', parse("good4", "good4", good4));
                 t.is('define("bad1",["me"]);', parse("bad1", "bad1", bad1));
                 t.is(null, parse("bad2", "bad2", bad2));
             }

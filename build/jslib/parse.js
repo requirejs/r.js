@@ -504,7 +504,8 @@ define(['uglifyjs/index'], function (uglify) {
             args = node[2];
 
             if (call) {
-                if (call[0] === 'name' && call[1] === 'require') {
+                if (call[0] === 'name' &&
+                   (call[1] === 'require' || call[1] === 'requirejs')) {
 
                     //It is a plain require() call.
                     config = args[0];
