@@ -39,6 +39,7 @@ define(['parse', 'logger'], function (parse, logger) {
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
+        amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
@@ -228,6 +229,9 @@ define(['parse', 'logger'], function (parse, logger) {
                                  fileName + ', skipping.');
                 }
             }
+
+            //Strip amdefine use for node-shared modules.
+            fileContents = fileContents.replace(pragma.amdefineRegExp, '');
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {

@@ -1,6 +1,7 @@
 .DS_Store
 r.js
 build/tests/builds
+build/tests/lib/amdefine/built.js
 build/tests/lib/comments/built.js
 build/tests/lib/empty/built
 build/tests/lib/namespace/foo.js

@@ -452,4 +452,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("amdefineStrip",
+        [
+            function amdefineStrip(t) {
+                file.deleteFile("lib/amdefine/built.js");
+
+                build(["lib/amdefine/build.js"]);
+
+                t.is(nol(c("lib/amdefine/expected.js")),
+                     nol(c("lib/amdefine/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

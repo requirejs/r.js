@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111207 10:15pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111209 5:30pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111207 10:15pm',
+        version = '1.0.2+ 20111209 5:30pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -7048,6 +7048,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
+        amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
@@ -7237,6 +7238,9 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                                  fileName + ', skipping.');
                 }
             }
+
+            //Strip amdefine use for node-shared modules.
+            fileContents = fileContents.replace(pragma.amdefineRegExp, '');
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {
