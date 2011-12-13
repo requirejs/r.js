@@ -100,6 +100,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * there is a problem completing the build.
      */
     build = function (args) {
+        return build._run(build.convertArgsToObject(args));
+    };
+
+    build.convertArgsToObject = function (args) {
         var buildFile, cmdConfig;
 
         if (!args || lang.isArray(args)) {
@@ -124,7 +128,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             cmdConfig = args;
         }
 
-        return build._run(cmdConfig);
+        return cmdConfig;
     };
 
     build._run = function (cmdConfig) {
@@ -263,52 +267,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
 
         if (modules) {
-            //For each module layer, call require to calculate dependencies.
-            modules.forEach(function (module) {
-                module.layer = build.traceDependencies(module, config);
-            });
-
-            //Now build up shadow layers for anything that should be excluded.
-            //Do this after tracing dependencies for each module, in case one
-            //of those modules end up being one of the excluded values.
-            modules.forEach(function (module) {
-                if (module.exclude) {
-                    module.excludeLayers = [];
-                    module.exclude.forEach(function (exclude, i) {
-                        //See if it is already in the list of modules.
-                        //If not trace dependencies for it.
-                        module.excludeLayers[i] = build.findBuildModule(exclude, modules) ||
-                                                 {layer: build.traceDependencies({name: exclude}, config)};
-                    });
-                }
-            });
+            build.traceModules(config);
 
             modules.forEach(function (module) {
-                if (module.exclude) {
-                    //module.exclude is an array of module names. For each one,
-                    //get the nested dependencies for it via a matching entry
-                    //in the module.excludeLayers array.
-                    module.exclude.forEach(function (excludeModule, i) {
-                        var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
-                        for (prop in map) {
-                            if (map.hasOwnProperty(prop)) {
-                                build.removeModulePath(prop, map[prop], module.layer);
-                            }
-                        }
-                    });
-                }
-                if (module.excludeShallow) {
-                    //module.excludeShallow is an array of module names.
-                    //shallow exclusions are just that module itself, and not
-                    //its nested dependencies.
-                    module.excludeShallow.forEach(function (excludeShallowModule) {
-                        var path = module.layer.buildPathMap[excludeShallowModule];
-                        if (path) {
-                            build.removeModulePath(excludeShallowModule, path, module.layer);
-                        }
-                    });
-                }
-
                 //Flatten them and collect the build output for each module.
                 builtModule = build.flattenModule(module, module.layer, config);
                 file.saveUtf8File(module._buildPath, builtModule.text);
@@ -654,9 +615,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Set file.fileExclusionRegExp if desired
         if ('fileExclusionRegExp' in config) {
             if (typeof config.fileExclusionRegExp === "string") {
-              file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
+                file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
             } else {
-              file.exclusionRegExp = config.fileExclusionRegExp;
+                file.exclusionRegExp = config.fileExclusionRegExp;
             }
         } else if ('dirExclusionRegExp' in config) {
             //Set file.dirExclusionRegExp if desired, this is the old
@@ -701,6 +662,65 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Take it out of the specified modules. Specified modules are mostly
         //used to find require modifiers.
         delete layer.specified[module];
+    };
+
+
+    /**
+     * Traces the dependencies for the set of modules. Includes processing
+     * of exclude: and excludeShallow directives.
+     * @param {Object} the build config object.
+     */
+    build.traceModules = function (config) {
+        var modules = config.modules;
+
+        if (modules) {
+            //For each module layer, call require to calculate dependencies.
+            modules.forEach(function (module) {
+                module.layer = build.traceDependencies(module, config);
+            });
+
+            //Now build up shadow layers for anything that should be excluded.
+            //Do this after tracing dependencies for each module, in case one
+            //of those modules end up being one of the excluded values.
+            modules.forEach(function (module) {
+                if (module.exclude) {
+                    module.excludeLayers = [];
+                    module.exclude.forEach(function (exclude, i) {
+                        //See if it is already in the list of modules.
+                        //If not trace dependencies for it.
+                        module.excludeLayers[i] = build.findBuildModule(exclude, modules) ||
+                                                 {layer: build.traceDependencies({name: exclude}, config)};
+                    });
+                }
+            });
+
+            modules.forEach(function (module) {
+                if (module.exclude) {
+                    //module.exclude is an array of module names. For each one,
+                    //get the nested dependencies for it via a matching entry
+                    //in the module.excludeLayers array.
+                    module.exclude.forEach(function (excludeModule, i) {
+                        var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
+                        for (prop in map) {
+                            if (map.hasOwnProperty(prop)) {
+                                build.removeModulePath(prop, map[prop], module.layer);
+                            }
+                        }
+                    });
+                }
+                if (module.excludeShallow) {
+                    //module.excludeShallow is an array of module names.
+                    //shallow exclusions are just that module itself, and not
+                    //its nested dependencies.
+                    module.excludeShallow.forEach(function (excludeShallowModule) {
+                        var path = module.layer.buildPathMap[excludeShallowModule];
+                        if (path) {
+                            build.removeModulePath(excludeShallowModule, path, module.layer);
+                        }
+                    });
+                }
+            });
+        }
     };
 
     /**

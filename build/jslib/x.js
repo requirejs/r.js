@@ -134,6 +134,63 @@ var requirejs, require, define;
 
 
     /**
+     * Sets up the environment to do builds or build-related things like
+     * trace dependences.
+     * @param {Function} callback the function to call once the build env
+     * has been set up. Will be passed the 'build' and 'logger' modules.
+     */
+    function loadBuildTools(callback) {
+        if (!loadedOptimizedLib) {
+            loadLib();
+            loadedOptimizedLib = true;
+        }
+
+        //Enable execution of this callback in a build setting.
+        //Normally, once requirePatch is run, by default it will
+        //not execute callbacks, unless this property is set on
+        //the callback.
+        callback.__requireJsBuild = true;
+
+        requirejs({
+            context: 'build'
+        },      ['build', 'logger', 'requirePatch'],
+        function (build,   logger,   requirePatch) {
+            //Enable the requirePatch that hooks up the tracing tools.
+            requirePatch();
+            callback(build, logger);
+        });
+    }
+
+    /**
+     * Traces what files would go into making the module specified in the
+     * config.
+     * @param {Object} config the build config object, but just used for
+     * dependency tracing.
+     * @param {Function} callback the function to call when the work is done.
+     */
+    function traceFiles(config, callback) {
+        loadBuildTools(function (build, logger) {
+
+            config = build.createConfig(config);
+            build.traceModules(config);
+
+            var modules = config.modules,
+                result = {};
+
+            modules.forEach(function (module) {
+                result[module.name] = {
+                    files: module.layer.buildFilePaths
+                };
+            });
+
+            //Reset build internals on each run.
+            requirejs._buildReset();
+
+            callback(result);
+        });
+    }
+
+    /**
      * Sets the default baseUrl for requirejs to be directory of top level
      * script.
      */
@@ -156,14 +213,7 @@ var requirejs, require, define;
         //Create a method that will run the optimzer given an object
         //config.
         requirejs.optimize = function (config, callback) {
-            if (!loadedOptimizedLib) {
-                loadLib();
-                loadedOptimizedLib = true;
-            }
-
-            //Create the function that will be called once build modules
-            //have been loaded.
-            var runBuild = function (build, logger) {
+            loadBuildTools(function (build, logger) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
                 config.logLevel = config.hasOwnProperty('logLevel') ?
@@ -177,20 +227,16 @@ var requirejs, require, define;
                 if (callback) {
                     callback(result);
                 }
-            };
-
-            //Enable execution of this callback in a build setting.
-            //Normally, once requirePatch is run, by default it will
-            //not execute callbacks, unless this property is set on
-            //the callback.
-            runBuild.__requireJsBuild = true;
-
-            requirejs({
-                context: 'build'
-            }, ['build', 'logger'], runBuild);
+            });
         };
 
         requirejs.define = define;
+
+        /**
+         * Traces what files would go into making the module specified in the
+         * config.
+         */
+        requirejs.tools.traceFiles = traceFiles;
 
         module.exports = requirejs;
         return;
@@ -220,6 +266,20 @@ var requirejs, require, define;
             }
 
             commonJs.convertDir(args[0], args[1]);
+        });
+    } else if (commandOption === 'traceFiles') {
+        loadLib();
+
+        require({
+            context: 'build',
+            catchError: {
+                define: true
+            }
+        },      ['env!env/args', 'build'],
+        function (args,           build) {
+            traceFiles(build.convertArgsToObject(args), function (results) {
+                console.log(JSON.stringify(results, null, '  '));
+            });
         });
     } else {
         //Just run an app
