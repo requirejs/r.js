@@ -126,12 +126,14 @@ var requirejs, require, define;
 
     /**
      * Loads the library files that can be used for the optimizer, or for other
-     * tasks.
+     * tasks. Only loads the libraries once, no matter how many times it is called.
      */
     function loadLib() {
-        //INSERT LIB
+        if (!loadedOptimizedLib) {
+            loadedOptimizedLib = true;
+            //INSERT LIB
+        }
     }
-
 
     /**
      * Sets up the environment to do builds or build-related things like
@@ -140,10 +142,7 @@ var requirejs, require, define;
      * has been set up. Will be passed the 'build' and 'logger' modules.
      */
     function loadBuildTools(callback) {
-        if (!loadedOptimizedLib) {
-            loadLib();
-            loadedOptimizedLib = true;
-        }
+        loadLib();
 
         //Enable execution of this callback in a build setting.
         //Normally, once requirePatch is run, by default it will
@@ -172,6 +171,7 @@ var requirejs, require, define;
         loadBuildTools(function (build, logger) {
 
             config = build.createConfig(config);
+            requirejs.config(config);
             build.traceModules(config);
 
             var modules = config.modules,
