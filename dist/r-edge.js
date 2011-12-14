@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111209 5:30pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ (traceFiles) 20111214 3pm Pacific  Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111209 5:30pm Pacific',
+        version = '1.0.2+ (traceFiles) 20111214 3pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -2204,10 +2204,12 @@ var requirejs, require, define;
 
     /**
      * Loads the library files that can be used for the optimizer, or for other
-     * tasks.
+     * tasks. Only loads the libraries once, no matter how many times it is called.
      */
     function loadLib() {
-        /**
+        if (!loadedOptimizedLib) {
+            loadedOptimizedLib = true;
+            /**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
@@ -8186,6 +8188,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * there is a problem completing the build.
      */
     build = function (args) {
+        return build._run(build.convertArgsToObject(args));
+    };
+
+    build.convertArgsToObject = function (args) {
         var buildFile, cmdConfig;
 
         if (!args || lang.isArray(args)) {
@@ -8210,7 +8216,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             cmdConfig = args;
         }
 
-        return build._run(cmdConfig);
+        return cmdConfig;
     };
 
     build._run = function (cmdConfig) {
@@ -8349,52 +8355,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
 
         if (modules) {
-            //For each module layer, call require to calculate dependencies.
-            modules.forEach(function (module) {
-                module.layer = build.traceDependencies(module, config);
-            });
-
-            //Now build up shadow layers for anything that should be excluded.
-            //Do this after tracing dependencies for each module, in case one
-            //of those modules end up being one of the excluded values.
-            modules.forEach(function (module) {
-                if (module.exclude) {
-                    module.excludeLayers = [];
-                    module.exclude.forEach(function (exclude, i) {
-                        //See if it is already in the list of modules.
-                        //If not trace dependencies for it.
-                        module.excludeLayers[i] = build.findBuildModule(exclude, modules) ||
-                                                 {layer: build.traceDependencies({name: exclude}, config)};
-                    });
-                }
-            });
+            build.traceModules(config);
 
             modules.forEach(function (module) {
-                if (module.exclude) {
-                    //module.exclude is an array of module names. For each one,
-                    //get the nested dependencies for it via a matching entry
-                    //in the module.excludeLayers array.
-                    module.exclude.forEach(function (excludeModule, i) {
-                        var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
-                        for (prop in map) {
-                            if (map.hasOwnProperty(prop)) {
-                                build.removeModulePath(prop, map[prop], module.layer);
-                            }
-                        }
-                    });
-                }
-                if (module.excludeShallow) {
-                    //module.excludeShallow is an array of module names.
-                    //shallow exclusions are just that module itself, and not
-                    //its nested dependencies.
-                    module.excludeShallow.forEach(function (excludeShallowModule) {
-                        var path = module.layer.buildPathMap[excludeShallowModule];
-                        if (path) {
-                            build.removeModulePath(excludeShallowModule, path, module.layer);
-                        }
-                    });
-                }
-
                 //Flatten them and collect the build output for each module.
                 builtModule = build.flattenModule(module, module.layer, config);
                 file.saveUtf8File(module._buildPath, builtModule.text);
@@ -8740,9 +8703,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Set file.fileExclusionRegExp if desired
         if ('fileExclusionRegExp' in config) {
             if (typeof config.fileExclusionRegExp === "string") {
-              file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
+                file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
             } else {
-              file.exclusionRegExp = config.fileExclusionRegExp;
+                file.exclusionRegExp = config.fileExclusionRegExp;
             }
         } else if ('dirExclusionRegExp' in config) {
             //Set file.dirExclusionRegExp if desired, this is the old
@@ -8787,6 +8750,65 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Take it out of the specified modules. Specified modules are mostly
         //used to find require modifiers.
         delete layer.specified[module];
+    };
+
+
+    /**
+     * Traces the dependencies for the set of modules. Includes processing
+     * of exclude: and excludeShallow directives.
+     * @param {Object} the build config object.
+     */
+    build.traceModules = function (config) {
+        var modules = config.modules;
+
+        if (modules) {
+            //For each module layer, call require to calculate dependencies.
+            modules.forEach(function (module) {
+                module.layer = build.traceDependencies(module, config);
+            });
+
+            //Now build up shadow layers for anything that should be excluded.
+            //Do this after tracing dependencies for each module, in case one
+            //of those modules end up being one of the excluded values.
+            modules.forEach(function (module) {
+                if (module.exclude) {
+                    module.excludeLayers = [];
+                    module.exclude.forEach(function (exclude, i) {
+                        //See if it is already in the list of modules.
+                        //If not trace dependencies for it.
+                        module.excludeLayers[i] = build.findBuildModule(exclude, modules) ||
+                                                 {layer: build.traceDependencies({name: exclude}, config)};
+                    });
+                }
+            });
+
+            modules.forEach(function (module) {
+                if (module.exclude) {
+                    //module.exclude is an array of module names. For each one,
+                    //get the nested dependencies for it via a matching entry
+                    //in the module.excludeLayers array.
+                    module.exclude.forEach(function (excludeModule, i) {
+                        var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
+                        for (prop in map) {
+                            if (map.hasOwnProperty(prop)) {
+                                build.removeModulePath(prop, map[prop], module.layer);
+                            }
+                        }
+                    });
+                }
+                if (module.excludeShallow) {
+                    //module.excludeShallow is an array of module names.
+                    //shallow exclusions are just that module itself, and not
+                    //its nested dependencies.
+                    module.excludeShallow.forEach(function (excludeShallowModule) {
+                        var path = module.layer.buildPathMap[excludeShallowModule];
+                        if (path) {
+                            build.removeModulePath(excludeShallowModule, path, module.layer);
+                        }
+                    });
+                }
+            });
+        }
     };
 
     /**
@@ -9014,8 +9036,63 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     return build;
 });
 
+        }
     }
 
+    /**
+     * Sets up the environment to do builds or build-related things like
+     * trace dependences.
+     * @param {Function} callback the function to call once the build env
+     * has been set up. Will be passed the 'build' and 'logger' modules.
+     */
+    function loadBuildTools(callback) {
+        loadLib();
+
+        //Enable execution of this callback in a build setting.
+        //Normally, once requirePatch is run, by default it will
+        //not execute callbacks, unless this property is set on
+        //the callback.
+        callback.__requireJsBuild = true;
+
+        requirejs({
+            context: 'build'
+        },      ['build', 'logger', 'requirePatch'],
+        function (build,   logger,   requirePatch) {
+            //Enable the requirePatch that hooks up the tracing tools.
+            requirePatch();
+            callback(build, logger);
+        });
+    }
+
+    /**
+     * Traces what files would go into making the module specified in the
+     * config.
+     * @param {Object} config the build config object, but just used for
+     * dependency tracing.
+     * @param {Function} callback the function to call when the work is done.
+     */
+    function traceFiles(config, callback) {
+        loadBuildTools(function (build, logger) {
+
+            config = build.createConfig(config);
+            requirejs.config(config);
+            build.traceModules(config);
+
+            var modules = config.modules,
+                result = {};
+
+            modules.forEach(function (module) {
+                result[module.name] = {
+                    files: module.layer.buildFilePaths
+                };
+            });
+
+            //Reset build internals on each run.
+            requirejs._buildReset();
+
+            callback(result);
+        });
+    }
 
     /**
      * Sets the default baseUrl for requirejs to be directory of top level
@@ -9040,14 +9117,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Create a method that will run the optimzer given an object
         //config.
         requirejs.optimize = function (config, callback) {
-            if (!loadedOptimizedLib) {
-                loadLib();
-                loadedOptimizedLib = true;
-            }
-
-            //Create the function that will be called once build modules
-            //have been loaded.
-            var runBuild = function (build, logger) {
+            loadBuildTools(function (build, logger) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
                 config.logLevel = config.hasOwnProperty('logLevel') ?
@@ -9061,20 +9131,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (callback) {
                     callback(result);
                 }
-            };
-
-            //Enable execution of this callback in a build setting.
-            //Normally, once requirePatch is run, by default it will
-            //not execute callbacks, unless this property is set on
-            //the callback.
-            runBuild.__requireJsBuild = true;
-
-            requirejs({
-                context: 'build'
-            }, ['build', 'logger'], runBuild);
+            });
         };
 
         requirejs.define = define;
+
+        /**
+         * Traces what files would go into making the module specified in the
+         * config.
+         */
+        requirejs.tools.traceFiles = traceFiles;
 
         module.exports = requirejs;
         return;
@@ -9130,6 +9196,20 @@ function (args,            build) {
             }
 
             commonJs.convertDir(args[0], args[1]);
+        });
+    } else if (commandOption === 'traceFiles') {
+        loadLib();
+
+        require({
+            context: 'build',
+            catchError: {
+                define: true
+            }
+        },      ['env!env/args', 'build'],
+        function (args,           build) {
+            traceFiles(build.convertArgsToObject(args), function (results) {
+                console.log(JSON.stringify(results, null, '  '));
+            });
         });
     } else {
         //Just run an app
