@@ -917,7 +917,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 return match;
             }
 
-            if (layer) {
+            //Only mark this module as having a name if not a named module,
+            //or if a named module and the name matches expectations.
+            if (layer && (!namedModule || namedModule === moduleName)) {
                 layer.modulesWithNames[moduleName] = true;
             }
 
@@ -939,7 +941,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
 
-            return start + namespace + "define('" + moduleName + "'," +
+            return start + namespace + "define('" + (namedModule || moduleName) + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
         });

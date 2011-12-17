@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111216 5pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111216 7pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111216 5pm Pacific',
+        version = '1.0.2+ 20111216 7pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -9014,7 +9014,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 return match;
             }
 
-            if (layer) {
+            //Only mark this module as having a name if not a named module,
+            //or if a named module and the name matches expectations.
+            if (layer && (!namedModule || namedModule === moduleName)) {
                 layer.modulesWithNames[moduleName] = true;
             }
 
@@ -9036,7 +9038,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
 
-            return start + namespace + "define('" + moduleName + "'," +
+            return start + namespace + "define('" + (namedModule || moduleName) + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
         });

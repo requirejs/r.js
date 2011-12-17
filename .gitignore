@@ -7,6 +7,7 @@ build/tests/lib/empty/built
 build/tests/lib/namespace/foo.js
 build/tests/lib/plugins/main-built.js
 build/tests/lib/dotpackage/built
+build/tests/lib/nameInsertion/built.js
 build/tests/lib/nested/main-built.js
 build/tests/lib/nested/main-builtWithCE.js
 build/tests/lib/nestedHas/main-built.js
