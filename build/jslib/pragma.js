@@ -38,6 +38,7 @@ define(['parse', 'logger'], function (parse, logger) {
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
+        defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
         defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
         amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
@@ -50,7 +51,6 @@ define(['parse', 'logger'], function (parse, logger) {
                 //Namespace require/define calls
                 fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
 
-
                 //Namespace define ternary use:
                 fileContents = fileContents.replace(pragma.defineTernaryRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd ? " + ns + ".define");
@@ -58,6 +58,10 @@ define(['parse', 'logger'], function (parse, logger) {
                 //Namespace define jquery use:
                 fileContents = fileContents.replace(pragma.defineJQueryRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd && " + ns + ".define.jQuery");
+
+                //Namespace has.js define use:
+                fileContents = fileContents.replace(pragma.defineHasRegExp,
+                                                    "typeof " + ns + ".define === 'function' && typeof " + ns + ".define.amd === 'object' && " + ns + ".define.amd");
 
                 //Namespace define checks.
                 //Do this one last, since it is a subset of the more specific

@@ -15,10 +15,13 @@ if (typeof foo.define === 'function' && foo.define.amd && foo.define.jQuery) {
     });
 }
 ;
-foo.define('modules/four',{
-    name: 'four'
-});
+if(false){
 
+}else if(typeof foo.define === 'function' && typeof foo.define.amd === 'object' && foo.define.amd){
+    foo.define('modules/four',{
+        name: 'four'
+    });
+};
 (function (define) {
     foo.define('modules/three',[], function (require) {
         //If have dependencies, get them here

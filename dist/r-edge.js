@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111216 7pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111216 7:40pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111216 7pm Pacific',
+        version = '1.0.2+ 20111216 7:40pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -7056,6 +7056,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
+        defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
         defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
         amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
@@ -7068,7 +7069,6 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 //Namespace require/define calls
                 fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
 
-
                 //Namespace define ternary use:
                 fileContents = fileContents.replace(pragma.defineTernaryRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd ? " + ns + ".define");
@@ -7076,6 +7076,10 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 //Namespace define jquery use:
                 fileContents = fileContents.replace(pragma.defineJQueryRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd && " + ns + ".define.jQuery");
+
+                //Namespace has.js define use:
+                fileContents = fileContents.replace(pragma.defineHasRegExp,
+                                                    "typeof " + ns + ".define === 'function' && typeof " + ns + ".define.amd === 'object' && " + ns + ".define.amd");
 
                 //Namespace define checks.
                 //Do this one last, since it is a subset of the more specific
