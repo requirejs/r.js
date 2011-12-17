@@ -220,6 +220,15 @@ define(['uglifyjs/index'], function (uglify) {
                 if (result) {
                     result += '\n';
                 }
+
+                //If this is the main module for this file, combine any
+                //"anonymous" dependencies (could come from a nested require
+                //call) with this module.
+                if (moduleCall.name === moduleName) {
+                    moduleCall.deps = moduleCall.deps.concat(moduleDeps);
+                    moduleDeps = [];
+                }
+
                 depString = moduleCall.deps.length ? '["' + moduleCall.deps.join('","') + '"]' : '[]';
                 result += 'define("' + moduleCall.name + '",' + depString + ');';
             }
