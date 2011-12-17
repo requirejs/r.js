@@ -469,4 +469,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("nameInsertion",
+        [
+            function nameInsertion(t) {
+                file.deleteFile("lib/nameInsertion/built.js");
+
+                build(["lib/nameInsertion/build.js"]);
+
+                t.is(nol(c("lib/nameInsertion/expected.js")),
+                     nol(c("lib/nameInsertion/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
