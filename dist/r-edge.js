@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111209 5:30pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111216 4:30pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111209 5:30pm Pacific',
+        version = '1.0.2+ 20111216 4:30pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -6648,6 +6648,15 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                 if (result) {
                     result += '\n';
                 }
+
+                //If this is the main module for this file, combine any
+                //"anonymous" dependencies (could come from a nested require
+                //call) with this module.
+                if (moduleCall.name === moduleName) {
+                    moduleCall.deps = moduleCall.deps.concat(moduleDeps);
+                    moduleDeps = [];
+                }
+
                 depString = moduleCall.deps.length ? '["' + moduleCall.deps.join('","') + '"]' : '[]';
                 result += 'define("' + moduleCall.name + '",' + depString + ');';
             }
@@ -8547,7 +8556,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 value = value.split(",");
             }
 
-            if (prop.indexOf("paths.") === 0 || prop.indexOf("wrap.") === 0) {
+            if (prop.indexOf("paths.") === 0 || prop.indexOf("wrap.") === 0 || prop.indexOf("pragmas.") === 0 || prop.indexOf("pragmasOnSave.") === 0) {
                 stringDotToObj(result, prop.split('.')[0], prop, value);
             } else {
                 result[prop] = value;
