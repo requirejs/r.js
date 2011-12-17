@@ -165,14 +165,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
-                //Pull out any license comments for prepending after optimization.
-                optimize.licenseCommentRegExp.lastIndex = 0;
-                while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
-                    comment = match[0];
-                    //Only keep the comments if they are license comments.
-                    if (comment.indexOf('@license') !== -1 ||
-                        comment.indexOf('/*!') === 0) {
-                        licenseContents += comment + '\n';
+                if (config.preserveLicenseComments) {
+                    //Pull out any license comments for prepending after optimization.
+                    optimize.licenseCommentRegExp.lastIndex = 0;
+                    while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
+                        comment = match[0];
+                        //Only keep the comments if they are license comments.
+                        if (comment.indexOf('@license') !== -1 ||
+                            comment.indexOf('/*!') === 0) {
+                            licenseContents += comment + '\n';
+                        }
                     }
                 }
 

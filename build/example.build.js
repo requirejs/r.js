@@ -284,5 +284,13 @@
     //called dirExclusionRegExp before the 1.0.2 release.
     //As of 1.0.3, this value can also be a string that is converted to a
     //RegExp via new RegExp().
-    fileExclusionRegExp: /^\./
+    fileExclusionRegExp: /^\./,
+
+    //By default, comments that have a license in them are preserved in the
+    //output. However, for a larger built files there could be a lot of
+    //comment files that may be better served by having a smaller comment
+    //at the top of the file that points to the list of all the licenses.
+    //This option will turn off the auto-preservation, but you will need
+    //work out how best to surface the license information.
+    preserveLicenseComments: true
 })

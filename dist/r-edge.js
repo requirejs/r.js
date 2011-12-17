@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111216 4:50pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111216 5pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111216 4:50pm Pacific',
+        version = '1.0.2+ 20111216 5pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -7546,14 +7546,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
-                //Pull out any license comments for prepending after optimization.
-                optimize.licenseCommentRegExp.lastIndex = 0;
-                while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
-                    comment = match[0];
-                    //Only keep the comments if they are license comments.
-                    if (comment.indexOf('@license') !== -1 ||
-                        comment.indexOf('/*!') === 0) {
-                        licenseContents += comment + '\n';
+                if (config.preserveLicenseComments) {
+                    //Pull out any license comments for prepending after optimization.
+                    optimize.licenseCommentRegExp.lastIndex = 0;
+                    while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
+                        comment = match[0];
+                        //Only keep the comments if they are license comments.
+                        if (comment.indexOf('@license') !== -1 ||
+                            comment.indexOf('/*!') === 0) {
+                            licenseContents += comment + '\n';
+                        }
                     }
                 }
 
@@ -8120,6 +8122,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             isBuild: true,
             optimizeAllPluginResources: false,
             findNestedDependencies: false,
+            preserveLicenseComments: true,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp
