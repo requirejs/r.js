@@ -425,6 +425,26 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         result[prop][name] = value;
     }
 
+    //Used by convertArrayToObject to convert some things from prop.name=value
+    //to a prop: { name: value}
+    build.dotProps = [
+        'paths.',
+        'wrap.',
+        'pragmas.',
+        'pragmasOnSave.',
+        'has.',
+        'hasOnSave.',
+        'wrap.',
+        'uglify.',
+        'closure.'
+    ];
+
+    build.hasDotPropMatch = function (prop) {
+        return build.dotProps.some(function (dotProp) {
+            return prop.indexOf(dotProp) === 0;
+        });
+    };
+
     /**
      * Converts an array that has String members of "name=value"
      * into an object, where the properties on the object are the names in the array.
@@ -461,7 +481,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 value = value.split(",");
             }
 
-            if (prop.indexOf("paths.") === 0 || prop.indexOf("wrap.") === 0 || prop.indexOf("pragmas.") === 0 || prop.indexOf("pragmasOnSave.") === 0) {
+            if (build.hasDotPropMatch(prop)) {
                 stringDotToObj(result, prop.split('.')[0], prop, value);
             } else {
                 result[prop] = value;
@@ -654,9 +674,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Set file.fileExclusionRegExp if desired
         if ('fileExclusionRegExp' in config) {
             if (typeof config.fileExclusionRegExp === "string") {
-              file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
+                file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
             } else {
-              file.exclusionRegExp = config.fileExclusionRegExp;
+                file.exclusionRegExp = config.fileExclusionRegExp;
             }
         } else if ('dirExclusionRegExp' in config) {
             //Set file.dirExclusionRegExp if desired, this is the old
