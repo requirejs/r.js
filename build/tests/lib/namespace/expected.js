@@ -9,7 +9,7 @@
 
 }));
 
-if (typeof foo.define === 'function' && foo.define.amd && foo.define.jQuery) {
+if (typeof foo.define === 'function' && foo.define.amd && foo.define.amd.jQuery) {
     foo.define('modules/two',[],function () {
        return { name: 'two' };
     });

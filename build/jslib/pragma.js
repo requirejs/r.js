@@ -57,7 +57,7 @@ define(['parse', 'logger'], function (parse, logger) {
 
                 //Namespace define jquery use:
                 fileContents = fileContents.replace(pragma.defineJQueryRegExp,
-                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd && " + ns + ".define.jQuery");
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd && " + ns + ".define.amd.jQuery");
 
                 //Namespace has.js define use:
                 fileContents = fileContents.replace(pragma.defineHasRegExp,
