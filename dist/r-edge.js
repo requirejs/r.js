@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111222 3:30pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111222 3:45pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111222 3:30pm Pacific',
+        version = '1.0.2+ 20111222 3:45pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -7630,19 +7630,18 @@ function (lang,   logger,   envOptimize,        file,           parse,
             uglify: function (fileName, fileContents, keepLines, config) {
                 var parser = uglify.parser,
                     processor = uglify.uglify,
-                    ast, genCodeConfig;
+                    ast;
 
                 config = config || {};
-                genCodeConfig = config.gen_codeOptions || keepLines;
 
                 logger.trace("Uglifying file: " + fileName);
 
                 try {
-                    ast = parser.parse(fileContents, config.strict_semicolons);
-                    ast = processor.ast_mangle(ast, config.do_toplevel);
-                    ast = processor.ast_squeeze(ast, config.ast_squeezeOptions);
+                    ast = parser.parse(fileContents, config);
+                    ast = processor.ast_mangle(ast, config);
+                    ast = processor.ast_squeeze(ast, config);
 
-                    fileContents = processor.gen_code(ast, genCodeConfig);
+                    fileContents = processor.gen_code(ast, config);
                 } catch (e) {
                     logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }

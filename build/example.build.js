@@ -68,10 +68,9 @@
     //used to pass configuration values to UglifyJS.
     //See https://github.com/mishoo/UglifyJS for the possible values.
     uglify: {
-        gen_codeOptions: {},
-        strict_semicolons: {},
-        do_toplevel: {},
-        ast_squeezeOptions: {}
+        toplevel: true,
+        ascii_only: true,
+        beautify: true
     },
 
     //If using Closure Compiler for script optimization, these config options
@@ -81,7 +80,7 @@
         CompilerOptions: {},
         CompilationLevel: 'SIMPLE_OPTIMIZATIONS',
         loggingLevel: 'WARNING'
-    }
+    },
 
     //Allow CSS optimizations. Allowed values:
     //- "standard": @import inlining, comment removal and line returns.

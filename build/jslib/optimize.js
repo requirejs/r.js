@@ -254,19 +254,18 @@ function (lang,   logger,   envOptimize,        file,           parse,
             uglify: function (fileName, fileContents, keepLines, config) {
                 var parser = uglify.parser,
                     processor = uglify.uglify,
-                    ast, genCodeConfig;
+                    ast;
 
                 config = config || {};
-                genCodeConfig = config.gen_codeOptions || keepLines;
 
                 logger.trace("Uglifying file: " + fileName);
 
                 try {
-                    ast = parser.parse(fileContents, config.strict_semicolons);
-                    ast = processor.ast_mangle(ast, config.do_toplevel);
-                    ast = processor.ast_squeeze(ast, config.ast_squeezeOptions);
+                    ast = parser.parse(fileContents, config);
+                    ast = processor.ast_mangle(ast, config);
+                    ast = processor.ast_squeeze(ast, config);
 
-                    fileContents = processor.gen_code(ast, genCodeConfig);
+                    fileContents = processor.gen_code(ast, config);
                 } catch (e) {
                     logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
