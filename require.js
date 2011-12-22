@@ -1,5 +1,5 @@
 /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.2 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.2+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -11,7 +11,7 @@
 var requirejs, require, define;
 (function () {
     //Change this version number for each release.
-    var version = "1.0.2",
+    var version = "1.0.2+",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -1321,11 +1321,6 @@ var requirejs, require, define;
                                 } : null]);
                 }
 
-                //If a global jQuery is defined, check for it. Need to do it here
-                //instead of main() since stock jQuery does not register as
-                //a module via define.
-                jQueryCheck();
-
                 //Doing this scriptCount decrement branching because sync envs
                 //need to decrement after resume, otherwise it looks like
                 //loading is complete after the first dependency is fetched.
@@ -1938,10 +1933,6 @@ var requirejs, require, define;
             //Any modules included with the require.js file will be in the
             //global queue, assign them to this context.
             ctx.takeGlobalQueue();
-
-            //Allow for jQuery to be loaded/already in the page, and if jQuery 1.4.3,
-            //make sure to hold onto it for readyWait triggering.
-            ctx.jQueryCheck();
 
             if (!ctx.scriptCount) {
                 ctx.resume();
