@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111222 3:45pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111222 4:10pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111222 3:45pm Pacific',
+        version = '1.0.2+ 20111222 4:10pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -3253,9 +3253,9 @@ function parse_js_number(num) {
 
 function JS_Parse_Error(message, line, col, pos) {
         this.message = message;
-        this.line = line;
-        this.col = col;
-        this.pos = pos;
+        this.line = line + 1;
+        this.col = col + 1;
+        this.pos = pos + 1;
         this.stack = new Error().stack;
 };
 
@@ -3325,12 +3325,13 @@ function tokenizer($TEXT) {
                                    (type == "keyword" && HOP(KEYWORDS_BEFORE_EXPRESSION, value)) ||
                                    (type == "punc" && HOP(PUNC_BEFORE_EXPRESSION, value)));
                 var ret = {
-                        type  : type,
-                        value : value,
-                        line  : S.tokline,
-                        col   : S.tokcol,
-                        pos   : S.tokpos,
-                        nlb   : S.newline_before
+                        type   : type,
+                        value  : value,
+                        line   : S.tokline,
+                        col    : S.tokcol,
+                        pos    : S.tokpos,
+                        endpos : S.pos,
+                        nlb    : S.newline_before
                 };
                 if (!is_comment) {
                         ret.comments_before = S.comments_before;
@@ -3467,8 +3468,7 @@ function tokenizer($TEXT) {
                 next();
                 return with_eof_error("Unterminated multiline comment", function(){
                         var i = find("*/", true),
-                            text = S.text.substring(S.pos, i),
-                            tok = token("comment2", text, true);
+                            text = S.text.substring(S.pos, i);
                         S.pos = i + 2;
                         S.line += text.split("\n").length - 1;
                         S.newline_before = text.indexOf("\n") >= 0;
@@ -3480,7 +3480,7 @@ function tokenizer($TEXT) {
                                 warn("*** UglifyJS DISCARDS ALL COMMENTS.  This means your code might no longer work properly in Internet Explorer.");
                         }
 
-                        return tok;
+                        return token("comment2", text, true);
                 });
         };
 
@@ -3931,7 +3931,7 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                 return as("for-in", init, lhs, obj, in_loop(statement));
         };
 
-        var function_ = maybe_embed_tokens(function(in_statement) {
+        var function_ = function(in_statement) {
                 var name = is("name") ? prog1(S.token.value, next) : null;
                 if (in_statement && !name)
                         unexpected();
@@ -3959,7 +3959,7 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                                   S.in_loop = loop;
                                   return a;
                           })());
-        });
+        };
 
         function if_() {
                 var cond = parenthesised(), body = statement(), belse;
@@ -4307,7 +4307,7 @@ function characters(str) {
 
 function member(name, array) {
         for (var i = array.length; --i >= 0;)
-                if (array[i] === name)
+                if (array[i] == name)
                         return true;
         return false;
 };
@@ -4368,11 +4368,21 @@ function ast_squeeze_more(ast) {
                 "function": _lambda,
                 "defun": _lambda,
                 "new": function(ctor, args) {
-                        if (ctor[0] == "name" && ctor[1] == "Array" && !scope.has("Array")) {
-                                if (args.length != 1) {
-                                        return [ "array", args ];
-                                } else {
-                                        return walk([ "call", [ "name", "Array" ], args ]);
+                        if (ctor[0] == "name") {
+                                if (ctor[1] == "Array" && !scope.has("Array")) {
+                                        if (args.length != 1) {
+                                                return [ "array", args ];
+                                        } else {
+                                                return walk([ "call", [ "name", "Array" ], args ]);
+                                        }
+                                } else if (ctor[1] == "Object" && !scope.has("Object")) {
+                                        if (!args.length) {
+                                                return [ "object", [] ];
+                                        } else {
+                                                return walk([ "call", [ "name", "Object" ], args ]);
+                                        }
+                                } else if ((ctor[1] == "RegExp" || ctor[1] == "Function" || ctor[1] == "Error") && !scope.has(ctor[1])) {
+                                        return walk([ "call", [ "name", ctor[1] ], args]);
                                 }
                         }
                 },
@@ -4381,8 +4391,16 @@ function ast_squeeze_more(ast) {
                                 // foo.toString()  ==>  foo+""
                                 return [ "binary", "+", expr[1], [ "string", "" ]];
                         }
-                        if (expr[0] == "name" && expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
-                                return [ "array", args ];
+                        if (expr[0] == "name") {
+                                if (expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
+                                        return [ "array", args ];
+                                }
+                                if (expr[1] == "Object" && !args.length && !scope.has("Object")) {
+                                        return [ "object", [] ];
+                                }
+                                if (expr[1] == "String" && !scope.has("String")) {
+                                        return [ "binary", "+", args[0], [ "string", "" ]];
+                                }
                         }
                 }
         }, function() {
@@ -4779,6 +4797,7 @@ function ast_add_scope(ast) {
 
         function with_new_scope(cont) {
                 current_scope = new Scope(current_scope);
+                current_scope.labels = new Scope();
                 var ret = current_scope.body = cont();
                 ret.scope = current_scope;
                 current_scope = current_scope.parent;
@@ -4811,14 +4830,19 @@ function ast_add_scope(ast) {
                 };
         };
 
+        function _breacont(label) {
+                if (label)
+                        current_scope.labels.refs[label] = true;
+        };
+
         return with_new_scope(function(){
                 // process AST
                 var ret = w.with_walkers({
                         "function": _lambda,
                         "defun": _lambda,
-                        "label": function(name, stat) { define(name, "label") },
-                        "break": function(label) { if (label) reference(label) },
-                        "continue": function(label) { if (label) reference(label) },
+                        "label": function(name, stat) { current_scope.labels.define(name) },
+                        "break": _breacont,
+                        "continue": _breacont,
                         "with": function(expr, block) {
                                 for (var s = current_scope; s; s = s.parent)
                                         s.uses_with = true;
@@ -4904,15 +4928,18 @@ function ast_mangle(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                var is_defun = this[0] == "defun", extra;
-                if (name) {
-                        if (is_defun) name = get_mangled(name);
-                        else {
-                                extra = {};
-                                if (!(scope.uses_eval || scope.uses_with))
-                                        name = extra[name] = scope.next_mangled();
-                                else
-                                        extra[name] = name;
+                if (!options.no_functions) {
+                        var is_defun = this[0] == "defun", extra;
+                        if (name) {
+                                if (is_defun) name = get_mangled(name);
+                                else if (body.scope.references(name)) {
+                                        extra = {};
+                                        if (!(scope.uses_eval || scope.uses_with))
+                                                name = extra[name] = scope.next_mangled();
+                                        else
+                                                extra[name] = name;
+                                }
+                                else name = null;
                         }
                 }
                 body = with_scope(body.scope, function(){
@@ -4943,6 +4970,10 @@ function ast_mangle(ast, options) {
                 }) ];
         };
 
+        function _breacont(label) {
+                if (label) return [ this[0], scope.labels.get_mangled(label) ];
+        };
+
         return w.with_walkers({
                 "function": _lambda,
                 "defun": function() {
@@ -4957,9 +4988,16 @@ function ast_mangle(ast, options) {
                         }
                         return ast;
                 },
-                "label": function(label, stat) { return [ this[0], get_mangled(label), walk(stat) ] },
-                "break": function(label) { if (label) return [ this[0], get_mangled(label) ] },
-                "continue": function(label) { if (label) return [ this[0], get_mangled(label) ] },
+                "label": function(label, stat) {
+                        if (scope.labels.refs[label]) return [
+                                this[0],
+                                scope.labels.get_mangled(label, true),
+                                walk(stat)
+                        ];
+                        return walk(stat);
+                },
+                "break": _breacont,
+                "continue": _breacont,
                 "var": _vardefs,
                 "const": _vardefs,
                 "name": function(name) {
@@ -5373,7 +5411,7 @@ function ast_squeeze(ast, options) {
                 keep_comps  : true
         });
 
-        var w = ast_walker(), walk = w.walk, scope;
+        var w = ast_walker(), walk = w.walk;
 
         function negate(c) {
                 var not_c = [ "unary-prefix", "!", c ];
@@ -5425,15 +5463,6 @@ function ast_squeeze(ast, options) {
                 }, make_real_conditional);
         };
 
-        function with_scope(s, cont) {
-                var _scope = scope;
-                scope = s;
-                var ret = cont();
-                ret.scope = s;
-                scope = _scope;
-                return ret;
-        };
-
         function rmblock(block) {
                 if (block != null && block[0] == "block" && block[1]) {
                         if (block[1].length == 1)
@@ -5445,14 +5474,7 @@ function ast_squeeze(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                var is_defun = this[0] == "defun";
-                body = with_scope(body.scope, function(){
-                        var ret = tighten(body, "lambda");
-                        if (!is_defun && name && !scope.references(name))
-                                name = null;
-                        return ret;
-                });
-                return [ this[0], name, args, body ];
+                return [ this[0], name, args, tighten(body, "lambda") ];
         };
 
         // this function does a few things:
@@ -5666,9 +5688,7 @@ function ast_squeeze(ast, options) {
                 },
                 "if": make_if,
                 "toplevel": function(body) {
-                        return [ "toplevel", with_scope(this.scope, function(){
-                                return tighten(body);
-                        }) ];
+                        return [ "toplevel", tighten(body) ];
                 },
                 "switch": function(expr, body) {
                         var last = body.length - 1;
@@ -5743,7 +5763,6 @@ function ast_squeeze(ast, options) {
         }, function() {
                 for (var i = 0; i < 2; ++i) {
                         ast = prepare_ifs(ast);
-                        ast = ast_add_scope(ast);
                         ast = walk(ast);
                 }
                 return ast;
@@ -5815,7 +5834,7 @@ function gen_code(ast, options) {
         function encode_string(str) {
                 var ret = make_string(str, options.ascii_only);
                 if (options.inline_script)
-                        ret = ret.replace(/<\x2fscript([>/\t\n\f\r ])/gi, "<\\/script$1");
+                        ret = ret.replace(/<\x2fscript([>\/\t\n\f\r ])/gi, "<\\/script$1");
                 return ret;
         };
 
@@ -6396,8 +6415,7 @@ exports.MAP = MAP;
 // keep this last!
 exports.ast_squeeze_more = require("./squeeze-more").ast_squeeze_more;
 
-});
-define('uglifyjs/index', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
+});define('uglifyjs/index', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 
 //convienence function(src, [options]);
 function uglify(orig_code, options){
