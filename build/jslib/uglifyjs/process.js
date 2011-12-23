@@ -385,6 +385,7 @@ function ast_add_scope(ast) {
 
         function with_new_scope(cont) {
                 current_scope = new Scope(current_scope);
+                current_scope.labels = new Scope();
                 var ret = current_scope.body = cont();
                 ret.scope = current_scope;
                 current_scope = current_scope.parent;
@@ -417,14 +418,19 @@ function ast_add_scope(ast) {
                 };
         };
 
+        function _breacont(label) {
+                if (label)
+                        current_scope.labels.refs[label] = true;
+        };
+
         return with_new_scope(function(){
                 // process AST
                 var ret = w.with_walkers({
                         "function": _lambda,
                         "defun": _lambda,
-                        "label": function(name, stat) { define(name, "label") },
-                        "break": function(label) { if (label) reference(label) },
-                        "continue": function(label) { if (label) reference(label) },
+                        "label": function(name, stat) { current_scope.labels.define(name) },
+                        "break": _breacont,
+                        "continue": _breacont,
                         "with": function(expr, block) {
                                 for (var s = current_scope; s; s = s.parent)
                                         s.uses_with = true;
@@ -510,15 +516,18 @@ function ast_mangle(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                var is_defun = this[0] == "defun", extra;
-                if (name) {
-                        if (is_defun) name = get_mangled(name);
-                        else {
-                                extra = {};
-                                if (!(scope.uses_eval || scope.uses_with))
-                                        name = extra[name] = scope.next_mangled();
-                                else
-                                        extra[name] = name;
+                if (!options.no_functions) {
+                        var is_defun = this[0] == "defun", extra;
+                        if (name) {
+                                if (is_defun) name = get_mangled(name);
+                                else if (body.scope.references(name)) {
+                                        extra = {};
+                                        if (!(scope.uses_eval || scope.uses_with))
+                                                name = extra[name] = scope.next_mangled();
+                                        else
+                                                extra[name] = name;
+                                }
+                                else name = null;
                         }
                 }
                 body = with_scope(body.scope, function(){
@@ -549,6 +558,10 @@ function ast_mangle(ast, options) {
                 }) ];
         };
 
+        function _breacont(label) {
+                if (label) return [ this[0], scope.labels.get_mangled(label) ];
+        };
+
         return w.with_walkers({
                 "function": _lambda,
                 "defun": function() {
@@ -563,9 +576,16 @@ function ast_mangle(ast, options) {
                         }
                         return ast;
                 },
-                "label": function(label, stat) { return [ this[0], get_mangled(label), walk(stat) ] },
-                "break": function(label) { if (label) return [ this[0], get_mangled(label) ] },
-                "continue": function(label) { if (label) return [ this[0], get_mangled(label) ] },
+                "label": function(label, stat) {
+                        if (scope.labels.refs[label]) return [
+                                this[0],
+                                scope.labels.get_mangled(label, true),
+                                walk(stat)
+                        ];
+                        return walk(stat);
+                },
+                "break": _breacont,
+                "continue": _breacont,
                 "var": _vardefs,
                 "const": _vardefs,
                 "name": function(name) {
@@ -979,7 +999,7 @@ function ast_squeeze(ast, options) {
                 keep_comps  : true
         });
 
-        var w = ast_walker(), walk = w.walk, scope;
+        var w = ast_walker(), walk = w.walk;
 
         function negate(c) {
                 var not_c = [ "unary-prefix", "!", c ];
@@ -1031,15 +1051,6 @@ function ast_squeeze(ast, options) {
                 }, make_real_conditional);
         };
 
-        function with_scope(s, cont) {
-                var _scope = scope;
-                scope = s;
-                var ret = cont();
-                ret.scope = s;
-                scope = _scope;
-                return ret;
-        };
-
         function rmblock(block) {
                 if (block != null && block[0] == "block" && block[1]) {
                         if (block[1].length == 1)
@@ -1051,14 +1062,7 @@ function ast_squeeze(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                var is_defun = this[0] == "defun";
-                body = with_scope(body.scope, function(){
-                        var ret = tighten(body, "lambda");
-                        if (!is_defun && name && !scope.references(name))
-                                name = null;
-                        return ret;
-                });
-                return [ this[0], name, args, body ];
+                return [ this[0], name, args, tighten(body, "lambda") ];
         };
 
         // this function does a few things:
@@ -1272,9 +1276,7 @@ function ast_squeeze(ast, options) {
                 },
                 "if": make_if,
                 "toplevel": function(body) {
-                        return [ "toplevel", with_scope(this.scope, function(){
-                                return tighten(body);
-                        }) ];
+                        return [ "toplevel", tighten(body) ];
                 },
                 "switch": function(expr, body) {
                         var last = body.length - 1;
@@ -1349,7 +1351,6 @@ function ast_squeeze(ast, options) {
         }, function() {
                 for (var i = 0; i < 2; ++i) {
                         ast = prepare_ifs(ast);
-                        ast = ast_add_scope(ast);
                         ast = walk(ast);
                 }
                 return ast;
@@ -1421,7 +1422,7 @@ function gen_code(ast, options) {
         function encode_string(str) {
                 var ret = make_string(str, options.ascii_only);
                 if (options.inline_script)
-                        ret = ret.replace(/<\x2fscript([>/\t\n\f\r ])/gi, "<\\/script$1");
+                        ret = ret.replace(/<\x2fscript([>\/\t\n\f\r ])/gi, "<\\/script$1");
                 return ret;
         };
 

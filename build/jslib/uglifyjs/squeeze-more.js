@@ -28,11 +28,21 @@ function ast_squeeze_more(ast) {
                 "function": _lambda,
                 "defun": _lambda,
                 "new": function(ctor, args) {
-                        if (ctor[0] == "name" && ctor[1] == "Array" && !scope.has("Array")) {
-                                if (args.length != 1) {
-                                        return [ "array", args ];
-                                } else {
-                                        return walk([ "call", [ "name", "Array" ], args ]);
+                        if (ctor[0] == "name") {
+                                if (ctor[1] == "Array" && !scope.has("Array")) {
+                                        if (args.length != 1) {
+                                                return [ "array", args ];
+                                        } else {
+                                                return walk([ "call", [ "name", "Array" ], args ]);
+                                        }
+                                } else if (ctor[1] == "Object" && !scope.has("Object")) {
+                                        if (!args.length) {
+                                                return [ "object", [] ];
+                                        } else {
+                                                return walk([ "call", [ "name", "Object" ], args ]);
+                                        }
+                                } else if ((ctor[1] == "RegExp" || ctor[1] == "Function" || ctor[1] == "Error") && !scope.has(ctor[1])) {
+                                        return walk([ "call", [ "name", ctor[1] ], args]);
                                 }
                         }
                 },
@@ -41,8 +51,16 @@ function ast_squeeze_more(ast) {
                                 // foo.toString()  ==>  foo+""
                                 return [ "binary", "+", expr[1], [ "string", "" ]];
                         }
-                        if (expr[0] == "name" && expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
-                                return [ "array", args ];
+                        if (expr[0] == "name") {
+                                if (expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
+                                        return [ "array", args ];
+                                }
+                                if (expr[1] == "Object" && !args.length && !scope.has("Object")) {
+                                        return [ "object", [] ];
+                                }
+                                if (expr[1] == "String" && !scope.has("String")) {
+                                        return [ "binary", "+", args[0], [ "string", "" ]];
+                                }
                         }
                 }
         }, function() {
