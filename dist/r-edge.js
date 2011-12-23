@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ 20111222 4:10pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20111222 9:30pm Pacific Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ 20111222 4:10pm Pacific',
+        version = '1.0.2+ 1.0.2+ 20111222 9:30pm Pacific',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -2366,7 +2366,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
     function mkDir(dir) {
         if (!exists(dir)) {
-            fs.mkdirSync(dir, 0777);
+            fs.mkdirSync(dir, 511);
         }
     }
 
@@ -2525,6 +2525,13 @@ define('node/file', ['fs', 'path'], function (fs, path) {
             fs.writeFileSync(destFileName, fs.readFileSync(srcFileName, 'binary'), 'binary');
 
             return true; //Boolean
+        },
+
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            return fs.renameSync(from, to);
         },
 
         /**
@@ -2761,6 +2768,13 @@ define('rhino/file', function () {
             destChannel.close();
 
             return true; //Boolean
+        },
+
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            return (new java.io.File(from)).renameTo((new java.io.File(to)));
         },
 
         readFile: function (/*String*/path, /*String?*/encoding) {
@@ -8421,8 +8435,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 //Flatten them and collect the build output for each module.
                 builtModule = build.flattenModule(module, module.layer, config);
-                file.saveUtf8File(module._buildPath, builtModule.text);
+
+                //Save it to a temp file for now, in case there are other layers that
+                //contain optimized content that should not be included in later
+                //layer optimizations. See issue #56.
+                file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
                 buildFileContents += builtModule.buildText;
+            });
+
+            //Now move the build layers to their final position.
+            modules.forEach(function (module) {
+                var finalPath = module._buildPath;
+                if (file.exists(finalPath)) {
+                    file.deleteFile(finalPath);
+                }
+                file.renameFile(finalPath + '-temp', finalPath);
             });
         }
 
