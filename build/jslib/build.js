@@ -312,8 +312,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 //Flatten them and collect the build output for each module.
                 builtModule = build.flattenModule(module, module.layer, config);
-                file.saveUtf8File(module._buildPath, builtModule.text);
+
+                //Save it to a temp file for now, in case there are other layers that
+                //contain optimized content that should not be included in later
+                //layer optimizations. See issue #56.
+                file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
                 buildFileContents += builtModule.buildText;
+            });
+
+            //Now move the build layers to their final position.
+            modules.forEach(function (module) {
+                var finalPath = module._buildPath;
+                if (file.exists(finalPath)) {
+                    file.deleteFile(finalPath);
+                }
+                file.renameFile(finalPath + '-temp', finalPath);
             });
         }
 

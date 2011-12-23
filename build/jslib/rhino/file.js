@@ -162,6 +162,13 @@ define(function () {
             return true; //Boolean
         },
 
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            return (new java.io.File(from)).renameTo((new java.io.File(to)));
+        },
+
         readFile: function (/*String*/path, /*String?*/encoding) {
             //A file read function that can deal with BOMs
             encoding = encoding || "utf-8";

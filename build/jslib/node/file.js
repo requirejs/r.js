@@ -32,7 +32,7 @@ define(['fs', 'path'], function (fs, path) {
 
     function mkDir(dir) {
         if (!exists(dir)) {
-            fs.mkdirSync(dir, 0777);
+            fs.mkdirSync(dir, 511);
         }
     }
 
@@ -191,6 +191,13 @@ define(['fs', 'path'], function (fs, path) {
             fs.writeFileSync(destFileName, fs.readFileSync(srcFileName, 'binary'), 'binary');
 
             return true; //Boolean
+        },
+
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            return fs.renameSync(from, to);
         },
 
         /**
