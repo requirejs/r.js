@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.3 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2',
+        version = '1.0.3',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -101,7 +101,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.2 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.3 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -113,7 +113,7 @@ var requirejs, require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "1.0.2",
+    var version = "1.0.3",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -1423,11 +1423,6 @@ var requirejs, require, define;
                                 } : null]);
                 }
 
-                //If a global jQuery is defined, check for it. Need to do it here
-                //instead of main() since stock jQuery does not register as
-                //a module via define.
-                jQueryCheck();
-
                 //Doing this scriptCount decrement branching because sync envs
                 //need to decrement after resume, otherwise it looks like
                 //loading is complete after the first dependency is fetched.
@@ -2041,10 +2036,6 @@ var requirejs, require, define;
             //global queue, assign them to this context.
             ctx.takeGlobalQueue();
 
-            //Allow for jQuery to be loaded/already in the page, and if jQuery 1.4.3,
-            //make sure to hold onto it for readyWait triggering.
-            ctx.jQueryCheck();
-
             if (!ctx.scriptCount) {
                 ctx.resume();
             }
@@ -2375,7 +2366,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
 
     function mkDir(dir) {
         if (!exists(dir)) {
-            fs.mkdirSync(dir, 0777);
+            fs.mkdirSync(dir, 511);
         }
     }
 
@@ -2534,6 +2525,13 @@ define('node/file', ['fs', 'path'], function (fs, path) {
             fs.writeFileSync(destFileName, fs.readFileSync(srcFileName, 'binary'), 'binary');
 
             return true; //Boolean
+        },
+
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            return fs.renameSync(from, to);
         },
 
         /**
@@ -2772,6 +2770,13 @@ define('rhino/file', function () {
             return true; //Boolean
         },
 
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            return (new java.io.File(from)).renameTo((new java.io.File(to)));
+        },
+
         readFile: function (/*String*/path, /*String?*/encoding) {
             //A file read function that can deal with BOMs
             encoding = encoding || "utf-8";
@@ -3006,7 +3011,6 @@ define('logger', ['env!env/print'], function (print) {
 //like Node's fs and path.
 
 define('uglifyjs/parse-js', ["require", "exports", "module"], function(require, exports, module) {
-
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -3263,9 +3267,9 @@ function parse_js_number(num) {
 
 function JS_Parse_Error(message, line, col, pos) {
         this.message = message;
-        this.line = line;
-        this.col = col;
-        this.pos = pos;
+        this.line = line + 1;
+        this.col = col + 1;
+        this.pos = pos + 1;
         this.stack = new Error().stack;
 };
 
@@ -3300,12 +3304,12 @@ function tokenizer($TEXT) {
 
         function peek() { return S.text.charAt(S.pos); };
 
-        function next(signal_eof) {
+        function next(signal_eof, in_string) {
                 var ch = S.text.charAt(S.pos++);
                 if (signal_eof && !ch)
                         throw EX_EOF;
                 if (ch == "\n") {
-                        S.newline_before = true;
+                        S.newline_before = S.newline_before || !in_string;
                         ++S.line;
                         S.col = 0;
                 } else {
@@ -3335,12 +3339,13 @@ function tokenizer($TEXT) {
                                    (type == "keyword" && HOP(KEYWORDS_BEFORE_EXPRESSION, value)) ||
                                    (type == "punc" && HOP(PUNC_BEFORE_EXPRESSION, value)));
                 var ret = {
-                        type  : type,
-                        value : value,
-                        line  : S.tokline,
-                        col   : S.tokcol,
-                        pos   : S.tokpos,
-                        nlb   : S.newline_before
+                        type   : type,
+                        value  : value,
+                        line   : S.tokline,
+                        col    : S.tokcol,
+                        pos    : S.tokpos,
+                        endpos : S.pos,
+                        nlb    : S.newline_before
                 };
                 if (!is_comment) {
                         ret.comments_before = S.comments_before;
@@ -3402,8 +3407,8 @@ function tokenizer($TEXT) {
                 }
         };
 
-        function read_escaped_char() {
-                var ch = next(true);
+        function read_escaped_char(in_string) {
+                var ch = next(true, in_string);
                 switch (ch) {
                     case "n" : return "\n";
                     case "r" : return "\r";
@@ -3451,7 +3456,7 @@ function tokenizer($TEXT) {
                                                 return false;
                                         });
                                         if (octal_len > 0) ch = String.fromCharCode(parseInt(ch, 8));
-                                        else ch = read_escaped_char();
+                                        else ch = read_escaped_char(true);
                                 }
                                 else if (ch == quote) break;
                                 ret += ch;
@@ -3477,8 +3482,7 @@ function tokenizer($TEXT) {
                 next();
                 return with_eof_error("Unterminated multiline comment", function(){
                         var i = find("*/", true),
-                            text = S.text.substring(S.pos, i),
-                            tok = token("comment2", text, true);
+                            text = S.text.substring(S.pos, i);
                         S.pos = i + 2;
                         S.line += text.split("\n").length - 1;
                         S.newline_before = text.indexOf("\n") >= 0;
@@ -3490,7 +3494,7 @@ function tokenizer($TEXT) {
                                 warn("*** UglifyJS DISCARDS ALL COMMENTS.  This means your code might no longer work properly in Internet Explorer.");
                         }
 
-                        return tok;
+                        return token("comment2", text, true);
                 });
         };
 
@@ -3941,7 +3945,7 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                 return as("for-in", init, lhs, obj, in_loop(statement));
         };
 
-        var function_ = maybe_embed_tokens(function(in_statement) {
+        var function_ = function(in_statement) {
                 var name = is("name") ? prog1(S.token.value, next) : null;
                 if (in_statement && !name)
                         unexpected();
@@ -3969,7 +3973,7 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                                   S.in_loop = loop;
                                   return a;
                           })());
-        });
+        };
 
         function if_() {
                 var cond = parenthesised(), body = statement(), belse;
@@ -4317,7 +4321,7 @@ function characters(str) {
 
 function member(name, array) {
         for (var i = array.length; --i >= 0;)
-                if (array[i] === name)
+                if (array[i] == name)
                         return true;
         return false;
 };
@@ -4347,7 +4351,8 @@ exports.set_logger = function(logger) {
         warn = logger;
 };
 
-});define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
+});
+define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 
 var jsp = require("./parse-js"),
     pro = require("./process"),
@@ -4377,11 +4382,21 @@ function ast_squeeze_more(ast) {
                 "function": _lambda,
                 "defun": _lambda,
                 "new": function(ctor, args) {
-                        if (ctor[0] == "name" && ctor[1] == "Array" && !scope.has("Array")) {
-                                if (args.length != 1) {
-                                        return [ "array", args ];
-                                } else {
-                                        return walk([ "call", [ "name", "Array" ], args ]);
+                        if (ctor[0] == "name") {
+                                if (ctor[1] == "Array" && !scope.has("Array")) {
+                                        if (args.length != 1) {
+                                                return [ "array", args ];
+                                        } else {
+                                                return walk([ "call", [ "name", "Array" ], args ]);
+                                        }
+                                } else if (ctor[1] == "Object" && !scope.has("Object")) {
+                                        if (!args.length) {
+                                                return [ "object", [] ];
+                                        } else {
+                                                return walk([ "call", [ "name", "Object" ], args ]);
+                                        }
+                                } else if ((ctor[1] == "RegExp" || ctor[1] == "Function" || ctor[1] == "Error") && !scope.has(ctor[1])) {
+                                        return walk([ "call", [ "name", ctor[1] ], args]);
                                 }
                         }
                 },
@@ -4390,8 +4405,16 @@ function ast_squeeze_more(ast) {
                                 // foo.toString()  ==>  foo+""
                                 return [ "binary", "+", expr[1], [ "string", "" ]];
                         }
-                        if (expr[0] == "name" && expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
-                                return [ "array", args ];
+                        if (expr[0] == "name") {
+                                if (expr[1] == "Array" && args.length != 1 && !scope.has("Array")) {
+                                        return [ "array", args ];
+                                }
+                                if (expr[1] == "Object" && !args.length && !scope.has("Object")) {
+                                        return [ "object", [] ];
+                                }
+                                if (expr[1] == "String" && !scope.has("String")) {
+                                        return [ "binary", "+", args[0], [ "string", "" ]];
+                                }
                         }
                 }
         }, function() {
@@ -4788,6 +4811,7 @@ function ast_add_scope(ast) {
 
         function with_new_scope(cont) {
                 current_scope = new Scope(current_scope);
+                current_scope.labels = new Scope();
                 var ret = current_scope.body = cont();
                 ret.scope = current_scope;
                 current_scope = current_scope.parent;
@@ -4820,14 +4844,19 @@ function ast_add_scope(ast) {
                 };
         };
 
+        function _breacont(label) {
+                if (label)
+                        current_scope.labels.refs[label] = true;
+        };
+
         return with_new_scope(function(){
                 // process AST
                 var ret = w.with_walkers({
                         "function": _lambda,
                         "defun": _lambda,
-                        "label": function(name, stat) { define(name, "label") },
-                        "break": function(label) { if (label) reference(label) },
-                        "continue": function(label) { if (label) reference(label) },
+                        "label": function(name, stat) { current_scope.labels.define(name) },
+                        "break": _breacont,
+                        "continue": _breacont,
                         "with": function(expr, block) {
                                 for (var s = current_scope; s; s = s.parent)
                                         s.uses_with = true;
@@ -4913,15 +4942,18 @@ function ast_mangle(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                var is_defun = this[0] == "defun", extra;
-                if (name) {
-                        if (is_defun) name = get_mangled(name);
-                        else {
-                                extra = {};
-                                if (!(scope.uses_eval || scope.uses_with))
-                                        name = extra[name] = scope.next_mangled();
-                                else
-                                        extra[name] = name;
+                if (!options.no_functions) {
+                        var is_defun = this[0] == "defun", extra;
+                        if (name) {
+                                if (is_defun) name = get_mangled(name);
+                                else if (body.scope.references(name)) {
+                                        extra = {};
+                                        if (!(scope.uses_eval || scope.uses_with))
+                                                name = extra[name] = scope.next_mangled();
+                                        else
+                                                extra[name] = name;
+                                }
+                                else name = null;
                         }
                 }
                 body = with_scope(body.scope, function(){
@@ -4952,6 +4984,10 @@ function ast_mangle(ast, options) {
                 }) ];
         };
 
+        function _breacont(label) {
+                if (label) return [ this[0], scope.labels.get_mangled(label) ];
+        };
+
         return w.with_walkers({
                 "function": _lambda,
                 "defun": function() {
@@ -4966,9 +5002,16 @@ function ast_mangle(ast, options) {
                         }
                         return ast;
                 },
-                "label": function(label, stat) { return [ this[0], get_mangled(label), walk(stat) ] },
-                "break": function(label) { if (label) return [ this[0], get_mangled(label) ] },
-                "continue": function(label) { if (label) return [ this[0], get_mangled(label) ] },
+                "label": function(label, stat) {
+                        if (scope.labels.refs[label]) return [
+                                this[0],
+                                scope.labels.get_mangled(label, true),
+                                walk(stat)
+                        ];
+                        return walk(stat);
+                },
+                "break": _breacont,
+                "continue": _breacont,
                 "var": _vardefs,
                 "const": _vardefs,
                 "name": function(name) {
@@ -5378,10 +5421,11 @@ function ast_squeeze(ast, options) {
         options = defaults(options, {
                 make_seqs   : true,
                 dead_code   : true,
-                no_warnings : false
+                no_warnings : false,
+                keep_comps  : true
         });
 
-        var w = ast_walker(), walk = w.walk, scope;
+        var w = ast_walker(), walk = w.walk;
 
         function negate(c) {
                 var not_c = [ "unary-prefix", "!", c ];
@@ -5396,11 +5440,13 @@ function ast_squeeze(ast, options) {
                         return best_of(not_c, [ "conditional", c[1], negate(c[2]), negate(c[3]) ]);
                     case "binary":
                         var op = c[1], left = c[2], right = c[3];
-                        switch (op) {
+                        if (!options.keep_comps) switch (op) {
                             case "<="  : return [ "binary", ">", left, right ];
                             case "<"   : return [ "binary", ">=", left, right ];
                             case ">="  : return [ "binary", "<", left, right ];
                             case ">"   : return [ "binary", "<=", left, right ];
+                        }
+                        switch (op) {
                             case "=="  : return [ "binary", "!=", left, right ];
                             case "!="  : return [ "binary", "==", left, right ];
                             case "===" : return [ "binary", "!==", left, right ];
@@ -5431,15 +5477,6 @@ function ast_squeeze(ast, options) {
                 }, make_real_conditional);
         };
 
-        function with_scope(s, cont) {
-                var _scope = scope;
-                scope = s;
-                var ret = cont();
-                ret.scope = s;
-                scope = _scope;
-                return ret;
-        };
-
         function rmblock(block) {
                 if (block != null && block[0] == "block" && block[1]) {
                         if (block[1].length == 1)
@@ -5451,14 +5488,7 @@ function ast_squeeze(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                var is_defun = this[0] == "defun";
-                body = with_scope(body.scope, function(){
-                        var ret = tighten(body, "lambda");
-                        if (!is_defun && name && !scope.references(name))
-                                name = null;
-                        return ret;
-                });
-                return [ this[0], name, args, body ];
+                return [ this[0], name, args, tighten(body, "lambda") ];
         };
 
         // this function does a few things:
@@ -5672,9 +5702,7 @@ function ast_squeeze(ast, options) {
                 },
                 "if": make_if,
                 "toplevel": function(body) {
-                        return [ "toplevel", with_scope(this.scope, function(){
-                                return tighten(body);
-                        }) ];
+                        return [ "toplevel", tighten(body) ];
                 },
                 "switch": function(expr, body) {
                         var last = body.length - 1;
@@ -5749,7 +5777,6 @@ function ast_squeeze(ast, options) {
         }, function() {
                 for (var i = 0; i < 2; ++i) {
                         ast = prepare_ifs(ast);
-                        ast = ast_add_scope(ast);
                         ast = walk(ast);
                 }
                 return ast;
@@ -5766,7 +5793,8 @@ var DOT_CALL_NO_PARENS = jsp.array_to_hash([
         "dot",
         "sub",
         "call",
-        "regexp"
+        "regexp",
+        "defun"
 ]);
 
 function make_string(str, ascii_only) {
@@ -5820,7 +5848,7 @@ function gen_code(ast, options) {
         function encode_string(str) {
                 var ret = make_string(str, options.ascii_only);
                 if (options.inline_script)
-                        ret = ret.replace(/<\x2fscript([>/\t\n\f\r ])/gi, "<\\/script$1");
+                        ret = ret.replace(/<\x2fscript([>\/\t\n\f\r ])/gi, "<\\/script$1");
                 return ret;
         };
 
@@ -6030,7 +6058,7 @@ function gen_code(ast, options) {
                 },
                 "call": function(func, args) {
                         var f = make(func);
-                        if (needs_parens(func))
+                        if (f.charAt(0) != "(" && needs_parens(func))
                                 f = "(" + f + ")";
                         return f + "(" + add_commas(MAP(args, function(expr){
                                 return parenthesize(expr, "seq");
@@ -6203,7 +6231,8 @@ function gen_code(ast, options) {
                         out += " " + make_name(name);
                 }
                 out += "(" + add_commas(MAP(args, make_name)) + ")";
-                return add_spaces([ out, make_block(body) ]);
+                out = add_spaces([ out, make_block(body) ]);
+                return needs_parens(this) ? "(" + out + ")" : out;
         };
 
         function must_has_semicolon(node) {
@@ -6627,7 +6656,11 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                     deps: deps
                 });
             }
-        });
+
+            //If define was found, no need to dive deeper, unless
+            //the config explicitly wants to dig deeper.
+            return !options.findNestedDependencies;
+        }, options);
 
         if (options.insertNeedsDefine && needsDefine) {
             result += 'require.needsDefine("' + moduleName + '");';
@@ -6638,6 +6671,15 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                 if (result) {
                     result += '\n';
                 }
+
+                //If this is the main module for this file, combine any
+                //"anonymous" dependencies (could come from a nested require
+                //call) with this module.
+                if (moduleCall.name === moduleName) {
+                    moduleCall.deps = moduleCall.deps.concat(moduleDeps);
+                    moduleDeps = [];
+                }
+
                 depString = moduleCall.deps.length ? '["' + moduleCall.deps.join('","') + '"]' : '[]';
                 result += 'define("' + moduleCall.name + '",' + depString + ');';
             }
@@ -6662,15 +6704,44 @@ define('parse', ['uglifyjs/index'], function (uglify) {
      * Handles parsing a file recursively for require calls.
      * @param {Array} parentNode the AST node to start with.
      * @param {Function} onMatch function to call on a parse match.
+     * @param {Object} [options] This is normally the build config options if
+     * it is passed.
      */
-    parse.recurse = function (parentNode, onMatch) {
-        var i, node;
+    parse.recurse = function (parentNode, onMatch, options) {
+        var hasHas = options && options.has,
+            i, node;
+
         if (isArray(parentNode)) {
             for (i = 0; i < parentNode.length; i++) {
                 node = parentNode[i];
                 if (isArray(node)) {
-                    this.parseNode(node, onMatch);
-                    this.recurse(node, onMatch);
+                    //If has config is in play, if calls have been converted
+                    //by this point to be true/false values. So, if
+                    //options has a 'has' value, skip if branches that have
+                    //literal false values.
+
+                    //uglify returns if constructs in an array:
+                    //[0]: 'if'
+                    //[1]: the condition, ['name', true | false] for the has replaced case.
+                    //[2]: the block to process if true
+                    //[3]: the block to process if false
+                    //For if/else if/else, the else if is in the [3],
+                    //so only ever have to deal with this structure.
+                    if (hasHas && node[0] === 'if' && node[1] && node[1][0] === 'name' &&
+                        (node[1][1] === 'true' || node[1][1] === 'false')) {
+                        if (node[1][1] === 'true') {
+                            this.recurse([node[2]], onMatch, options);
+                        } else {
+                            this.recurse([node[3]], onMatch, options);
+                        }
+                    } else {
+                        if (this.parseNode(node, onMatch)) {
+                            //The onMatch indicated parsing should
+                            //stop for children of this node.
+                            continue;
+                        }
+                        this.recurse(node, onMatch, options);
+                    }
                 }
             }
         }
@@ -6885,7 +6956,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
         var call, name, config, deps, args, cjsDeps;
 
         if (!isArray(node)) {
-            return null;
+            return false;
         }
 
         if (node[0] === 'call') {
@@ -6893,7 +6964,8 @@ define('parse', ['uglifyjs/index'], function (uglify) {
             args = node[2];
 
             if (call) {
-                if (call[0] === 'name' && call[1] === 'require') {
+                if (call[0] === 'name' &&
+                   (call[1] === 'require' || call[1] === 'requirejs')) {
 
                     //It is a plain require() call.
                     config = args[0];
@@ -6952,7 +7024,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
             }
         }
 
-        return null;
+        return false;
     };
 
     /**
@@ -7007,7 +7079,9 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
+        defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
         defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
+        amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
@@ -7018,14 +7092,17 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 //Namespace require/define calls
                 fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
 
-
                 //Namespace define ternary use:
                 fileContents = fileContents.replace(pragma.defineTernaryRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd ? " + ns + ".define");
 
                 //Namespace define jquery use:
                 fileContents = fileContents.replace(pragma.defineJQueryRegExp,
-                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd && " + ns + ".define.jQuery");
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define.amd && " + ns + ".define.amd.jQuery");
+
+                //Namespace has.js define use:
+                fileContents = fileContents.replace(pragma.defineHasRegExp,
+                                                    "typeof " + ns + ".define === 'function' && typeof " + ns + ".define.amd === 'object' && " + ns + ".define.amd");
 
                 //Namespace define checks.
                 //Do this one last, since it is a subset of the more specific
@@ -7197,6 +7274,9 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                                  fileName + ', skipping.');
                 }
             }
+
+            //Strip amdefine use for node-shared modules.
+            fileContents = fileContents.replace(pragma.amdefineRegExp, '');
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {
@@ -7493,14 +7573,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
-                //Pull out any license comments for prepending after optimization.
-                optimize.licenseCommentRegExp.lastIndex = 0;
-                while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
-                    comment = match[0];
-                    //Only keep the comments if they are license comments.
-                    if (comment.indexOf('@license') !== -1 ||
-                        comment.indexOf('/*!') === 0) {
-                        licenseContents += comment + '\n';
+                if (config.preserveLicenseComments) {
+                    //Pull out any license comments for prepending after optimization.
+                    optimize.licenseCommentRegExp.lastIndex = 0;
+                    while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
+                        comment = match[0];
+                        //Only keep the comments if they are license comments.
+                        if (comment.indexOf('@license') !== -1 ||
+                            comment.indexOf('/*!') === 0) {
+                            licenseContents += comment + '\n';
+                        }
                     }
                 }
 
@@ -7580,19 +7662,18 @@ function (lang,   logger,   envOptimize,        file,           parse,
             uglify: function (fileName, fileContents, keepLines, config) {
                 var parser = uglify.parser,
                     processor = uglify.uglify,
-                    ast, genCodeConfig;
+                    ast;
 
                 config = config || {};
-                genCodeConfig = config.gen_codeOptions || keepLines;
 
                 logger.trace("Uglifying file: " + fileName);
 
                 try {
-                    ast = parser.parse(fileContents, config.strict_semicolons);
-                    ast = processor.ast_mangle(ast, config.do_toplevel);
-                    ast = processor.ast_squeeze(ast, config.ast_squeezeOptions);
+                    ast = parser.parse(fileContents, config);
+                    ast = processor.ast_mangle(ast, config);
+                    ast = processor.ast_squeeze(ast, config);
 
-                    fileContents = processor.gen_code(ast, genCodeConfig);
+                    fileContents = processor.gen_code(ast, config);
                 } catch (e) {
                     logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
@@ -7630,8 +7711,7 @@ function (file,           pragma,   parse) {
 
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
-            oldDef,
-            cachedFileContents = {};
+            oldDef;
 
 
         /** Print out some extrs info about the module tree that caused the error. **/
@@ -7656,6 +7736,8 @@ function (file,           pragma,   parse) {
             throw err;
         };
 
+        //Stored cached file contents for reuse in other layers.
+        require._cachedFileContents = {};
 
         /** Reset state for each build layer pass. */
         require._buildReset = function () {
@@ -7756,9 +7838,9 @@ function (file,           pragma,   parse) {
                 }
 
                 try {
-                    if (url in cachedFileContents &&
+                    if (url in require._cachedFileContents &&
                         (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
-                        contents = cachedFileContents[url];
+                        contents = require._cachedFileContents[url];
                     } else {
                         //Load the file contents, process for conditionals, then
                         //evaluate it.
@@ -7790,11 +7872,13 @@ function (file,           pragma,   parse) {
                         //dependencies that may be separate to how the pluginBuilder works.
                         if (!context.needFullExec[moduleName]) {
                             contents = parse(moduleName, url, contents, {
-                                insertNeedsDefine: true
+                                insertNeedsDefine: true,
+                                has: context.config.has,
+                                findNestedDependencies: context.config.findNestedDependencies
                             });
                         }
 
-                        cachedFileContents[url] = contents;
+                        require._cachedFileContents[url] = contents;
                     }
 
                     if (contents) {
@@ -8063,6 +8147,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             inlineText: true,
             isBuild: true,
             optimizeAllPluginResources: false,
+            findNestedDependencies: false,
+            preserveLicenseComments: true,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp
@@ -8349,8 +8435,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
                 //Flatten them and collect the build output for each module.
                 builtModule = build.flattenModule(module, module.layer, config);
-                file.saveUtf8File(module._buildPath, builtModule.text);
+
+                //Save it to a temp file for now, in case there are other layers that
+                //contain optimized content that should not be included in later
+                //layer optimizations. See issue #56.
+                file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
                 buildFileContents += builtModule.buildText;
+            });
+
+            //Now move the build layers to their final position.
+            modules.forEach(function (module) {
+                var finalPath = module._buildPath;
+                if (file.exists(finalPath)) {
+                    file.deleteFile(finalPath);
+                }
+                file.renameFile(finalPath + '-temp', finalPath);
             });
         }
 
@@ -8463,6 +8562,26 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         result[prop][name] = value;
     }
 
+    //Used by convertArrayToObject to convert some things from prop.name=value
+    //to a prop: { name: value}
+    build.dotProps = [
+        'paths.',
+        'wrap.',
+        'pragmas.',
+        'pragmasOnSave.',
+        'has.',
+        'hasOnSave.',
+        'wrap.',
+        'uglify.',
+        'closure.'
+    ];
+
+    build.hasDotPropMatch = function (prop) {
+        return build.dotProps.some(function (dotProp) {
+            return prop.indexOf(dotProp) === 0;
+        });
+    };
+
     /**
      * Converts an array that has String members of "name=value"
      * into an object, where the properties on the object are the names in the array.
@@ -8499,7 +8618,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 value = value.split(",");
             }
 
-            if (prop.indexOf("paths.") === 0 || prop.indexOf("wrap.") === 0) {
+            if (build.hasDotPropMatch(prop)) {
                 stringDotToObj(result, prop.split('.')[0], prop, value);
             } else {
                 result[prop] = value;
@@ -8691,7 +8810,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Set file.fileExclusionRegExp if desired
         if ('fileExclusionRegExp' in config) {
-            file.exclusionRegExp = config.fileExclusionRegExp;
+            if (typeof config.fileExclusionRegExp === "string") {
+                file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
+            } else {
+                file.exclusionRegExp = config.fileExclusionRegExp;
+            }
         } else if ('dirExclusionRegExp' in config) {
             //Set file.dirExclusionRegExp if desired, this is the old
             //name for fileExclusionRegExp before 1.0.2. Support for backwards
@@ -8930,7 +9053,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 return match;
             }
 
-            if (layer) {
+            //Only mark this module as having a name if not a named module,
+            //or if a named module and the name matches expectations.
+            if (layer && (!namedModule || namedModule === moduleName)) {
                 layer.modulesWithNames[moduleName] = true;
             }
 
@@ -8952,7 +9077,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
 
-            return start + namespace + "define('" + moduleName + "'," +
+            return start + namespace + "define('" + (namedModule || moduleName) + "'," +
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
         });
@@ -9006,7 +9131,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //Reset build internals on each run.
                 requirejs._buildReset();
 
-                callback(result);
+                if (callback) {
+                    callback(result);
+                }
             };
 
             //Enable execution of this callback in a build setting.
