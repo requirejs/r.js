@@ -261,7 +261,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 logger.trace("Uglifying file: " + fileName);
 
                 try {
-                    ast = parser.parse(fileContents, config);
+                    ast = parser.parse(fileContents, config.strict_semicolons);
                     ast = processor.ast_mangle(ast, config);
                     ast = processor.ast_squeeze(ast, config);
 
