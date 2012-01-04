@@ -574,6 +574,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             throw new Error("ERROR: 'baseUrl' option missing.");
         }
 
+        if (!config.out && !config.dir) {
+            throw new Error('Missing either an "out" or "dir" config value.');
+        }
+
         if (config.out && !config.cssIn) {
             //Just one file to optimize.
 
