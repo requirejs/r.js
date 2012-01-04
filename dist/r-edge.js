@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.3 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.3+ 20120103 5:45pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.3',
+        version = '1.0.3+ 20120103 5:45pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -7852,8 +7852,13 @@ function (file,           pragma,   parse) {
                         //and to make sure this file is first, so that define calls work.
                         //This situation mainly occurs when the build is done on top of the output
                         //of another build, where the first build may include require somewhere in it.
-                        if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                            layer.existingRequireUrl = url;
+                        try {
+                            if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                                layer.existingRequireUrl = url;
+                            }
+                        } catch (e1) {
+                            throw new Error('Parse error using UglifyJS ' +
+                                            'for file: ' + url + '\n' + e1);
                         }
 
                         if (moduleName in context.plugins) {
@@ -7870,12 +7875,17 @@ function (file,           pragma,   parse) {
                         //Parse out the require and define calls.
                         //Do this even for plugins in case they have their own
                         //dependencies that may be separate to how the pluginBuilder works.
-                        if (!context.needFullExec[moduleName]) {
-                            contents = parse(moduleName, url, contents, {
-                                insertNeedsDefine: true,
-                                has: context.config.has,
-                                findNestedDependencies: context.config.findNestedDependencies
-                            });
+                        try {
+                            if (!context.needFullExec[moduleName]) {
+                                contents = parse(moduleName, url, contents, {
+                                    insertNeedsDefine: true,
+                                    has: context.config.has,
+                                    findNestedDependencies: context.config.findNestedDependencies
+                                });
+                            }
+                        } catch (e2) {
+                            throw new Error('Parse error using UglifyJS ' +
+                                            'for file: ' + url + '\n' + e2);
                         }
 
                         require._cachedFileContents[url] = contents;
@@ -8695,6 +8705,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         if (!config.cssIn && !config.baseUrl) {
             throw new Error("ERROR: 'baseUrl' option missing.");
+        }
+
+        if (!config.out && !config.dir) {
+            throw new Error('Missing either an "out" or "dir" config value.');
         }
 
         if (config.out && !config.cssIn) {
