@@ -6,6 +6,7 @@ build/tests/lib/comments/built.js
 build/tests/lib/empty/built
 build/tests/lib/namespace/foo.js
 build/tests/lib/plugins/main-built.js
+build/tests/lib/plugins/main-builtPluginFirst.js
 build/tests/lib/dotpackage/built
 build/tests/lib/moduleThenPlugin/built.js
 build/tests/lib/nameInsertion/built.js

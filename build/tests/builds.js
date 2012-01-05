@@ -503,4 +503,38 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("pluginsWithDeps",
+        [
+            function pluginsWithDeps(t) {
+                file.deleteFile("lib/plugins/main-built.js");
+
+                build(["lib/plugins/build.js"]);
+
+                t.is(nol(c("lib/plugins/expected.js")),
+                     nol(c("lib/plugins/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("pluginFirstWithDeps",
+        [
+            function pluginFirstWithDeps(t) {
+                file.deleteFile("lib/plugins/main-builtPluginFirst.js");
+
+                build(["lib/plugins/buildPluginFirst.js"]);
+
+                t.is(nol(c("lib/plugins/expected.js")),
+                     nol(c("lib/plugins/main-builtPluginFirst.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
