@@ -264,8 +264,8 @@ function (file,           pragma,   parse) {
             } else if (map.url && require._isSupportedBuildUrl(map.url)) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
+                url = normalizeUrlWithBase(context, map.fullName, map.url);
                 if (!layer.pathAdded[url] && layer.buildPathMap[fullName]) {
-                    url = normalizeUrlWithBase(context, map.fullName, map.url);
                     //Remember the list of dependencies for this layer.
                     layer.buildFilePaths.push(url);
                     layer.pathAdded[url] = true;

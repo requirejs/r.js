@@ -486,4 +486,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("moduleThenPlugin",
+        [
+            function moduleThenPlugin(t) {
+                file.deleteFile("lib/moduleThenPlugin/built.js");
+
+                build(["lib/moduleThenPlugin/build.js"]);
+
+                t.is(nol(c("lib/moduleThenPlugin/expected.js")),
+                     nol(c("lib/moduleThenPlugin/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

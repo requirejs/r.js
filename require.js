@@ -1,5 +1,5 @@
 /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.3 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.3+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -11,7 +11,7 @@
 var requirejs, require, define;
 (function () {
     //Change this version number for each release.
-    var version = "1.0.3",
+    var version = "1.0.3+",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -323,7 +323,15 @@ var requirejs, require, define;
                     url = urlMap[normalizedName];
                     if (!url) {
                         //Calculate url for the module, if it has a name.
-                        url = context.nameToUrl(normalizedName, null, parentModuleMap);
+                        //Use name here since nameToUrl also calls normalize,
+                        //and for relative names that are outside the baseUrl
+                        //this causes havoc. Was thinking of just removing
+                        //parentModuleMap to avoid extra normalization, but
+                        //normalize() still does a dot removal because of
+                        //issue #142, so just pass in name here and redo
+                        //the normalization. Paths outside baseUrl are just
+                        //messy to support.
+                        url = context.nameToUrl(name, null, parentModuleMap);
 
                         //Store the URL mapping for later.
                         urlMap[normalizedName] = url;
@@ -628,7 +636,7 @@ var requirejs, require, define;
                 prefix = map.prefix,
                 plugin = prefix ? plugins[prefix] ||
                                 (plugins[prefix] = defined[prefix]) : null,
-                manager, created, pluginManager;
+                manager, created, pluginManager, prefixMap;
 
             if (fullName) {
                 manager = managerCallbacks[fullName];
@@ -666,7 +674,17 @@ var requirejs, require, define;
             //If there is a plugin needed, but it is not loaded,
             //first load the plugin, then continue on.
             if (prefix && !plugin) {
-                pluginManager = getManager(makeModuleMap(prefix), true);
+                prefixMap = makeModuleMap(prefix);
+
+                //Clear out urlFetched if the plugin was previously loaded/
+                //defined, but not as full module (as in a build situation).
+                //However, only do this work if the plugin is in defined
+                if (prefix in defined && !defined[prefix]) {
+                    delete defined[prefix];
+                    delete urlFetched[prefixMap.url];
+                }
+
+                pluginManager = getManager(prefixMap, true);
                 pluginManager.add(function (plugin) {
                     //Create a new manager for the normalized
                     //resource ID and have it call this manager when
@@ -1737,7 +1755,8 @@ var requirejs, require, define;
             node = context && context.config && context.config.xhtml ?
                     document.createElementNS("http://www.w3.org/1999/xhtml", "html:script") :
                     document.createElement("script");
-            node.type = type || "text/javascript";
+            node.type = type || (context && context.config.scriptType) ||
+                        "text/javascript";
             node.charset = "utf-8";
             //Use async so Gecko does not block on executing the script if something
             //like a long-polling comet tag is being run first. Gecko likes
