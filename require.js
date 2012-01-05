@@ -1,5 +1,5 @@
 /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.3+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.4 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -11,7 +11,7 @@
 var requirejs, require, define;
 (function () {
     //Change this version number for each release.
-    var version = "1.0.3+",
+    var version = "1.0.4",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -676,9 +676,10 @@ var requirejs, require, define;
             if (prefix && !plugin) {
                 prefixMap = makeModuleMap(prefix);
 
-                //Clear out urlFetched if the plugin was previously loaded/
-                //defined, but not as full module (as in a build situation).
-                //However, only do this work if the plugin is in defined
+                //Clear out defined and urlFetched if the plugin was previously
+                //loaded/defined, but not as full module (as in a build
+                //situation). However, only do this work if the plugin is in
+                //defined but does not have a module export value.
                 if (prefix in defined && !defined[prefix]) {
                     delete defined[prefix];
                     delete urlFetched[prefixMap.url];

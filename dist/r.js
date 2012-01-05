@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.3 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.3',
+        version = '1.0.4',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -101,7 +101,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.3 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.4 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -113,7 +113,7 @@ var requirejs, require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "1.0.3",
+    var version = "1.0.4",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -425,7 +425,15 @@ var requirejs, require, define;
                     url = urlMap[normalizedName];
                     if (!url) {
                         //Calculate url for the module, if it has a name.
-                        url = context.nameToUrl(normalizedName, null, parentModuleMap);
+                        //Use name here since nameToUrl also calls normalize,
+                        //and for relative names that are outside the baseUrl
+                        //this causes havoc. Was thinking of just removing
+                        //parentModuleMap to avoid extra normalization, but
+                        //normalize() still does a dot removal because of
+                        //issue #142, so just pass in name here and redo
+                        //the normalization. Paths outside baseUrl are just
+                        //messy to support.
+                        url = context.nameToUrl(name, null, parentModuleMap);
 
                         //Store the URL mapping for later.
                         urlMap[normalizedName] = url;
@@ -730,7 +738,7 @@ var requirejs, require, define;
                 prefix = map.prefix,
                 plugin = prefix ? plugins[prefix] ||
                                 (plugins[prefix] = defined[prefix]) : null,
-                manager, created, pluginManager;
+                manager, created, pluginManager, prefixMap;
 
             if (fullName) {
                 manager = managerCallbacks[fullName];
@@ -768,7 +776,18 @@ var requirejs, require, define;
             //If there is a plugin needed, but it is not loaded,
             //first load the plugin, then continue on.
             if (prefix && !plugin) {
-                pluginManager = getManager(makeModuleMap(prefix), true);
+                prefixMap = makeModuleMap(prefix);
+
+                //Clear out defined and urlFetched if the plugin was previously
+                //loaded/defined, but not as full module (as in a build
+                //situation). However, only do this work if the plugin is in
+                //defined but does not have a module export value.
+                if (prefix in defined && !defined[prefix]) {
+                    delete defined[prefix];
+                    delete urlFetched[prefixMap.url];
+                }
+
+                pluginManager = getManager(prefixMap, true);
                 pluginManager.add(function (plugin) {
                     //Create a new manager for the normalized
                     //resource ID and have it call this manager when
@@ -1839,7 +1858,8 @@ var requirejs, require, define;
             node = context && context.config && context.config.xhtml ?
                     document.createElementNS("http://www.w3.org/1999/xhtml", "html:script") :
                     document.createElement("script");
-            node.type = type || "text/javascript";
+            node.type = type || (context && context.config.scriptType) ||
+                        "text/javascript";
             node.charset = "utf-8";
             //Use async so Gecko does not block on executing the script if something
             //like a long-polling comet tag is being run first. Gecko likes
@@ -7669,7 +7689,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 logger.trace("Uglifying file: " + fileName);
 
                 try {
-                    ast = parser.parse(fileContents, config);
+                    ast = parser.parse(fileContents, config.strict_semicolons);
                     ast = processor.ast_mangle(ast, config);
                     ast = processor.ast_squeeze(ast, config);
 
@@ -7852,8 +7872,13 @@ function (file,           pragma,   parse) {
                         //and to make sure this file is first, so that define calls work.
                         //This situation mainly occurs when the build is done on top of the output
                         //of another build, where the first build may include require somewhere in it.
-                        if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                            layer.existingRequireUrl = url;
+                        try {
+                            if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                                layer.existingRequireUrl = url;
+                            }
+                        } catch (e1) {
+                            throw new Error('Parse error using UglifyJS ' +
+                                            'for file: ' + url + '\n' + e1);
                         }
 
                         if (moduleName in context.plugins) {
@@ -7870,12 +7895,17 @@ function (file,           pragma,   parse) {
                         //Parse out the require and define calls.
                         //Do this even for plugins in case they have their own
                         //dependencies that may be separate to how the pluginBuilder works.
-                        if (!context.needFullExec[moduleName]) {
-                            contents = parse(moduleName, url, contents, {
-                                insertNeedsDefine: true,
-                                has: context.config.has,
-                                findNestedDependencies: context.config.findNestedDependencies
-                            });
+                        try {
+                            if (!context.needFullExec[moduleName]) {
+                                contents = parse(moduleName, url, contents, {
+                                    insertNeedsDefine: true,
+                                    has: context.config.has,
+                                    findNestedDependencies: context.config.findNestedDependencies
+                                });
+                            }
+                        } catch (e2) {
+                            throw new Error('Parse error using UglifyJS ' +
+                                            'for file: ' + url + '\n' + e2);
                         }
 
                         require._cachedFileContents[url] = contents;
@@ -7939,8 +7969,8 @@ function (file,           pragma,   parse) {
             } else if (map.url && require._isSupportedBuildUrl(map.url)) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
+                url = normalizeUrlWithBase(context, map.fullName, map.url);
                 if (!layer.pathAdded[url] && layer.buildPathMap[fullName]) {
-                    url = normalizeUrlWithBase(context, map.fullName, map.url);
                     //Remember the list of dependencies for this layer.
                     layer.buildFilePaths.push(url);
                     layer.pathAdded[url] = true;
@@ -8695,6 +8725,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         if (!config.cssIn && !config.baseUrl) {
             throw new Error("ERROR: 'baseUrl' option missing.");
+        }
+
+        if (!config.out && !config.dir) {
+            throw new Error('Missing either an "out" or "dir" config value.');
         }
 
         if (config.out && !config.cssIn) {
