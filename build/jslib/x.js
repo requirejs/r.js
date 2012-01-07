@@ -190,6 +190,25 @@ var requirejs, require, define;
             }, ['build', 'logger'], runBuild);
         };
 
+        requirejs.tools = {
+            useLib: function (contextName, callback) {
+                if (!callback) {
+                    callback = contextName;
+                    contextName = 'uselib';
+                }
+                
+                loadLib();
+                
+                var req = requirejs({
+                    context: contextName
+                });
+                
+                req(['build'], function () {
+                    callback(req);
+                });
+            }
+        };
+        
         requirejs.define = define;
 
         module.exports = requirejs;
