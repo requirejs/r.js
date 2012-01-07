@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.2+ (traceFiles) 20111214 3pm Pacific  Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.2+ 20120106 10pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.2+ (traceFiles) 20111214 3pm Pacific',
+        version = '1.0.2+ 20120106 10pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         //Used by jslib/rhino/args.js
@@ -9048,20 +9048,22 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     function loadBuildTools(callback) {
         loadLib();
 
+        var cb = function (build,   logger,   requirePatch) {
+            //Enable the requirePatch that hooks up the tracing tools.
+            requirePatch();
+            callback(build, logger);
+        };
+
         //Enable execution of this callback in a build setting.
         //Normally, once requirePatch is run, by default it will
         //not execute callbacks, unless this property is set on
         //the callback.
-        callback.__requireJsBuild = true;
+        cb.__requireJsBuild = true;
 
         requirejs({
             context: 'build'
         },      ['build', 'logger', 'requirePatch'],
-        function (build,   logger,   requirePatch) {
-            //Enable the requirePatch that hooks up the tracing tools.
-            requirePatch();
-            callback(build, logger);
-        });
+        cb);
     }
 
     /**
@@ -9140,6 +9142,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
          * Traces what files would go into making the module specified in the
          * config.
          */
+        requirejs.tools = {};
         requirejs.tools.traceFiles = traceFiles;
 
         module.exports = requirejs;
