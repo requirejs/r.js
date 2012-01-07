@@ -150,14 +150,18 @@ var requirejs, require, define;
         //the callback.
         callback.__requireJsBuild = true;
 
-        requirejs({
-            context: 'build'
-        },      ['build', 'logger', 'requirePatch'],
-        function (build,   logger,   requirePatch) {
+        var cb = function (build,   logger,   requirePatch) {
             //Enable the requirePatch that hooks up the tracing tools.
             requirePatch();
             callback(build, logger);
-        });
+        };
+
+        cb.__requireJsBuild = true;
+
+        requirejs({
+            context: 'build'
+        },      ['build', 'logger', 'requirePatch'],
+        cb);
     }
 
     /**
