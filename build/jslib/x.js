@@ -236,6 +236,7 @@ var requirejs, require, define;
          * Traces what files would go into making the module specified in the
          * config.
          */
+        requirejs.tools = {};
         requirejs.tools.traceFiles = traceFiles;
 
         module.exports = requirejs;
