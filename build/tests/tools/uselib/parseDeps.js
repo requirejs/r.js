@@ -9,7 +9,7 @@ var requirejs = require('../../../../r.js'),
     dir = __dirname,
     thisName = path.basename(__filename);
 
-requirejs.tools.useLib(function (require) {
+function onLib(require) {
     require(['parse'], function (parse) {
         var deps = {};
 
@@ -25,4 +25,8 @@ requirejs.tools.useLib(function (require) {
         
         console.log(JSON.stringify(deps, null, '  '));
     });
-});
+}
+
+//Do it twice, just to make sure it all holds together on multiple passes.
+requirejs.tools.useLib(onLib);
+requirejs.tools.useLib(onLib);

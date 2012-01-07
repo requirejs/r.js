@@ -401,7 +401,8 @@ define(['uglifyjs/index'], function (uglify) {
         //This is a litle bit inefficient, it ends up with two uglifyjs parser
         //calls. Can revisit later, but trying to build out larger functional
         //pieces first.
-        var astRoot = parser.parse(fileContents);
+        var dependencies = [],
+            astRoot = parser.parse(fileContents);
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
             //Normalize the input args.
