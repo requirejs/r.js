@@ -144,18 +144,16 @@ var requirejs, require, define;
     function loadBuildTools(callback) {
         loadLib();
 
-        //Enable execution of this callback in a build setting.
-        //Normally, once requirePatch is run, by default it will
-        //not execute callbacks, unless this property is set on
-        //the callback.
-        callback.__requireJsBuild = true;
-
         var cb = function (build,   logger,   requirePatch) {
             //Enable the requirePatch that hooks up the tracing tools.
             requirePatch();
             callback(build, logger);
         };
 
+        //Enable execution of this callback in a build setting.
+        //Normally, once requirePatch is run, by default it will
+        //not execute callbacks, unless this property is set on
+        //the callback.
         cb.__requireJsBuild = true;
 
         requirejs({
