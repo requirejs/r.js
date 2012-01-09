@@ -98,7 +98,28 @@ var requirejs, require, define;
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
         }
-    }
+    } else if (typeof load === 'function' && typeof print === 'function'){
+        env = 'spartan';
+
+        fileName = args[0];
+
+        if (fileName && fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = args[1];
+        }
+
+        exec = eval;
+
+        //Define a console.log for easier logging. Don't
+        //get fancy though.
+        if (typeof console === 'undefined') {
+            console = {
+                log: function () {
+                    print.apply(undefined, arguments);
+                }
+            };
+        }
+	}
 
     //INSERT require.js
 
@@ -115,6 +136,9 @@ var requirejs, require, define;
 
         //INSERT build/jslib/node.js
 
+    } else if (env === 'spartan'){
+    
+        //INSERT build/jslib/spartan.js
     }
 
     //Support a default file name to execute. Useful for hosted envs
@@ -231,13 +255,17 @@ var requirejs, require, define;
 
         setBaseUrl(fileName);
 
-        if (exists(fileName)) {
-            exec(readFile(fileName), fileName);
-        } else {
-            showHelp();
+        if(env === 'spartan'){
+            load(fileName);
+        } else{
+            if (exists(fileName)) {
+                exec(readFile(fileName), fileName);
+            } else {
+                showHelp();
+            }
         }
     }
 
-}((typeof console !== 'undefined' ? console : undefined),
-  (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
-  (typeof readFile !== 'undefined' ? readFile : undefined)));
+})((typeof console !== 'undefined' ? console : undefined),
+  ((typeof Packages !== 'undefined' || (typeof load === 'function' && typeof print === 'function'))? Array.prototype.slice.call(arguments, 0) : []),
+  (typeof readFile !== 'undefined' ? readFile : undefined));

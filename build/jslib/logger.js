@@ -21,36 +21,36 @@ define(['env!env/print'], function (print) {
             this.level = level;
         },
 
-        trace: function (message) {
+        trace: function () {
             if (this.level <= this.TRACE) {
-                this._print(message);
+                this._print(arguments);
             }
         },
 
-        info: function (message) {
+        info: function () {
             if (this.level <= this.INFO) {
-                this._print(message);
+                this._print(arguments);
             }
         },
 
-        warn: function (message) {
+        warn: function () {
             if (this.level <= this.WARN) {
-                this._print(message);
+                this._print(arguments);
             }
         },
 
-        error: function (message) {
+        error: function () {
             if (this.level <= this.ERROR) {
-                this._print(message);
+                this._print(arguments);
             }
         },
 
-        _print: function (message) {
-            this._sysPrint((this.logPrefix ? (this.logPrefix + " ") : "") + message);
+        _print: function (args) {
+            this._sysPrint(this.logPrefix ? (this.logPrefix + " ") : "", Array.prototype.slice.apply(args));
         },
 
-        _sysPrint: function (message) {
-            print(message);
+        _sysPrint: function (logPrefix,args) {
+            print.apply(this,[logPrefix].concat(args));
         }
     };
 

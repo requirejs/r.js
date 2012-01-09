@@ -22,3 +22,4 @@ build/tests/override/node_modules
 build/tests/override/one-built.js
 tests/node/node_modules
 tests/node/embedded/node_modules
+*.sw*

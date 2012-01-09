@@ -22,6 +22,8 @@
         env = 'node';
     } else if (typeof window !== "undefined" && navigator && document) {
         env = 'browser';
+    } else if (typeof load === 'function' && typeof print === 'function'){
+        env = 'spartan';
     }
 
     define({
