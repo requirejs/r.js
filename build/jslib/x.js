@@ -98,6 +98,8 @@ var requirejs, require, define;
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
         }
+    } else if (typeof window !== "undefined" && navigator && document) {
+        env = 'browser';
     } else if (typeof load === 'function' && typeof print === 'function'){
         env = 'spartan';
 
@@ -119,7 +121,7 @@ var requirejs, require, define;
                 }
             };
         }
-	}
+    } 
 
     //INSERT require.js
 
@@ -249,7 +251,8 @@ var requirejs, require, define;
         //Just run an app
 
         //Load the bundled libraries for use in the app.
-        if (commandOption === 'lib') {
+        //browser loads libs by default
+        if (commandOption === 'lib' || env === 'browser') {
             loadLib();
         }
 
@@ -257,7 +260,7 @@ var requirejs, require, define;
 
         if(env === 'spartan'){
             load(fileName);
-        } else{
+        } else if (env !== 'browser'){
             if (exists(fileName)) {
                 exec(readFile(fileName), fileName);
             } else {
