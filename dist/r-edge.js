@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.4 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4+ 20120106 9:40pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,9 +20,10 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.4',
+        version = '1.0.4+ 20120106 9:40pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
+        useLibLoaded = {},
         //Used by jslib/rhino/args.js
         rhinoArgs = args,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
@@ -6872,7 +6873,7 @@ define('parse', ['uglifyjs/index'], function (uglify) {
         //This is a litle bit inefficient, it ends up with two uglifyjs parser
         //calls. Can revisit later, but trying to build out larger functional
         //pieces first.
-        var dependencies = parse.getAnonDeps(fileName, fileContents),
+        var dependencies = [],
             astRoot = parser.parse(fileContents);
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
@@ -9181,6 +9182,28 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }, ['build', 'logger'], runBuild);
         };
 
+        requirejs.tools = {
+            useLib: function (contextName, callback) {
+                if (!callback) {
+                    callback = contextName;
+                    contextName = 'uselib';
+                }
+
+                if (!useLibLoaded[contextName]) {
+                    loadLib();
+                    useLibLoaded[contextName] = true;
+                }
+
+                var req = requirejs({
+                    context: contextName
+                });
+                
+                req(['build'], function () {
+                    callback(req);
+                });
+            }
+        };
+        
         requirejs.define = define;
 
         module.exports = requirejs;
