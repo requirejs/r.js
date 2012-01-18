@@ -1,6 +1,6 @@
-# Release Notes
+# Notes
 
-This directory contains the r.js releases.
+This directory contains the built version of r.js. For a particular release,
+use the version tag of the release to get that release.
 
-The ones the and in numbers like -20110612.js are intermediate builds of r.js that were done on that day.
-
+The version in master will be updated with the latest master code.
