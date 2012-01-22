@@ -255,10 +255,14 @@ define(['uglifyjs/index'], function (uglify) {
      * @param {Function} onMatch function to call on a parse match.
      * @param {Object} [options] This is normally the build config options if
      * it is passed.
+     * @param {Function} [recurseCallback] function to call on each valid
+     * node, defaults to parse.parseNode.
      */
-    parse.recurse = function (parentNode, onMatch, options) {
+    parse.recurse = function (parentNode, onMatch, options, recurseCallback) {
         var hasHas = options && options.has,
             i, node;
+
+        recurseCallback = recurseCallback || this.parseNode;
 
         if (isArray(parentNode)) {
             for (i = 0; i < parentNode.length; i++) {
@@ -279,17 +283,17 @@ define(['uglifyjs/index'], function (uglify) {
                     if (hasHas && node[0] === 'if' && node[1] && node[1][0] === 'name' &&
                         (node[1][1] === 'true' || node[1][1] === 'false')) {
                         if (node[1][1] === 'true') {
-                            this.recurse([node[2]], onMatch, options);
+                            this.recurse([node[2]], onMatch, options, recurseCallback);
                         } else {
-                            this.recurse([node[3]], onMatch, options);
+                            this.recurse([node[3]], onMatch, options, recurseCallback);
                         }
                     } else {
-                        if (this.parseNode(node, onMatch)) {
+                        if (recurseCallback(node, onMatch)) {
                             //The onMatch indicated parsing should
                             //stop for children of this node.
                             continue;
                         }
-                        this.recurse(node, onMatch, options);
+                        this.recurse(node, onMatch, options, recurseCallback);
                     }
                 }
             }
@@ -386,6 +390,41 @@ define(['uglifyjs/index'], function (uglify) {
         }
 
         return null;
+    };
+
+    /**
+     * Finds any config that is passed to requirejs.
+     * @param {String} fileName
+     * @param {String} fileContents
+     *
+     * @returns {Object} a config object. Will be null if no config.
+     */
+    parse.findConfig = function (fileName, fileContents) {
+        /*jslint evil: true */
+        //This is a litle bit inefficient, it ends up with two uglifyjs parser
+        //calls. Can revisit later, but trying to build out larger functional
+        //pieces first.
+        var foundConfig = null,
+            astRoot = parser.parse(fileContents);
+
+        parse.recurse(astRoot, function (configNode) {
+            var jsConfig;
+
+            if (!foundConfig && configNode) {
+                jsConfig = parse.nodeToString(configNode);
+                if (jsConfig) {
+                    try {
+                        foundConfig = eval('(' + jsConfig + ')');
+                    } catch (e)  {
+                        foundConfig = null;
+                    }
+                    return foundConfig;
+                }
+            }
+            return undefined;
+        }, null, parse.parseConfigNode);
+
+        return foundConfig;
     };
 
     /**
@@ -569,6 +608,56 @@ define(['uglifyjs/index'], function (uglify) {
 
                         return onMatch("define", null, name, deps);
                     }
+                }
+            }
+        }
+
+        return false;
+    };
+
+
+    /**
+     * Determines if a specific node is a valid require/requirejs config
+     * call. That includes calls to require/requirejs.config().
+     * @param {Array} node
+     * @param {Function} onMatch a function to call when a match is found.
+     * It is passed the match name, and the config, name, deps possible args.
+     * The config, name and deps args are not normalized.
+     *
+     * @returns {String} a JS source string with the valid require/define call.
+     * Otherwise null.
+     */
+    parse.parseConfigNode = function (node, onMatch) {
+        var call, configNode, args;
+
+        if (!isArray(node)) {
+            return false;
+        }
+
+        if (node[0] === 'call') {
+            call = node[1];
+            args = node[2];
+
+            if (call) {
+                //A require.config() or requirejs.config() call.
+                if ((call[0] === 'dot' &&
+                   (call[1] && call[1][0] === 'name' &&
+                    (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
+                   call[2] === 'config') ||
+                   //A require() or requirejs() config call.
+
+                   (call[0] === 'name' &&
+                   (call[1] === 'require' || call[1] === 'requirejs'))
+                ) {
+                    //It is a plain require() call.
+                    configNode = args[0];
+
+                    if (configNode[0] !== 'object') {
+                        return null;
+                    }
+
+                    return onMatch(configNode);
+
                 }
             }
         }

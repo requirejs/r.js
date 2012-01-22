@@ -1,7 +1,22 @@
 /*jslint plusplus: false, strict: false */
 /*global load: false, doh: false, define:false */
 
-define(['parse'], function (parse) {
+define(['parse', 'env!env/file'], function (parse, file) {
+
+    doh.register("parseConfig",
+        [
+            function parseConfig(t) {
+                t.is('rconfig', parse.findConfig('rconfig.js', file.readFile('parse/rconfig.js')).baseUrl);
+                t.is('rjsconfig', parse.findConfig('rjsconfig.js', file.readFile('parse/rjsconfig.js')).baseUrl);
+                t.is('requirec', parse.findConfig('requirec.js', file.readFile('parse/requirec.js')).baseUrl);
+                t.is('requirejsc', parse.findConfig('requirejsc.js', file.readFile('parse/requirejsc.js')).baseUrl);
+                t.is(null, parse.findConfig('missing1.js', file.readFile('parse/missing1.js')));
+                t.is(null, parse.findConfig('missing1.js', file.readFile('parse/missing1.js')));
+                t.is(null, parse.findConfig('bad1.js', file.readFile('parse/bad1.js')));
+            }
+        ]
+    );
+    doh.run();
 
     doh.register("parseRequire",
         [
