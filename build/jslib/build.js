@@ -516,6 +516,69 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         return path.replace(lang.backSlashRegExp, '/');
     };
 
+    build.makeAbsObject = function (props, obj, absFilePath) {
+        var i, prop;
+        if (obj) {
+            for (i = 0; (prop = props[i]); i++) {
+                if (obj.hasOwnProperty(prop)) {
+                    obj[prop] = build.makeAbsPath(obj[prop], absFilePath);
+                }
+            }
+        }
+    };
+
+    /**
+     * For any path in a possible config, make it absolute relative
+     * to the absFilePath passed in.
+     */
+    build.makeAbsConfig = function (config, absFilePath) {
+        var props, prop, i, originalBaseUrl;
+
+        props = ["appDir", "dir", "baseUrl"];
+        for (i = 0; (prop = props[i]); i++) {
+            if (config[prop]) {
+                //Add abspath if necessary, make sure these paths end in
+                //slashes
+                if (prop === "baseUrl") {
+                    originalBaseUrl = config.baseUrl;
+                    if (config.appDir) {
+                        //If baseUrl with an appDir, the baseUrl is relative to
+                        //the appDir, *not* the absFilePath. appDir and dir are
+                        //made absolute before baseUrl, so this will work.
+                        config.baseUrl = build.makeAbsPath(originalBaseUrl, config.appDir);
+                        //Set up dir output baseUrl.
+                        config.dirBaseUrl = build.makeAbsPath(originalBaseUrl, config.dir);
+                    } else {
+                        //The dir output baseUrl is same as regular baseUrl, both
+                        //relative to the absFilePath.
+                        config.baseUrl = build.makeAbsPath(config[prop], absFilePath);
+                        config.dirBaseUrl = config.dir || config.baseUrl;
+                    }
+
+                    //Make sure dirBaseUrl ends in a slash, since it is
+                    //concatenated with other strings.
+                    config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
+                } else {
+                    config[prop] = build.makeAbsPath(config[prop], absFilePath);
+                }
+
+                config[prop] = endsWithSlash(config[prop]);
+            }
+        }
+
+        //Do not allow URLs for paths resources.
+        if (config.paths) {
+            for (prop in config.paths) {
+                if (config.paths.hasOwnProperty(prop)) {
+                    config.paths[prop] = build.makeAbsPath(config.paths[prop], config.baseUrl);
+                }
+            }
+        }
+
+        build.makeAbsObject(["out", "cssIn"], config, absFilePath);
+        build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
+    };
+
     /**
      * Creates a config object for an optimization build.
      * It will also read the build profile if it is available, to create
@@ -529,13 +592,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.createConfig = function (cfg) {
         /*jslint evil: true */
-        var config = {}, buildFileContents, buildFileConfig,
-            paths, props, i, prop, buildFile, absFilePath, originalBaseUrl;
+        var config = {}, buildFileContents, buildFileConfig, mainConfig,
+            mainConfigFile, prop, buildFile, absFilePath;
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
 
-        absFilePath = file.absPath('.');
+        //Make sure all paths are relative to current directory.
+        build.makeAbsConfig(config, file.absPath('.'));
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -554,8 +618,20 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             buildFileContents = file.readFile(buildFile);
             try {
                 buildFileConfig = eval("(" + buildFileContents + ")");
+                build.makeAbsConfig(buildFileConfig, absFilePath);
             } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
+            }
+
+            mainConfigFile = config.mainConfigFile || buildFileConfig.mainConfigFile;
+            if (mainConfigFile) {
+                mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
+                if (mainConfig) {
+                    //Need to mix in config from configMain first, and
+                    //all paths are relative to mainConfig.
+                    build.makeAbsConfig(mainConfig, mainConfigFile);
+                    lang.mixin(config, mainConfig, true);
+                }
             }
             lang.mixin(config, buildFileConfig, true);
 
@@ -601,57 +677,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
-        //Adjust the path properties as appropriate.
-        //First make sure build paths use front slashes and end in a slash,
-        //and make sure they are aboslute paths.
-        props = ["appDir", "dir", "baseUrl"];
-        for (i = 0; (prop = props[i]); i++) {
-            if (config[prop]) {
-                config[prop] = config[prop].replace(lang.backSlashRegExp, "/");
-
-                //Add abspath if necessary.
-                if (prop === "baseUrl") {
-                    originalBaseUrl = config.baseUrl;
-                    if (config.appDir) {
-                        //If baseUrl with an appDir, the baseUrl is relative to
-                        //the appDir, *not* the absFilePath. appDir and dir are
-                        //made absolute before baseUrl, so this will work.
-                        config.baseUrl = build.makeAbsPath(originalBaseUrl, config.appDir);
-                        //Set up dir output baseUrl.
-                        config.dirBaseUrl = build.makeAbsPath(originalBaseUrl, config.dir);
-                    } else {
-                        //The dir output baseUrl is same as regular baseUrl, both
-                        //relative to the absFilePath.
-                        config.baseUrl = build.makeAbsPath(config[prop], absFilePath);
-                        config.dirBaseUrl = config.dir || config.baseUrl;
-                    }
-
-                    //Make sure dirBaseUrl ends in a slash, since it is
-                    //concatenated with other strings.
-                    config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
-                } else {
-                    config[prop] = build.makeAbsPath(config[prop], absFilePath);
-                }
-
-                config[prop] = endsWithSlash(config[prop]);
-            }
-        }
-
         //Do not allow URLs for paths resources.
         if (config.paths) {
             for (prop in config.paths) {
                 if (config.paths.hasOwnProperty(prop)) {
-                    config.paths[prop] = config.paths[prop].replace(lang.backSlashRegExp, "/");
                     disallowUrls(config.paths[prop]);
                 }
-            }
-        }
-
-        //Make sure some other paths are absolute.
-        props = ["out", "cssIn"];
-        for (i = 0; (prop = props[i]); i++) {
-            if (config[prop]) {
-                config[prop] = build.makeAbsPath(config[prop], absFilePath);
             }
         }
 
