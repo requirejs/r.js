@@ -537,4 +537,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("mainConfigFileBasic",
+        [
+            function mainConfigFileBasic(t) {
+                file.deleteFile("lib/mainConfigFile/basic/main-built.js");
+
+                build(["lib/mainConfigFile/basic/tools/build.js"]);
+
+                t.is(nol(c("lib/mainConfigFile/basic/expected.js")),
+                     nol(c("lib/mainConfigFile/basic/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

@@ -625,10 +625,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
             mainConfigFile = config.mainConfigFile || buildFileConfig.mainConfigFile;
             if (mainConfigFile) {
+                mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
                 mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
                 if (mainConfig) {
-                    //Need to mix in config from configMain first, and
-                    //all paths are relative to mainConfig.
+                    //If no baseUrl, then use the directory holding the main config.
+                    if (!mainConfig.baseUrl) {
+                        mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
+                    }
                     build.makeAbsConfig(mainConfig, mainConfigFile);
                     lang.mixin(config, mainConfig, true);
                 }
