@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.4+ 20120118 11:43am Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4+ 20120122 10:20pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.4+ 20120118 11:43am',
+        version = '1.0.4+ 20120122 10:20pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -6795,10 +6795,14 @@ define('parse', ['uglifyjs/index'], function (uglify) {
      * @param {Function} onMatch function to call on a parse match.
      * @param {Object} [options] This is normally the build config options if
      * it is passed.
+     * @param {Function} [recurseCallback] function to call on each valid
+     * node, defaults to parse.parseNode.
      */
-    parse.recurse = function (parentNode, onMatch, options) {
+    parse.recurse = function (parentNode, onMatch, options, recurseCallback) {
         var hasHas = options && options.has,
             i, node;
+
+        recurseCallback = recurseCallback || this.parseNode;
 
         if (isArray(parentNode)) {
             for (i = 0; i < parentNode.length; i++) {
@@ -6819,17 +6823,17 @@ define('parse', ['uglifyjs/index'], function (uglify) {
                     if (hasHas && node[0] === 'if' && node[1] && node[1][0] === 'name' &&
                         (node[1][1] === 'true' || node[1][1] === 'false')) {
                         if (node[1][1] === 'true') {
-                            this.recurse([node[2]], onMatch, options);
+                            this.recurse([node[2]], onMatch, options, recurseCallback);
                         } else {
-                            this.recurse([node[3]], onMatch, options);
+                            this.recurse([node[3]], onMatch, options, recurseCallback);
                         }
                     } else {
-                        if (this.parseNode(node, onMatch)) {
+                        if (recurseCallback(node, onMatch)) {
                             //The onMatch indicated parsing should
                             //stop for children of this node.
                             continue;
                         }
-                        this.recurse(node, onMatch, options);
+                        this.recurse(node, onMatch, options, recurseCallback);
                     }
                 }
             }
@@ -6926,6 +6930,41 @@ define('parse', ['uglifyjs/index'], function (uglify) {
         }
 
         return null;
+    };
+
+    /**
+     * Finds any config that is passed to requirejs.
+     * @param {String} fileName
+     * @param {String} fileContents
+     *
+     * @returns {Object} a config object. Will be null if no config.
+     */
+    parse.findConfig = function (fileName, fileContents) {
+        /*jslint evil: true */
+        //This is a litle bit inefficient, it ends up with two uglifyjs parser
+        //calls. Can revisit later, but trying to build out larger functional
+        //pieces first.
+        var foundConfig = null,
+            astRoot = parser.parse(fileContents);
+
+        parse.recurse(astRoot, function (configNode) {
+            var jsConfig;
+
+            if (!foundConfig && configNode) {
+                jsConfig = parse.nodeToString(configNode);
+                if (jsConfig) {
+                    try {
+                        foundConfig = eval('(' + jsConfig + ')');
+                    } catch (e)  {
+                        foundConfig = null;
+                    }
+                    return foundConfig;
+                }
+            }
+            return undefined;
+        }, null, parse.parseConfigNode);
+
+        return foundConfig;
     };
 
     /**
@@ -7109,6 +7148,56 @@ define('parse', ['uglifyjs/index'], function (uglify) {
 
                         return onMatch("define", null, name, deps);
                     }
+                }
+            }
+        }
+
+        return false;
+    };
+
+
+    /**
+     * Determines if a specific node is a valid require/requirejs config
+     * call. That includes calls to require/requirejs.config().
+     * @param {Array} node
+     * @param {Function} onMatch a function to call when a match is found.
+     * It is passed the match name, and the config, name, deps possible args.
+     * The config, name and deps args are not normalized.
+     *
+     * @returns {String} a JS source string with the valid require/define call.
+     * Otherwise null.
+     */
+    parse.parseConfigNode = function (node, onMatch) {
+        var call, configNode, args;
+
+        if (!isArray(node)) {
+            return false;
+        }
+
+        if (node[0] === 'call') {
+            call = node[1];
+            args = node[2];
+
+            if (call) {
+                //A require.config() or requirejs.config() call.
+                if ((call[0] === 'dot' &&
+                   (call[1] && call[1][0] === 'name' &&
+                    (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
+                   call[2] === 'config') ||
+                   //A require() or requirejs() config call.
+
+                   (call[0] === 'name' &&
+                   (call[1] === 'require' || call[1] === 'requirejs'))
+                ) {
+                    //It is a plain require() call.
+                    configNode = args[0];
+
+                    if (configNode[0] !== 'object') {
+                        return null;
+                    }
+
+                    return onMatch(configNode);
+
                 }
             }
         }
@@ -8738,6 +8827,69 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         return path.replace(lang.backSlashRegExp, '/');
     };
 
+    build.makeAbsObject = function (props, obj, absFilePath) {
+        var i, prop;
+        if (obj) {
+            for (i = 0; (prop = props[i]); i++) {
+                if (obj.hasOwnProperty(prop)) {
+                    obj[prop] = build.makeAbsPath(obj[prop], absFilePath);
+                }
+            }
+        }
+    };
+
+    /**
+     * For any path in a possible config, make it absolute relative
+     * to the absFilePath passed in.
+     */
+    build.makeAbsConfig = function (config, absFilePath) {
+        var props, prop, i, originalBaseUrl;
+
+        props = ["appDir", "dir", "baseUrl"];
+        for (i = 0; (prop = props[i]); i++) {
+            if (config[prop]) {
+                //Add abspath if necessary, make sure these paths end in
+                //slashes
+                if (prop === "baseUrl") {
+                    originalBaseUrl = config.baseUrl;
+                    if (config.appDir) {
+                        //If baseUrl with an appDir, the baseUrl is relative to
+                        //the appDir, *not* the absFilePath. appDir and dir are
+                        //made absolute before baseUrl, so this will work.
+                        config.baseUrl = build.makeAbsPath(originalBaseUrl, config.appDir);
+                        //Set up dir output baseUrl.
+                        config.dirBaseUrl = build.makeAbsPath(originalBaseUrl, config.dir);
+                    } else {
+                        //The dir output baseUrl is same as regular baseUrl, both
+                        //relative to the absFilePath.
+                        config.baseUrl = build.makeAbsPath(config[prop], absFilePath);
+                        config.dirBaseUrl = config.dir || config.baseUrl;
+                    }
+
+                    //Make sure dirBaseUrl ends in a slash, since it is
+                    //concatenated with other strings.
+                    config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
+                } else {
+                    config[prop] = build.makeAbsPath(config[prop], absFilePath);
+                }
+
+                config[prop] = endsWithSlash(config[prop]);
+            }
+        }
+
+        //Do not allow URLs for paths resources.
+        if (config.paths) {
+            for (prop in config.paths) {
+                if (config.paths.hasOwnProperty(prop)) {
+                    config.paths[prop] = build.makeAbsPath(config.paths[prop], config.baseUrl);
+                }
+            }
+        }
+
+        build.makeAbsObject(["out", "cssIn"], config, absFilePath);
+        build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
+    };
+
     /**
      * Creates a config object for an optimization build.
      * It will also read the build profile if it is available, to create
@@ -8751,13 +8903,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.createConfig = function (cfg) {
         /*jslint evil: true */
-        var config = {}, buildFileContents, buildFileConfig,
-            paths, props, i, prop, buildFile, absFilePath, originalBaseUrl;
+        var config = {}, buildFileContents, buildFileConfig, mainConfig,
+            mainConfigFile, prop, buildFile, absFilePath;
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
 
-        absFilePath = file.absPath('.');
+        //Make sure all paths are relative to current directory.
+        build.makeAbsConfig(config, file.absPath('.'));
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -8776,8 +8929,23 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             buildFileContents = file.readFile(buildFile);
             try {
                 buildFileConfig = eval("(" + buildFileContents + ")");
+                build.makeAbsConfig(buildFileConfig, absFilePath);
             } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
+            }
+
+            mainConfigFile = config.mainConfigFile || buildFileConfig.mainConfigFile;
+            if (mainConfigFile) {
+                mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
+                mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
+                if (mainConfig) {
+                    //If no baseUrl, then use the directory holding the main config.
+                    if (!mainConfig.baseUrl) {
+                        mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
+                    }
+                    build.makeAbsConfig(mainConfig, mainConfigFile);
+                    lang.mixin(config, mainConfig, true);
+                }
             }
             lang.mixin(config, buildFileConfig, true);
 
@@ -8823,57 +8991,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
-        //Adjust the path properties as appropriate.
-        //First make sure build paths use front slashes and end in a slash,
-        //and make sure they are aboslute paths.
-        props = ["appDir", "dir", "baseUrl"];
-        for (i = 0; (prop = props[i]); i++) {
-            if (config[prop]) {
-                config[prop] = config[prop].replace(lang.backSlashRegExp, "/");
-
-                //Add abspath if necessary.
-                if (prop === "baseUrl") {
-                    originalBaseUrl = config.baseUrl;
-                    if (config.appDir) {
-                        //If baseUrl with an appDir, the baseUrl is relative to
-                        //the appDir, *not* the absFilePath. appDir and dir are
-                        //made absolute before baseUrl, so this will work.
-                        config.baseUrl = build.makeAbsPath(originalBaseUrl, config.appDir);
-                        //Set up dir output baseUrl.
-                        config.dirBaseUrl = build.makeAbsPath(originalBaseUrl, config.dir);
-                    } else {
-                        //The dir output baseUrl is same as regular baseUrl, both
-                        //relative to the absFilePath.
-                        config.baseUrl = build.makeAbsPath(config[prop], absFilePath);
-                        config.dirBaseUrl = config.dir || config.baseUrl;
-                    }
-
-                    //Make sure dirBaseUrl ends in a slash, since it is
-                    //concatenated with other strings.
-                    config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
-                } else {
-                    config[prop] = build.makeAbsPath(config[prop], absFilePath);
-                }
-
-                config[prop] = endsWithSlash(config[prop]);
-            }
-        }
-
         //Do not allow URLs for paths resources.
         if (config.paths) {
             for (prop in config.paths) {
                 if (config.paths.hasOwnProperty(prop)) {
-                    config.paths[prop] = config.paths[prop].replace(lang.backSlashRegExp, "/");
                     disallowUrls(config.paths[prop]);
                 }
-            }
-        }
-
-        //Make sure some other paths are absolute.
-        props = ["out", "cssIn"];
-        for (i = 0; (prop = props[i]); i++) {
-            if (config[prop]) {
-                config[prop] = build.makeAbsPath(config[prop], absFilePath);
             }
         }
 
