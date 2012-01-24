@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.4+ 20120124 11:15am Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4+ 20120124 1:25pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.4+ 20120124 11:15a',
+        version = '1.0.4+ 20120124 1:25pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -8884,6 +8884,35 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
     };
 
+    build.nestedMix = {
+        paths: true,
+        has: true,
+        hasOnSave: true,
+        pragmas: true,
+        pragmasOnSave: true
+    };
+
+    /**
+     * Mixes additional source config into target config, and merges some
+     * nested config, like paths, correctly.
+     */
+    function mixConfig(target, source) {
+        var prop;
+
+        for (prop in source) {
+            if (source.hasOwnProperty(prop)) {
+                if (build.nestedMix[prop]) {
+                    if (!target[prop]) {
+                        target[prop] = {};
+                    }
+                    lang.mixin(target[prop], source[prop], true);
+                } else {
+                    target[prop] = source[prop];
+                }
+            }
+        }
+    }
+
     /**
      * Creates a config object for an optimization build.
      * It will also read the build profile if it is available, to create
@@ -8940,18 +8969,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
                 }
                 build.makeAbsConfig(mainConfig, mainConfigFile);
-                lang.mixin(config, mainConfig, true);
+                mixConfig(config, mainConfig);
             }
         }
 
         //Mix in build file config, but only after mainConfig has been mixed in.
         if (buildFileConfig) {
-            lang.mixin(config, buildFileConfig, true);
+            mixConfig(config, buildFileConfig);
         }
 
         //Re-apply the override config values. Command line
         //args should take precedence over build file values.
-        lang.mixin(config, cfg, true);
+        mixConfig(config, cfg);
 
         //Check for errors in config
         if (config.cssIn && !config.out) {
