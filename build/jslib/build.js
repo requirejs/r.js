@@ -599,7 +599,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         lang.mixin(config, cfg, true);
 
         //Make sure all paths are relative to current directory.
-        build.makeAbsConfig(config, file.absPath('.'));
+        absFilePath = file.absPath('.');
+        build.makeAbsConfig(config, absFilePath);
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -622,37 +623,38 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
             }
+        }
 
-            mainConfigFile = config.mainConfigFile || buildFileConfig.mainConfigFile;
-            if (mainConfigFile) {
-                mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
-                mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
-                if (mainConfig) {
-                    //If no baseUrl, then use the directory holding the main config.
-                    if (!mainConfig.baseUrl) {
-                        mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
-                    }
-                    build.makeAbsConfig(mainConfig, mainConfigFile);
-                    lang.mixin(config, mainConfig, true);
+        mainConfigFile = config.mainConfigFile || (buildFileConfig && buildFileConfig.mainConfigFile);
+        if (mainConfigFile) {
+            mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
+            mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
+            if (mainConfig) {
+                //If no baseUrl, then use the directory holding the main config.
+                if (!mainConfig.baseUrl) {
+                    mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
                 }
-            }
-            lang.mixin(config, buildFileConfig, true);
-
-            //Re-apply the override config values, things like command line
-            //args should take precedence over build file values.
-            lang.mixin(config, cfg, true);
-        } else if (config.cssIn) {
-            if (!config.out) {
-                throw new Error("ERROR: 'out' option missing.");
-            } else {
-                config.out = config.out.replace(lang.backSlashRegExp, "/");
+                build.makeAbsConfig(mainConfig, mainConfigFile);
+                lang.mixin(config, mainConfig, true);
             }
         }
 
+        //Mix in build file config, but only after mainConfig has been mixed in.
+        if (buildFileConfig) {
+            lang.mixin(config, buildFileConfig, true);
+        }
+
+        //Re-apply the override config values. Command line
+        //args should take precedence over build file values.
+        lang.mixin(config, cfg, true);
+
+        //Check for errors in config
+        if (config.cssIn && !config.out) {
+            throw new Error("ERROR: 'out' option missing.");
+        }
         if (!config.cssIn && !config.baseUrl) {
             throw new Error("ERROR: 'baseUrl' option missing.");
         }
-
         if (!config.out && !config.dir) {
             throw new Error('Missing either an "out" or "dir" config value.');
         }
