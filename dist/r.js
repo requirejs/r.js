@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.4+ 20120122 10:20pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4+ 20120124 11:15am Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.4+ 20120122 10:20pm',
+        version = '1.0.4+ 20120124 11:15a',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1144,7 +1144,7 @@ var requirejs, require, define;
             //If still waiting on loads, and the waiting load is something
             //other than a plugin resource, or there are still outstanding
             //scripts, then just try back later.
-            if ((stillLoading && !onlyPluginResourceLoading) || context.scriptCount) {
+            if (!expired && ((stillLoading && !onlyPluginResourceLoading) || context.scriptCount)) {
                 //Something is still waiting to load. Wait for it, but only
                 //if a timeout is not already in effect.
                 if ((isBrowser || isWebWorker) && !checkLoadedTimeoutId) {
@@ -1204,6 +1204,9 @@ var requirejs, require, define;
          */
         resume = function () {
             var manager, map, url, i, p, args, fullName;
+
+            //Any defined modules in the global queue, intake them now.
+            context.takeGlobalQueue();
 
             resumeDepth += 1;
 
@@ -1368,8 +1371,7 @@ var requirejs, require, define;
                     context.requireWait = false;
                     //But first, call resume to register any defined modules that may
                     //be in a data-main built file before the priority config
-                    //call. Also grab any waiting define calls for this context.
-                    context.takeGlobalQueue();
+                    //call.
                     resume();
 
                     context.require(cfg.priority);
@@ -1446,10 +1448,6 @@ var requirejs, require, define;
                 //then resume the dependency processing.
                 if (!context.requireWait) {
                     while (!context.scriptCount && context.paused.length) {
-                        //For built layers, there can be some defined
-                        //modules waiting for intake into the context,
-                        //in particular module plugins. Take them.
-                        context.takeGlobalQueue();
                         resume();
                     }
                 }
@@ -2120,10 +2118,6 @@ var requirejs, require, define;
         ctx.requireWait = true;
         setTimeout(function () {
             ctx.requireWait = false;
-
-            //Any modules included with the require.js file will be in the
-            //global queue, assign them to this context.
-            ctx.takeGlobalQueue();
 
             if (!ctx.scriptCount) {
                 ctx.resume();
@@ -8910,7 +8904,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         lang.mixin(config, cfg, true);
 
         //Make sure all paths are relative to current directory.
-        build.makeAbsConfig(config, file.absPath('.'));
+        absFilePath = file.absPath('.');
+        build.makeAbsConfig(config, absFilePath);
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -8933,37 +8928,38 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
             }
+        }
 
-            mainConfigFile = config.mainConfigFile || buildFileConfig.mainConfigFile;
-            if (mainConfigFile) {
-                mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
-                mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
-                if (mainConfig) {
-                    //If no baseUrl, then use the directory holding the main config.
-                    if (!mainConfig.baseUrl) {
-                        mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
-                    }
-                    build.makeAbsConfig(mainConfig, mainConfigFile);
-                    lang.mixin(config, mainConfig, true);
+        mainConfigFile = config.mainConfigFile || (buildFileConfig && buildFileConfig.mainConfigFile);
+        if (mainConfigFile) {
+            mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
+            mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
+            if (mainConfig) {
+                //If no baseUrl, then use the directory holding the main config.
+                if (!mainConfig.baseUrl) {
+                    mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
                 }
-            }
-            lang.mixin(config, buildFileConfig, true);
-
-            //Re-apply the override config values, things like command line
-            //args should take precedence over build file values.
-            lang.mixin(config, cfg, true);
-        } else if (config.cssIn) {
-            if (!config.out) {
-                throw new Error("ERROR: 'out' option missing.");
-            } else {
-                config.out = config.out.replace(lang.backSlashRegExp, "/");
+                build.makeAbsConfig(mainConfig, mainConfigFile);
+                lang.mixin(config, mainConfig, true);
             }
         }
 
+        //Mix in build file config, but only after mainConfig has been mixed in.
+        if (buildFileConfig) {
+            lang.mixin(config, buildFileConfig, true);
+        }
+
+        //Re-apply the override config values. Command line
+        //args should take precedence over build file values.
+        lang.mixin(config, cfg, true);
+
+        //Check for errors in config
+        if (config.cssIn && !config.out) {
+            throw new Error("ERROR: 'out' option missing.");
+        }
         if (!config.cssIn && !config.baseUrl) {
             throw new Error("ERROR: 'baseUrl' option missing.");
         }
-
         if (!config.out && !config.dir) {
             throw new Error('Missing either an "out" or "dir" config value.');
         }
