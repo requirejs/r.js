@@ -10,6 +10,7 @@
 define(['fs', 'path'], function (fs, path) {
 
     var isWindows = process.platform === 'win32',
+        windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
         file;
 
     function frontSlash(path) {
@@ -31,7 +32,7 @@ define(['fs', 'path'], function (fs, path) {
     }
 
     function mkDir(dir) {
-        if (!exists(dir)) {
+        if (!exists(dir) && (!isWindows || !windowsDriveRegExp.test(dir))) {
             fs.mkdirSync(dir, 511);
         }
     }
