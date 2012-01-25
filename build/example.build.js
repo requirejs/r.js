@@ -257,6 +257,14 @@
             ]
         }
     ],
+    
+    
+    // If you only intend to optimize a module (and its dependencies), with
+    // a single file as the output, you can specify the module options inline.
+    // The name of the optimized file is specified by out. 
+    name: "foo/bar/bop",
+    include: ["foo/bar/bee"],
+    out: "path/to/optimized-file.js",
 
     //Wrap any build layer in a start and end text specified by wrap.
     //Use this to encapsulate the module code so that define/require are
