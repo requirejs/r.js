@@ -92,7 +92,7 @@
         loggingLevel: 'WARNING'
     },
 
-    //Allow CSS optimizations. Allowed values:
+    //Allow S optimizations. Allowed values:
     //- "standard": @import inlining, comment removal and line returns.
     //Removing line returns may have problems in IE, depending on the type
     //of CSS.
@@ -104,7 +104,12 @@
     //inlining. The value of this option should be a comma separated list
     //of CSS file names to ignore. The file names should match whatever
     //strings are used in the @import calls.
-    cssImportIgnore: null,
+    cssImportIgnore: null,          
+    
+    //cssIn is typically used as a command line option. It can be used
+    //along with out to optimize a single CSS file.
+    cssIn: "path/to/main.css",
+    out: "path/to/css-optimized.css",
 
     //Inlines the text for any text! dependencies, to avoid the separate
     //async XMLHttpRequest calls to load those dependencies.
