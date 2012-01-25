@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.4+ 20120124 1:25pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4+ 20120124 4pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.4+ 20120124 1:25pm',
+        version = '1.0.4+ 20120124 4pm',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2427,6 +2427,7 @@ if(env === 'node') {
 define('node/file', ['fs', 'path'], function (fs, path) {
 
     var isWindows = process.platform === 'win32',
+        windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
         file;
 
     function frontSlash(path) {
@@ -2448,7 +2449,7 @@ define('node/file', ['fs', 'path'], function (fs, path) {
     }
 
     function mkDir(dir) {
-        if (!exists(dir)) {
+        if (!exists(dir) && (!isWindows || !windowsDriveRegExp.test(dir))) {
             fs.mkdirSync(dir, 511);
         }
     }
