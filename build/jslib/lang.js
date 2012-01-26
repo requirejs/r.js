@@ -16,6 +16,14 @@ define(function () {
             return lang.ostring.call(it) === "[object Array]";
         },
 
+        isFunction: function(it) {
+            return lang.ostring.call(it) === "[object Function]";
+        },
+
+        isRegExp: function(it) {
+            return it && it instanceof RegExp;
+        },
+
         /**
          * Simple function to mix in properties from source into target,
          * but only if target does not already have a property of the same name.

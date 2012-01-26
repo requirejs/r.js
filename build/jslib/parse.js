@@ -398,6 +398,8 @@ define(['uglifyjs/index'], function (uglify) {
      * @param {String} fileContents
      *
      * @returns {Object} a config object. Will be null if no config.
+     * Can throw an error if the config in the file cannot be evaluated in
+     * a build context to valid JavaScript.
      */
     parse.findConfig = function (fileName, fileContents) {
         /*jslint evil: true */
@@ -412,14 +414,8 @@ define(['uglifyjs/index'], function (uglify) {
 
             if (!foundConfig && configNode) {
                 jsConfig = parse.nodeToString(configNode);
-                if (jsConfig) {
-                    try {
-                        foundConfig = eval('(' + jsConfig + ')');
-                    } catch (e)  {
-                        foundConfig = null;
-                    }
-                    return foundConfig;
-                }
+                foundConfig = eval('(' + jsConfig + ')');
+                return foundConfig;
             }
             return undefined;
         }, null, parse.parseConfigNode);

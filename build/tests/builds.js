@@ -576,4 +576,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("mainConfigFileMerged",
+        [
+            function mainConfigFileMerged(t) {
+                file.deleteFile("lib/mainConfigFile/mergeConfig/main-built.js");
+
+                build(["lib/mainConfigFile/mergeConfig/tools/build.js"]);
+
+                t.is(nol(c("lib/mainConfigFile/mergeConfig/expected.js")),
+                     nol(c("lib/mainConfigFile/mergeConfig/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
