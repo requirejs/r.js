@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.4+ Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -206,13 +206,13 @@ var requirejs, require, define;
                 var req = requirejs({
                     context: contextName
                 });
-                
+
                 req(['build'], function () {
                     callback(req);
                 });
             }
         };
-        
+
         requirejs.define = define;
 
         module.exports = requirejs;

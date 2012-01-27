@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.4+ 201226 5:50pm Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.4+ Fri, 27 Jan 2012 19:51:03 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.4+ 201226 5:50pm',
+        version = '1.0.4+ Fri, 27 Jan 2012 19:51:03 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -8987,13 +8987,17 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
 
             absFilePath = config.baseUrl = file.absPath(file.parent(buildFile));
-            config.dir = config.baseUrl + "/build/";
 
             //Load build file options.
             buildFileContents = file.readFile(buildFile);
             try {
                 buildFileConfig = eval("(" + buildFileContents + ")");
                 build.makeAbsConfig(buildFileConfig, absFilePath);
+
+                if (!buildFileConfig.out && !buildFileConfig.dir) {
+                    buildFileConfig.dir = (buildFileConfig.baseUrl || config.baseUrl) + "/build/";
+                }
+
             } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
             }
@@ -9041,6 +9045,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
         if (!config.out && !config.dir) {
             throw new Error('Missing either an "out" or "dir" config value.');
+        }
+        if (config.out && config.dir) {
+            throw new Error('The "out" and "dir" options are incompatible.' +
+                            ' Use "out" if you are targeting a single file for' +
+                            ' for optimization, and "dir" if you want the appDir' +
+                            ' or baseUrl directories optimized.');
         }
 
         if (config.out && !config.cssIn) {
@@ -9463,13 +9473,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 var req = requirejs({
                     context: contextName
                 });
-                
+
                 req(['build'], function () {
                     callback(req);
                 });
             }
         };
-        
+
         requirejs.define = define;
 
         module.exports = requirejs;
