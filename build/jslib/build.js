@@ -648,13 +648,17 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
 
             absFilePath = config.baseUrl = file.absPath(file.parent(buildFile));
-            config.dir = config.baseUrl + "/build/";
 
             //Load build file options.
             buildFileContents = file.readFile(buildFile);
             try {
                 buildFileConfig = eval("(" + buildFileContents + ")");
                 build.makeAbsConfig(buildFileConfig, absFilePath);
+
+                if (!buildFileConfig.out && !buildFileConfig.dir) {
+                    buildFileConfig.dir = (buildFileConfig.baseUrl || config.baseUrl) + "/build/";
+                }
+
             } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
             }
@@ -702,6 +706,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
         if (!config.out && !config.dir) {
             throw new Error('Missing either an "out" or "dir" config value.');
+        }
+        if (config.out && config.dir) {
+            throw new Error('The "out" and "dir" options are incompatible.' +
+                            ' Use "out" if you are targeting a single file for' +
+                            ' for optimization, and "dir" if you want the appDir' +
+                            ' or baseUrl directories optimized.');
         }
 
         if (config.out && !config.cssIn) {
