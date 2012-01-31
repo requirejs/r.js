@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.5+ Tue, 31 Jan 2012 22:20:41 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.5+ Tue, 31 Jan 2012 23:00:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.5+ Tue, 31 Jan 2012 22:20:41 GMT',
+        version = '1.0.5+ Tue, 31 Jan 2012 23:00:34 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -7002,7 +7002,7 @@ define('parse', ['./uglifyjs/index'], function (uglify) {
      * @returns {Array} an array of dependency strings. The dependencies
      * have not been normalized, they may be relative IDs.
      */
-    parse.findDependencies = function (fileName, fileContents) {
+    parse.findDependencies = function (fileName, fileContents, options) {
         //This is a litle bit inefficient, it ends up with two uglifyjs parser
         //calls. Can revisit later, but trying to build out larger functional
         //pieces first.
@@ -7019,6 +7019,46 @@ define('parse', ['./uglifyjs/index'], function (uglify) {
             if ((deps = getValidDeps(deps))) {
                 dependencies = dependencies.concat(deps);
             }
+        }, options);
+
+        return dependencies;
+    };
+
+    /**
+     * Finds only CJS dependencies, ones that are the form require('stringLiteral')
+     */
+    parse.findCjsDependencies = function (fileName, fileContents, options) {
+        //This is a litle bit inefficient, it ends up with two uglifyjs parser
+        //calls. Can revisit later, but trying to build out larger functional
+        //pieces first.
+        var dependencies = [],
+            astRoot = parser.parse(fileContents);
+
+        parse.recurse(astRoot, function (dep) {
+            dependencies.push(dep);
+        }, options, function (node, onMatch) {
+
+            var call, args;
+
+            if (!isArray(node)) {
+                return false;
+            }
+
+            if (node[0] === 'call') {
+                call = node[1];
+                args = node[2];
+
+                if (call) {
+                    //A require('') use.
+                    if (call[0] === 'name' && call[1] === 'require' &&
+                        args[0][0] === 'string') {
+                        return onMatch(args[0][1]);
+                    }
+                }
+            }
+
+            return false;
+
         });
 
         return dependencies;
