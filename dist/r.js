@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.5+ Tue, 31 Jan 2012 00:44:16 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.5+ Tue, 31 Jan 2012 22:20:41 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.5+ Tue, 31 Jan 2012 00:44:16 GMT',
+        version = '1.0.5+ Tue, 31 Jan 2012 22:20:41 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -6577,7 +6577,7 @@ module.exports = uglify
 /*jslint plusplus: false, strict: false */
 /*global define: false */
 
-define('parse', ['uglifyjs/index'], function (uglify) {
+define('parse', ['./uglifyjs/index'], function (uglify) {
     var parser = uglify.parser,
         processor = uglify.uglify,
         ostring = Object.prototype.toString,
@@ -7038,6 +7038,72 @@ define('parse', ['uglifyjs/index'], function (uglify) {
 
         return uses;
     };
+
+
+    /**
+     * Determines if require(''), exports.x =, module.exports =,
+     * __dirname, __filename are used. So, not strictly traditional CommonJS,
+     * also checks for Node variants.
+     */
+    parse.usesCommonJs = function (fileName, fileContents, options) {
+        var uses = null,
+            assignsExports = false,
+            astRoot = parser.parse(fileContents);
+
+        parse.recurse(astRoot, function (prop) {
+            if (prop === 'varExports') {
+                assignsExports = true;
+            } else if (prop !== 'exports' || !assignsExports) {
+                if (!uses) {
+                    uses = {};
+                }
+                uses[prop] = true;
+            }
+        }, options, function (node, onMatch) {
+
+            var call, args;
+
+            if (!isArray(node)) {
+                return false;
+            }
+
+            if (node[0] === 'name' && (node[1] === '__dirname' || node[1] === '__filename')) {
+                return onMatch(node[1].substring(2));
+            } else if (node[0] === 'var' && node[1] && node[1][0] && node[1][0][0] === 'exports') {
+                //Hmm, a variable assignment for exports, so does not use cjs exports.
+                return onMatch('varExports');
+            } else if (node[0] === 'assign' && node[2][0] === 'dot') {
+                args = node[2][1];
+
+                if (args) {
+                    //An exports or module.exports assignment.
+                    if (args[0] === 'name' && args[1] === 'module' &&
+                        node[2][2] === 'exports') {
+                        return onMatch('moduleExports');
+                    } else if (args[0] === 'name' && args[1] === 'exports') {
+                        return onMatch('exports');
+                    }
+                }
+            } else if (node[0] === 'call') {
+                call = node[1];
+                args = node[2];
+
+                if (call) {
+                    //A require('') use.
+                    if (call[0] === 'name' && call[1] === 'require' &&
+                        args[0][0] === 'string') {
+                        return onMatch('require');
+                    }
+                }
+            }
+
+            return false;
+
+        });
+
+        return uses;
+    };
+
 
     parse.findRequireDepNames = function (node, deps) {
         var moduleName, i, n, call, args;
