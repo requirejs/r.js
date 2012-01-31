@@ -7,7 +7,7 @@
 /*jslint plusplus: false, strict: false */
 /*global define: false */
 
-define(['uglifyjs/index'], function (uglify) {
+define(['./uglifyjs/index'], function (uglify) {
     var parser = uglify.parser,
         processor = uglify.uglify,
         ostring = Object.prototype.toString,
@@ -468,6 +468,69 @@ define(['uglifyjs/index'], function (uglify) {
 
         return uses;
     };
+
+
+    /**
+     * Determines if require(''), exports.x =, and/or module.exports =
+     * are used.
+     */
+    parse.usesCommonJs = function (fileName, fileContents, options) {
+        var uses = null,
+            assignsExports = false,
+            astRoot = parser.parse(fileContents);
+
+        parse.recurse(astRoot, function (prop) {
+            if (prop === 'varExports') {
+                assignsExports = true;
+            } else if (prop !== 'exports' || !assignsExports) {
+                if (!uses) {
+                    uses = {};
+                }
+                uses[prop] = true;
+            }
+        }, options, function (node, onMatch) {
+
+            var call, configNode, args;
+
+            if (!isArray(node)) {
+                return false;
+            }
+
+            if (node[0] === 'var' && node[1] && node[1][0] && node[1][0][0] === 'exports') {
+                //Hmm, a variable assignment for exports, so does not use cjs exports.
+                return onMatch('varExports');
+            } else if (node[0] === 'assign' && node[2][0] === 'dot') {
+                args = node[2][1];
+
+                if (args) {
+                    //An exports or module.exports assignment.
+                    if (args[0] === 'name' && args[1] === 'module' &&
+                        node[2][2] === 'exports') {
+                        return onMatch('moduleExports');
+                    } else if (args[0] === 'name' && args[1] === 'exports') {
+                        return onMatch('exports');
+                    }
+                }
+            } else if (node[0] === 'call') {
+                call = node[1];
+                args = node[2];
+
+                if (call) {
+                    //A require('') use.
+                    if (call[0] === 'name' && call[1] === 'require' &&
+                        args[0][0] === 'string') {
+                        return onMatch('require');
+                    }
+                }
+            }
+
+            return false;
+
+        });
+
+        return uses;
+    };
+
 
     parse.findRequireDepNames = function (node, deps) {
         var moduleName, i, n, call, args;

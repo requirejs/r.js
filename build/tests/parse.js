@@ -122,7 +122,6 @@ define(['parse', 'env!env/file'], function (parse, file) {
     );
     doh.run();
 
-
     doh.register('parseUsesAmdOrRequireJs',
         [
             function parseUsesAmdOrRequireJs(t) {
@@ -140,10 +139,10 @@ define(['parse', 'env!env/file'], function (parse, file) {
                 t.is(true, parse.usesAmdOrRequireJs("good1", good1));
                 t.is(true, parse.usesAmdOrRequireJs("good2", good2));
                 t.is(true, parse.usesAmdOrRequireJs("good3", good3));
-                t.is(true, parse.usesAmdOrRequireJs("good4", good3));
-                t.is(true, parse.usesAmdOrRequireJs("good5", good3));
-                t.is(true, parse.usesAmdOrRequireJs("good6", good3));
-                t.is(true, parse.usesAmdOrRequireJs("good7", good3));
+                t.is(true, parse.usesAmdOrRequireJs("good4", good4));
+                t.is(true, parse.usesAmdOrRequireJs("good5", good5));
+                t.is(true, parse.usesAmdOrRequireJs("good6", good6));
+                t.is(true, parse.usesAmdOrRequireJs("good7", good7));
                 t.is(false, parse.usesAmdOrRequireJs("bad1", bad1));
                 t.is(false, parse.usesAmdOrRequireJs("bad2", bad2));
             }
@@ -151,4 +150,35 @@ define(['parse', 'env!env/file'], function (parse, file) {
     );
     doh.run();
 
+    doh.register('parseUsesCommonJs',
+        [
+            function parseUsesCommonJs(t) {
+                var good1 = "var dep = require('dep');",
+                    good2 = "something(); exports.foo = another();",
+                    good3 = "(function () { module.exports = function () {}; }());",
+                    good4 = "var a = require('a'); something(); exports.b = a;",
+
+                    bad1 = "(function(){ if (typeof define === 'function' && define.amd) { define(['some'], function (some) {}) } }());",
+                    bad2 = "require(['something']);",
+                    bad3 = "var exports; exports.foo = 'bar';",
+                    bad4 = "var exports = function () {};",
+                    result;
+
+                t.is(true, parse.usesCommonJs("good1", good1).require);
+                t.is(true, parse.usesCommonJs("good2", good2).exports);
+                t.is(true, parse.usesCommonJs("good3", good3).moduleExports);
+
+                result = parse.usesCommonJs("good4", good4);
+                t.is(true, result.require);
+                t.is(true, result.exports);
+                t.is(false, !!result.moduleExports);
+
+                t.is(null, parse.usesCommonJs("bad1", bad1));
+                t.is(null, parse.usesCommonJs("bad2", bad2));
+                t.is(null, parse.usesCommonJs("bad3", bad3));
+                t.is(null, parse.usesCommonJs("bad4", bad4));
+            }
+        ]
+    );
+    doh.run();
 });
