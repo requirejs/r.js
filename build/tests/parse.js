@@ -157,6 +157,8 @@ define(['parse', 'env!env/file'], function (parse, file) {
                     good2 = "something(); exports.foo = another();",
                     good3 = "(function () { module.exports = function () {}; }());",
                     good4 = "var a = require('a'); something(); exports.b = a;",
+                    good5 = "exports.foo = function () { return something(__dirname); };",
+                    good6 = "var foo = 'bar', path = __filename;",
 
                     bad1 = "(function(){ if (typeof define === 'function' && define.amd) { define(['some'], function (some) {}) } }());",
                     bad2 = "require(['something']);",
@@ -172,6 +174,17 @@ define(['parse', 'env!env/file'], function (parse, file) {
                 t.is(true, result.require);
                 t.is(true, result.exports);
                 t.is(false, !!result.moduleExports);
+
+                result = parse.usesCommonJs("good5", good5);
+                t.is(false, !!result.require);
+                t.is(true, result.exports);
+                t.is(true, result.dirname);
+
+                result = parse.usesCommonJs("good6", good6);
+                t.is(true, result.filename);
+                t.is(false, !!result.exports);
+                t.is(false, !!result.moduleExports);
+
 
                 t.is(null, parse.usesCommonJs("bad1", bad1));
                 t.is(null, parse.usesCommonJs("bad2", bad2));

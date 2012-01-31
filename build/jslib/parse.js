@@ -471,8 +471,9 @@ define(['./uglifyjs/index'], function (uglify) {
 
 
     /**
-     * Determines if require(''), exports.x =, and/or module.exports =
-     * are used.
+     * Determines if require(''), exports.x =, module.exports =,
+     * __dirname, __filename are used. So, not strictly traditional CommonJS,
+     * also checks for Node variants.
      */
     parse.usesCommonJs = function (fileName, fileContents, options) {
         var uses = null,
@@ -490,13 +491,15 @@ define(['./uglifyjs/index'], function (uglify) {
             }
         }, options, function (node, onMatch) {
 
-            var call, configNode, args;
+            var call, args;
 
             if (!isArray(node)) {
                 return false;
             }
 
-            if (node[0] === 'var' && node[1] && node[1][0] && node[1][0][0] === 'exports') {
+            if (node[0] === 'name' && (node[1] === '__dirname' || node[1] === '__filename')) {
+                return onMatch(node[1].substring(2));
+            } else if (node[0] === 'var' && node[1] && node[1][0] && node[1][0][0] === 'exports') {
                 //Hmm, a variable assignment for exports, so does not use cjs exports.
                 return onMatch('varExports');
             } else if (node[0] === 'assign' && node[2][0] === 'dot') {
