@@ -194,4 +194,27 @@ define(['parse', 'env!env/file'], function (parse, file) {
         ]
     );
     doh.run();
+
+
+    doh.register('parseFindCjsDependencies',
+        [
+            function parseFindCjsDependencies(t) {
+                var good1 = "var dep = require('dep'), dep2 = require('./some/thing');",
+
+                    bad1 = "require(['something']);",
+                    bad2 = "var one; one = require('something/' + two);",
+                    bad3 = "var exports = function () { return require(someThing);};",
+                    result;
+
+                result = parse.findCjsDependencies("good1", good1);
+                t.is('dep', result[0]);
+                t.is('./some/thing', result[1]);
+
+                t.is(0, parse.findCjsDependencies("bad1", bad1).length);
+                t.is(0, parse.findCjsDependencies("bad2", bad2).length);
+                t.is(0, parse.findCjsDependencies("bad3", bad3).length);
+            }
+        ]
+    );
+    doh.run();
 });

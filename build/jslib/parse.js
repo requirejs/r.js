@@ -432,7 +432,7 @@ define(['./uglifyjs/index'], function (uglify) {
      * @returns {Array} an array of dependency strings. The dependencies
      * have not been normalized, they may be relative IDs.
      */
-    parse.findDependencies = function (fileName, fileContents) {
+    parse.findDependencies = function (fileName, fileContents, options) {
         //This is a litle bit inefficient, it ends up with two uglifyjs parser
         //calls. Can revisit later, but trying to build out larger functional
         //pieces first.
@@ -449,6 +449,46 @@ define(['./uglifyjs/index'], function (uglify) {
             if ((deps = getValidDeps(deps))) {
                 dependencies = dependencies.concat(deps);
             }
+        }, options);
+
+        return dependencies;
+    };
+
+    /**
+     * Finds only CJS dependencies, ones that are the form require('stringLiteral')
+     */
+    parse.findCjsDependencies = function (fileName, fileContents, options) {
+        //This is a litle bit inefficient, it ends up with two uglifyjs parser
+        //calls. Can revisit later, but trying to build out larger functional
+        //pieces first.
+        var dependencies = [],
+            astRoot = parser.parse(fileContents);
+
+        parse.recurse(astRoot, function (dep) {
+            dependencies.push(dep);
+        }, options, function (node, onMatch) {
+
+            var call, args;
+
+            if (!isArray(node)) {
+                return false;
+            }
+
+            if (node[0] === 'call') {
+                call = node[1];
+                args = node[2];
+
+                if (call) {
+                    //A require('') use.
+                    if (call[0] === 'name' && call[1] === 'require' &&
+                        args[0][0] === 'string') {
+                        return onMatch(args[0][1]);
+                    }
+                }
+            }
+
+            return false;
+
         });
 
         return dependencies;
