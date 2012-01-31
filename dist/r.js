@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.5 Tue, 31 Jan 2012 00:43:16 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.5',
+        version = '1.0.5 Tue, 31 Jan 2012 00:43:16 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -7024,6 +7024,21 @@ define('parse', ['uglifyjs/index'], function (uglify) {
         return dependencies;
     };
 
+    /**
+     * Determines if define(), require({}|[]) or requirejs was called in the
+     * file.
+     */
+    parse.usesAmdOrRequireJs = function (fileName, fileContents, options) {
+        var uses = false,
+            astRoot = parser.parse(fileContents);
+
+        parse.recurse(astRoot, function (callName, config, name, deps) {
+            return (uses = true);
+        }, options, parse.findAmdOrRequireJsNode);
+
+        return uses;
+    };
+
     parse.findRequireDepNames = function (node, deps) {
         var moduleName, i, n, call, args;
 
@@ -7181,6 +7196,50 @@ define('parse', ['uglifyjs/index'], function (uglify) {
         return false;
     };
 
+    /**
+     * Looks for define(), require({} || []), requirejs({} || []) calls.
+     */
+    parse.findAmdOrRequireJsNode = function (node, onMatch) {
+        var call, configNode, args;
+
+        if (!isArray(node)) {
+            return false;
+        }
+
+        if (node[0] === 'call') {
+            call = node[1];
+            args = node[2];
+
+            if (call) {
+                //A require.config() or requirejs.config() call.
+                if ((call[0] === 'dot' &&
+                   (call[1] && call[1][0] === 'name' &&
+                    (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
+                   call[2] === 'config') ||
+
+                   //A require() or requirejs() config call.
+                   (call[0] === 'name' &&
+                   (call[1] === 'require' || call[1] === 'requirejs')) ||
+
+                   //A define call.
+                   (call[0] === 'name' && call[1] === 'define')
+                ) {
+                    //It is a plain require() call.
+                    configNode = args[0];
+
+                    //Is a define call or the first arg is a config object
+                    //or an array of dependencies.
+                    if (call[1] === 'define' || configNode[0] === 'object' ||
+                        configNode[0] === 'array') {
+                        return onMatch(configNode);
+                    }
+
+                }
+            }
+        }
+
+        return false;
+    };
 
     /**
      * Determines if a specific node is a valid require/requirejs config

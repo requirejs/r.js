@@ -122,4 +122,33 @@ define(['parse', 'env!env/file'], function (parse, file) {
     );
     doh.run();
 
+
+    doh.register('parseUsesAmdOrRequireJs',
+        [
+            function parseUsesAmdOrRequireJs(t) {
+                var good1 = "(function(){ if (typeof define === 'function' && define.amd) { define(['some'], function (some) {}) } }());",
+                    good2 = "(function(){ if (typeof define === 'function' && define.amd) { define(definition); } }());",
+                    good3 = "require({ baseUrl: 'scripts' }, ['main']);",
+                    good4 = "requirejs({ baseUrl: 'scripts' }, ['main']);",
+                    good5 = "require.config({ baseUrl: 'scripts' });",
+                    good6 = "require(['something']);",
+                    good7 = "requirejs(['something'], function (something){});",
+
+                    bad1 = "var dep = require('dep');",
+                    bad2 = "this.define('some', 'thing');";
+
+                t.is(true, parse.usesAmdOrRequireJs("good1", good1));
+                t.is(true, parse.usesAmdOrRequireJs("good2", good2));
+                t.is(true, parse.usesAmdOrRequireJs("good3", good3));
+                t.is(true, parse.usesAmdOrRequireJs("good4", good3));
+                t.is(true, parse.usesAmdOrRequireJs("good5", good3));
+                t.is(true, parse.usesAmdOrRequireJs("good6", good3));
+                t.is(true, parse.usesAmdOrRequireJs("good7", good3));
+                t.is(false, parse.usesAmdOrRequireJs("bad1", bad1));
+                t.is(false, parse.usesAmdOrRequireJs("bad2", bad2));
+            }
+        ]
+    );
+    doh.run();
+
 });
