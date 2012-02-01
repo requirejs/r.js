@@ -134,7 +134,11 @@ define(['parse', 'env!env/file'], function (parse, file) {
                     good7 = "requirejs(['something'], function (something){});",
 
                     bad1 = "var dep = require('dep');",
-                    bad2 = "this.define('some', 'thing');";
+                    bad2 = "this.define('some', 'thing');",
+
+                    //Some tests from uglifyjs, which has a local define.
+                    bad3 = "var obj = { define: function () {} };",
+                    bad4 = "(function() {define(name, 'whatever'); function define() { } }());";
 
                 t.is(true, parse.usesAmdOrRequireJs("good1", good1));
                 t.is(true, parse.usesAmdOrRequireJs("good2", good2));
@@ -145,6 +149,9 @@ define(['parse', 'env!env/file'], function (parse, file) {
                 t.is(true, parse.usesAmdOrRequireJs("good7", good7));
                 t.is(false, parse.usesAmdOrRequireJs("bad1", bad1));
                 t.is(false, parse.usesAmdOrRequireJs("bad2", bad2));
+
+                t.is(false, parse.usesAmdOrRequireJs("bad3", bad3));
+                t.is(false, parse.usesAmdOrRequireJs("bad4", bad4));
             }
         ]
     );
