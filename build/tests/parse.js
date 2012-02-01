@@ -138,20 +138,31 @@ define(['parse', 'env!env/file'], function (parse, file) {
 
                     //Some tests from uglifyjs, which has a local define.
                     bad3 = "var obj = { define: function () {} };",
-                    bad4 = "(function() {define(name, 'whatever'); function define() { } }());";
+                    bad4 = "(function() {define(name, 'whatever'); function define() { } }());",
+                    bad5 = "(function() {define(name, 'whatever'); function define() { } define.amd = {} }());",
+                    result;
 
-                t.is(true, parse.usesAmdOrRequireJs("good1", good1));
-                t.is(true, parse.usesAmdOrRequireJs("good2", good2));
-                t.is(true, parse.usesAmdOrRequireJs("good3", good3));
-                t.is(true, parse.usesAmdOrRequireJs("good4", good4));
-                t.is(true, parse.usesAmdOrRequireJs("good5", good5));
-                t.is(true, parse.usesAmdOrRequireJs("good6", good6));
-                t.is(true, parse.usesAmdOrRequireJs("good7", good7));
-                t.is(false, parse.usesAmdOrRequireJs("bad1", bad1));
-                t.is(false, parse.usesAmdOrRequireJs("bad2", bad2));
+                t.is(true, parse.usesAmdOrRequireJs("good1", good1).define);
+                t.is(true, parse.usesAmdOrRequireJs("good2", good2).define);
+                t.is(true, parse.usesAmdOrRequireJs("good3", good3).require);
+                t.is(true, parse.usesAmdOrRequireJs("good4", good4).requirejs);
+                t.is(true, parse.usesAmdOrRequireJs("good5", good5).requireConfig);
+                t.is(true, parse.usesAmdOrRequireJs("good6", good6).require);
+                t.is(true, parse.usesAmdOrRequireJs("good7", good7).requirejs);
+                t.is(false, !!parse.usesAmdOrRequireJs("bad1", bad1));
+                t.is(false, !!parse.usesAmdOrRequireJs("bad2", bad2));
 
-                t.is(false, parse.usesAmdOrRequireJs("bad3", bad3));
-                t.is(false, parse.usesAmdOrRequireJs("bad4", bad4));
+                t.is(false, !!parse.usesAmdOrRequireJs("bad3", bad3));
+
+                result = parse.usesAmdOrRequireJs("bad4", bad4);
+                t.is(true, result.define);
+                t.is(true, result.declaresDefine);
+                t.is(false, !!result.defineAmd);
+
+                result = parse.usesAmdOrRequireJs("bad5", bad5);
+                t.is(true, result.define);
+                t.is(true, result.declaresDefine);
+                t.is(true, result.defineAmd);
             }
         ]
     );
