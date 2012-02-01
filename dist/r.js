@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.5+ Wed, 01 Feb 2012 00:50:21 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.5+ Wed, 01 Feb 2012 01:32:55 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.5+ Wed, 01 Feb 2012 00:50:21 GMT',
+        version = '1.0.5+ Wed, 01 Feb 2012 01:32:55 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -7066,35 +7066,21 @@ define('parse', ['./uglifyjs/index'], function (uglify) {
 
     /**
      * Determines if define(), require({}|[]) or requirejs was called in the
-     * file. If the file declares a function define() {}, then the define() usage
-     * in the file does not count as AMD usage.
+     * file. Also finds out if define() is declared and if define.amd is called.
      */
     parse.usesAmdOrRequireJs = function (fileName, fileContents, options) {
-        var uses = false,
-            usesDefine = false,
-            declaresDefine = false,
-            astRoot = parser.parse(fileContents);
+        var astRoot = parser.parse(fileContents),
+            uses;
 
-        parse.recurse(astRoot, function (type) {
-            if (type === 'define') {
-                usesDefine = true;
-            } else if (type === 'declaresDefine') {
-                declaresDefine = true;
-            } else {
-                return (uses = true);
+        parse.recurse(astRoot, function (prop) {
+            if (!uses) {
+                uses = {};
             }
-            return false;
+            uses[prop] = true;
         }, options, parse.findAmdOrRequireJsNode);
-
-        //If define was used, but define was not declared, then
-        //considered true.
-        if (usesDefine && !declaresDefine) {
-            uses = true;
-        }
 
         return uses;
     };
-
 
     /**
      * Determines if require(''), exports.x =, module.exports =,
@@ -7128,7 +7114,7 @@ define('parse', ['./uglifyjs/index'], function (uglify) {
             } else if (node[0] === 'var' && node[1] && node[1][0] && node[1][0][0] === 'exports') {
                 //Hmm, a variable assignment for exports, so does not use cjs exports.
                 return onMatch('varExports');
-            } else if (node[0] === 'assign' && node[2][0] === 'dot') {
+            } else if (node[0] === 'assign' && node[2] && node[2][0] === 'dot') {
                 args = node[2][1];
 
                 if (args) {
@@ -7330,6 +7316,10 @@ define('parse', ['./uglifyjs/index'], function (uglify) {
 
         if (node[0] === 'defun' && node[1] === 'define') {
             type = 'declaresDefine';
+        } else if (node[0] === 'assign' && node[2] && node[2][2] === 'amd' &&
+            node[2][1] && node[2][1][0] === 'name' &&
+            node[2][1][1] === 'define') {
+            type = 'defineAmd';
         } else if (node[0] === 'call') {
             call = node[1];
             args = node[2];
@@ -7340,7 +7330,7 @@ define('parse', ['./uglifyjs/index'], function (uglify) {
                     (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
                    call[2] === 'config')) {
                     //A require.config() or requirejs.config() call.
-                    type = call[1][1] + '.config';
+                    type = call[1][1] + 'Config';
                 } else if (call[0] === 'name' &&
                    (call[1] === 'require' || call[1] === 'requirejs')) {
                     //A require() or requirejs() config call.
