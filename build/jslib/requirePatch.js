@@ -25,7 +25,7 @@ function (file,           pragma,   parse) {
         allowRun = false;
 
         var layer,
-            pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
+            pluginBuilderRegExp = /(\[?["']?)plugin(B|\-b)uilder(["']?\]?)\s*[=\:]\s*["']([^'"\s]+)["']/,
             oldDef;
 
 
@@ -182,7 +182,7 @@ function (file,           pragma,   parse) {
                             pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
                             if (pluginBuilderMatch) {
                                 //Load the plugin builder for the plugin contents.
-                                builderName = context.normalize(pluginBuilderMatch[3], moduleName);
+                                builderName = context.normalize(pluginBuilderMatch[4], moduleName);
                                 contents = file.readFile(context.nameToUrl(builderName));
                             }
                         }
