@@ -593,4 +593,37 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("onBuildRead",
+        [
+            function onBuildRead(t) {
+                file.deleteFile("lib/onBuildRead/main-built.js");
+
+                build(["lib/onBuildRead/build.js"]);
+
+                t.is(nol(c("lib/onBuildRead/expected.js")),
+                     nol(c("lib/onBuildRead/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("onBuildWrite",
+        [
+            function onBuildWrite(t) {
+                file.deleteFile("lib/onBuildWrite/main-built.js");
+
+                build(["lib/onBuildWrite/build.js"]);
+
+                t.is(nol(c("lib/onBuildWrite/expected.js")),
+                     nol(c("lib/onBuildWrite/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

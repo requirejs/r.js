@@ -11,6 +11,8 @@ build/tests/lib/dotpackage/built
 build/tests/lib/mainConfigFile/basic/main-built.js
 build/tests/lib/mainConfigFile/mergeConfig/main-built.js
 build/tests/lib/moduleThenPlugin/built.js
+build/tests/lib/onBuildRead/main-built.js
+build/tests/lib/onBuildWrite/main-built.js
 build/tests/lib/nameInsertion/built.js
 build/tests/lib/nested/main-built.js
 build/tests/lib/nested/main-builtWithCE.js

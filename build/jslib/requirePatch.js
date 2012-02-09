@@ -160,6 +160,12 @@ function (file,           pragma,   parse) {
                         //Load the file contents, process for conditionals, then
                         //evaluate it.
                         contents = file.readFile(url);
+
+                        //If there is a read filter, run it now.
+                        if (context.config.onBuildRead) {
+                            contents = context.config.onBuildRead(moduleName, url, contents);
+                        }
+
                         contents = pragma.process(url, contents, context.config, 'OnExecute');
 
                         //Find out if the file contains a require() definition. Need to know

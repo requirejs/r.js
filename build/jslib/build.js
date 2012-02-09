@@ -944,22 +944,36 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (builder.write) {
                     writeApi = function (input) {
                         fileContents += "\n" + addSemiColon(input);
+                        if (config.onBuildWrite) {
+                            fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                        }
                     };
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
                                         addSemiColon(
                                             build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer));
+                        if (config.onBuildWrite) {
+                            fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                        }
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
                 currContents = file.readFile(path);
 
+                if (config.onBuildRead) {
+                    currContents = config.onBuildRead(moduleName, path, currContents);
+                }
+
                 if (config.namespace) {
                     currContents = pragma.namespace(currContents, config.namespace);
                 }
 
                 currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
+
+                if (config.onBuildWrite) {
+                    currContents = config.onBuildWrite(moduleName, path, currContents);
+                }
 
                 //Semicolon is for files that are not well formed when
                 //concatenated with other content.

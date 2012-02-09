@@ -315,5 +315,22 @@
     //at the top of the file that points to the list of all the licenses.
     //This option will turn off the auto-preservation, but you will need
     //work out how best to surface the license information.
-    preserveLicenseComments: true
+    preserveLicenseComments: true,
+
+    //A function that if defined will be called for every file read in the
+    //build that is done to trace JS dependencies. This allows transforms of
+    //the content.
+    onBuildRead: function (moduleName, path, contents) {
+        //Always return a value.
+        //This is just a contrived example.
+        return contents.replace(/foo/g, 'bar');
+    },
+
+    //A function that will be called for every write to an optimized bundle
+    //of modules. This allows transforms of the content before serialization.
+    onBuildWrite: function (moduleName, path, contents) {
+        //Always return a value.
+        //This is just a contrived example.
+        return contents.replace(/bar/g, 'foo');
+    }
 })
