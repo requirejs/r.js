@@ -4,7 +4,7 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, nomen: false, regexp: false, strict: false */
+/*jslint plusplus: false, nomen: false, regexp: false */
 /*global define: false */
 
 define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
@@ -148,10 +148,36 @@ function (lang,   logger,   envOptimize,        file,           parse,
             var parts = (config.optimize + "").split('.'),
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
-                licenseContents = '',
-                fileContents, optFunc, match, comment;
+                fileContents;
 
             fileContents = file.readFile(fileName);
+
+            fileContents = optimize.js(fileName, fileContents, optimizerName,
+                                       keepLines, config, pluginCollector);
+
+            file.saveUtf8File(outFileName, fileContents);
+        },
+
+        /**
+         * Optimizes a file that contains JavaScript content. Optionally collects
+         * plugin resources mentioned in a file, and then passes the content
+         * through an minifier if one is specified via config.optimize.
+         *
+         * @param {String} fileName the name of the file that matches the
+         * fileContents.
+         * @param {String} fileContents the string of JS to optimize.
+         * @param {String} [optimizerName] optional name of the optimizer to
+         * use. 'uglify' is default.
+         * @param {Boolean} [keepLines] whether to keep line returns in the optimization.
+         * @param {Object} [config] the build config object.
+         * @param {Array} [pluginCollector] storage for any plugin resources
+         * found.
+         */
+        js: function (fileName, fileContents, optimizerName, keepLines, config, pluginCollector) {
+            var licenseContents = '',
+                optFunc, match, comment;
+
+            config = config || {};
 
             //Apply pragmas/namespace renaming
             fileContents = pragma.process(fileName, fileContents, config, 'OnSave', pluginCollector);
@@ -182,7 +208,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                         config[optimizerName]);
             }
 
-            file.saveUtf8File(outFileName, fileContents);
+            return fileContents;
         },
 
         /**
