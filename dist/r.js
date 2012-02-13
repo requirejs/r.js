@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.5+ Mon, 13 Feb 2012 05:57:30 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.5+ Mon, 13 Feb 2012 07:35:37 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.5+ Mon, 13 Feb 2012 05:57:30 GMT',
+        version = '1.0.5+ Mon, 13 Feb 2012 07:35:37 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -7788,7 +7788,7 @@ define('rhino/optimize', ['logger'], function (logger) {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, nomen: false, regexp: false, strict: false */
+/*jslint plusplus: false, nomen: false, regexp: false */
 /*global define: false */
 
 define('optimize', [ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
@@ -7932,10 +7932,36 @@ function (lang,   logger,   envOptimize,        file,           parse,
             var parts = (config.optimize + "").split('.'),
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
-                licenseContents = '',
-                fileContents, optFunc, match, comment;
+                fileContents;
 
             fileContents = file.readFile(fileName);
+
+            fileContents = optimize.js(fileName, fileContents, optimizerName,
+                                       keepLines, config, pluginCollector);
+
+            file.saveUtf8File(outFileName, fileContents);
+        },
+
+        /**
+         * Optimizes a file that contains JavaScript content. Optionally collects
+         * plugin resources mentioned in a file, and then passes the content
+         * through an minifier if one is specified via config.optimize.
+         *
+         * @param {String} fileName the name of the file that matches the
+         * fileContents.
+         * @param {String} fileContents the string of JS to optimize.
+         * @param {String} [optimizerName] optional name of the optimizer to
+         * use. 'uglify' is default.
+         * @param {Boolean} [keepLines] whether to keep line returns in the optimization.
+         * @param {Object} [config] the build config object.
+         * @param {Array} [pluginCollector] storage for any plugin resources
+         * found.
+         */
+        js: function (fileName, fileContents, optimizerName, keepLines, config, pluginCollector) {
+            var licenseContents = '',
+                optFunc, match, comment;
+
+            config = config || {};
 
             //Apply pragmas/namespace renaming
             fileContents = pragma.process(fileName, fileContents, config, 'OnSave', pluginCollector);
@@ -7966,7 +7992,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                         config[optimizerName]);
             }
 
-            file.saveUtf8File(outFileName, fileContents);
+            return fileContents;
         },
 
         /**
@@ -8221,6 +8247,12 @@ function (file,           pragma,   parse) {
                         //Load the file contents, process for conditionals, then
                         //evaluate it.
                         contents = file.readFile(url);
+
+                        //If there is a read filter, run it now.
+                        if (context.config.onBuildRead) {
+                            contents = context.config.onBuildRead(moduleName, url, contents);
+                        }
+
                         contents = pragma.process(url, contents, context.config, 'OnExecute');
 
                         //Find out if the file contains a require() definition. Need to know
@@ -9467,22 +9499,36 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (builder.write) {
                     writeApi = function (input) {
                         fileContents += "\n" + addSemiColon(input);
+                        if (config.onBuildWrite) {
+                            fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                        }
                     };
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
                                         addSemiColon(
                                             build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer));
+                        if (config.onBuildWrite) {
+                            fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                        }
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
                 currContents = file.readFile(path);
 
+                if (config.onBuildRead) {
+                    currContents = config.onBuildRead(moduleName, path, currContents);
+                }
+
                 if (config.namespace) {
                     currContents = pragma.namespace(currContents, config.namespace);
                 }
 
                 currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
+
+                if (config.onBuildWrite) {
+                    currContents = config.onBuildWrite(moduleName, path, currContents);
+                }
 
                 //Semicolon is for files that are not well formed when
                 //concatenated with other content.
