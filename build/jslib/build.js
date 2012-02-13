@@ -4,14 +4,16 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint regexp: false, plusplus: false, nomen: false, strict: false  */
-/*global define: false, require: false */
+/*jslint plusplus: true, nomen: true  */
+/*global define, require */
 
 
 define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
          'env!env/load', 'requirePatch'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
           load,           requirePatch) {
+    'use strict';
+
     var build, buildBaseConfig,
         endsWithSemiColonRegExp = /;\s*$/;
 
@@ -532,7 +534,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * to the absFilePath passed in.
      */
     build.makeAbsConfig = function (config, absFilePath) {
-        var props, prop, i, originalBaseUrl;
+        var props, prop, i;
 
         props = ["appDir", "dir", "baseUrl"];
         for (i = 0; (prop = props[i]); i++) {
@@ -540,24 +542,17 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //Add abspath if necessary, make sure these paths end in
                 //slashes
                 if (prop === "baseUrl") {
-                    originalBaseUrl = config.baseUrl;
+                    config.originalBaseUrl = config.baseUrl;
                     if (config.appDir) {
                         //If baseUrl with an appDir, the baseUrl is relative to
                         //the appDir, *not* the absFilePath. appDir and dir are
                         //made absolute before baseUrl, so this will work.
-                        config.baseUrl = build.makeAbsPath(originalBaseUrl, config.appDir);
-                        //Set up dir output baseUrl.
-                        config.dirBaseUrl = build.makeAbsPath(originalBaseUrl, config.dir);
+                        config.baseUrl = build.makeAbsPath(config.originalBaseUrl, config.appDir);
                     } else {
                         //The dir output baseUrl is same as regular baseUrl, both
                         //relative to the absFilePath.
                         config.baseUrl = build.makeAbsPath(config[prop], absFilePath);
-                        config.dirBaseUrl = config.dir || config.baseUrl;
                     }
-
-                    //Make sure dirBaseUrl ends in a slash, since it is
-                    //concatenated with other strings.
-                    config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
                 } else {
                     config[prop] = build.makeAbsPath(config[prop], absFilePath);
                 }
@@ -630,12 +625,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         var config = {}, buildFileContents, buildFileConfig, mainConfig,
             mainConfigFile, prop, buildFile, absFilePath;
 
-        lang.mixin(config, buildBaseConfig);
-        lang.mixin(config, cfg, true);
-
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
-        build.makeAbsConfig(config, absFilePath);
+        build.makeAbsConfig(cfg, absFilePath);
+        build.makeAbsConfig(buildBaseConfig, absFilePath);
+
+        lang.mixin(config, buildBaseConfig);
+        lang.mixin(config, cfg, true);
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -696,6 +692,19 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Re-apply the override config values. Command line
         //args should take precedence over build file values.
         mixConfig(config, cfg);
+
+
+        //Set final output dir
+        if (config.hasOwnProperty("baseUrl")) {
+            if (config.appDir) {
+                config.dirBaseUrl = build.makeAbsPath(config.originalBaseUrl, config.dir);
+            } else {
+                config.dirBaseUrl = config.dir || config.baseUrl;
+            }
+            //Make sure dirBaseUrl ends in a slash, since it is
+            //concatenated with other strings.
+            config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
+        }
 
         //Check for errors in config
         if (config.cssIn && !config.out) {
