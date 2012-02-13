@@ -723,10 +723,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' or baseUrl directories optimized.');
         }
 
-        if (config.out && !config.cssIn) {
-            //Just one file to optimize.
-
-            //Set up dummy module layer to build.
+        if (config.name && !config.modules) {
+            //Just need to build one file, but may be part of a whole appDir/
+            //baseUrl copy, but specified on the command line, so cannot do
+            //the modules array setup. So create a modules section in that
+            //case.
             config.modules = [
                 {
                     name: config.name,
@@ -736,6 +737,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     excludeShallow: config.excludeShallow
                 }
             ];
+        }
+
+        if (config.out && !config.cssIn) {
+            //Just one file to optimize.
 
             //Does not have a build file, so set up some defaults.
             //Optimizing CSS should not be allowed, unless explicitly
