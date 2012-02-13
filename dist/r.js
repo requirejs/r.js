@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.5+ Wed, 01 Feb 2012 01:32:55 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.5+ Mon, 13 Feb 2012 05:57:30 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.5+ Wed, 01 Feb 2012 01:32:55 GMT',
+        version = '1.0.5+ Mon, 13 Feb 2012 05:57:30 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -102,7 +102,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.5+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -112,7 +112,7 @@ var requirejs, require, define;
 
 (function () {
     //Change this version number for each release.
-    var version = "1.0.5",
+    var version = "1.0.5+",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -1156,6 +1156,7 @@ var requirejs, require, define;
                 err = makeError("timeout", "Load timeout for modules: " + noLoads);
                 err.requireType = "timeout";
                 err.requireModules = noLoads;
+                err.contextName = context.contextName;
                 return req.onError(err);
             }
 
@@ -8512,14 +8513,16 @@ define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint regexp: false, plusplus: false, nomen: false, strict: false  */
-/*global define: false, require: false */
+/*jslint plusplus: true, nomen: true  */
+/*global define, require */
 
 
 define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
          'env!env/load', 'requirePatch'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
           load,           requirePatch) {
+    'use strict';
+
     var build, buildBaseConfig,
         endsWithSemiColonRegExp = /;\s*$/;
 
@@ -9040,7 +9043,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * to the absFilePath passed in.
      */
     build.makeAbsConfig = function (config, absFilePath) {
-        var props, prop, i, originalBaseUrl;
+        var props, prop, i;
 
         props = ["appDir", "dir", "baseUrl"];
         for (i = 0; (prop = props[i]); i++) {
@@ -9048,24 +9051,17 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //Add abspath if necessary, make sure these paths end in
                 //slashes
                 if (prop === "baseUrl") {
-                    originalBaseUrl = config.baseUrl;
+                    config.originalBaseUrl = config.baseUrl;
                     if (config.appDir) {
                         //If baseUrl with an appDir, the baseUrl is relative to
                         //the appDir, *not* the absFilePath. appDir and dir are
                         //made absolute before baseUrl, so this will work.
-                        config.baseUrl = build.makeAbsPath(originalBaseUrl, config.appDir);
-                        //Set up dir output baseUrl.
-                        config.dirBaseUrl = build.makeAbsPath(originalBaseUrl, config.dir);
+                        config.baseUrl = build.makeAbsPath(config.originalBaseUrl, config.appDir);
                     } else {
                         //The dir output baseUrl is same as regular baseUrl, both
                         //relative to the absFilePath.
                         config.baseUrl = build.makeAbsPath(config[prop], absFilePath);
-                        config.dirBaseUrl = config.dir || config.baseUrl;
                     }
-
-                    //Make sure dirBaseUrl ends in a slash, since it is
-                    //concatenated with other strings.
-                    config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
                 } else {
                     config[prop] = build.makeAbsPath(config[prop], absFilePath);
                 }
@@ -9138,12 +9134,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         var config = {}, buildFileContents, buildFileConfig, mainConfig,
             mainConfigFile, prop, buildFile, absFilePath;
 
-        lang.mixin(config, buildBaseConfig);
-        lang.mixin(config, cfg, true);
-
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
-        build.makeAbsConfig(config, absFilePath);
+        build.makeAbsConfig(cfg, absFilePath);
+        build.makeAbsConfig(buildBaseConfig, absFilePath);
+
+        lang.mixin(config, buildBaseConfig);
+        lang.mixin(config, cfg, true);
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -9205,6 +9202,19 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //args should take precedence over build file values.
         mixConfig(config, cfg);
 
+
+        //Set final output dir
+        if (config.hasOwnProperty("baseUrl")) {
+            if (config.appDir) {
+                config.dirBaseUrl = build.makeAbsPath(config.originalBaseUrl, config.dir);
+            } else {
+                config.dirBaseUrl = config.dir || config.baseUrl;
+            }
+            //Make sure dirBaseUrl ends in a slash, since it is
+            //concatenated with other strings.
+            config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
+        }
+
         //Check for errors in config
         if (config.cssIn && !config.out) {
             throw new Error("ERROR: 'out' option missing.");
@@ -9222,10 +9232,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' or baseUrl directories optimized.');
         }
 
-        if (config.out && !config.cssIn) {
-            //Just one file to optimize.
-
-            //Set up dummy module layer to build.
+        if (config.name && !config.modules) {
+            //Just need to build one file, but may be part of a whole appDir/
+            //baseUrl copy, but specified on the command line, so cannot do
+            //the modules array setup. So create a modules section in that
+            //case.
             config.modules = [
                 {
                     name: config.name,
@@ -9235,6 +9246,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     excludeShallow: config.excludeShallow
                 }
             ];
+        }
+
+        if (config.out && !config.cssIn) {
+            //Just one file to optimize.
 
             //Does not have a build file, so set up some defaults.
             //Optimizing CSS should not be allowed, unless explicitly

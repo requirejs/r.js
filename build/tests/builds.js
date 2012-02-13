@@ -127,6 +127,46 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("buildSimpleOverride",
+        [
+            function buildSimple(t) {
+                //Do the build
+                build(["simple.build.js", "dir=builds/simpleOverride"]);
+
+                t.is(nol(oneResult), nol(c("builds/simpleOverride/one.js")));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
+    doh.register("buildSimpleCommandLineName",
+        [
+            function buildSimpleCommandLineName(t) {
+                //Do the build
+                build([
+                    "baseUrl=../../../requirejs/tests",
+                    "optimize=none",
+                    "dir=builds/simpleCommandLineName",
+                    "name=one",
+                    "include=dimple"
+                ]);
+
+                t.is(nol(oneResult), nol(c("builds/simpleCommandLineName/one.js")));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
     doh.register("buildExcludeShallow",
         [
             function buildExcludeShallow(t) {
