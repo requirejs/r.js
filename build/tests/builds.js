@@ -299,6 +299,47 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("paths.valid",
+        [
+            function (t) {
+                try {
+                    build(["lib/paths/valid/build.js"]);
+                    t.is(nol(c("lib/paths/valid/expected.js")),
+                         nol(c("lib/paths/valid/built/main.js")));
+                }
+                finally {
+                    file.deleteFile("lib/paths/valid/built");
+                    require._buildReset();
+                }
+            }
+        ]
+    );
+    doh.run();
+
+    !function(tests) {
+        for (var i = 0; i < tests.length; ++i) {
+            var test = tests[i];
+            
+            doh.register("paths.invalid." + test,
+                [
+                    function (t) {
+                        try {
+                            build(["lib/paths/invalid/" + test + ".js"]);
+                        }
+                        catch (e) {
+                            t.t(e.message.indexOf('#pathnotsupported') >= 0);
+                        }
+                        finally {
+                            file.deleteFile("lib/paths/invalid/built");
+                            require._buildReset();
+                        }
+                    }
+                ]
+            );
+            doh.run();
+        }
+    }(["http-url", "https-url", "url-without-protocol"]);
+
     doh.register("preserveLicense",
         [
             function preserveLicense(t) {
