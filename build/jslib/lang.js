@@ -24,19 +24,35 @@ define(function () {
             return it && it instanceof RegExp;
         },
 
-        /**
-         * Simple function to mix in properties from source into target,
-         * but only if target does not already have a property of the same name.
-         */
-        mixin: function (target, source, override) {
-            //Use an empty object to avoid other bad JS code that modifies
-            //Object.prototype.
-            var empty = {}, prop;
-            for (prop in source) {
-                if (override || !(prop in target)) {
-                    target[prop] = source[prop];
+        _mixin: function(dest, source, override){
+            var name, s, empty = {};
+            for (name in source) {
+                // the (!(name in empty) || empty[name] !== s) condition avoids copying properties in "source"
+                // inherited from Object.prototype.     For example, if dest has a custom toString() method,
+                // don't overwrite it with the toString() method that source inherited from Object.prototype
+                s = source[name];
+                if((override || !(name in dest)) && (!(name in empty) || empty[name] !== s)) {
+                    dest[name] = s;
                 }
             }
+
+            return dest; // Object
+        },
+
+        mixin: function(dest, sources){
+            var parameters = Array.prototype.slice.call(arguments);
+            
+            if (!dest) { dest = {}; }
+            
+            var override;
+            if (parameters.length > 2 && typeof arguments[parameters.length-1] === 'boolean') {
+                override = parameters.pop();
+            }
+            
+            for (var i = 1, l = parameters.length; i < l; i++) {
+                lang._mixin(dest, parameters[i], override);
+            }
+            return dest; // Object
         },
 
         delegate: (function () {
