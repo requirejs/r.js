@@ -53,7 +53,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * sure to allow absolute paths on Windows, like C:\directory.
      */
     function disallowUrls(path) {
-        if (path.indexOf('://') !== -1 && path !== 'empty:') {
+        if ((path.indexOf('://') !== -1 || path.indexOf('//') === 0) && path !== 'empty:') {
             throw new Error('Path is not supported: ' + path +
                             '\nOptimizer can only handle' +
                             ' local paths. Download the locally if necessary' +

@@ -89,13 +89,13 @@ function (file,           pragma,   parse) {
          * @returns {Boolean}
          */
         require._isSupportedBuildUrl = function (url) {
-            //Ignore URLs with protocols or question marks, means either network
+            //Ignore URLs with protocols, hosts or question marks, means either network
             //access is needed to fetch it or it is too dynamic. Note that
             //on Windows, full paths are used for some urls, which include
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
             return url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
-                   url.indexOf('empty:') !== 0;
+                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0;
         };
 
         //Override define() to catch modules that just define an object, so that
@@ -134,15 +134,15 @@ function (file,           pragma,   parse) {
             /*jslint evil: true */
             var contents, pluginBuilderMatch, builderName;
 
-            //Adjust the URL if it was not transformed to use baseUrl.
-            url = normalizeUrlWithBase(context, moduleName, url);
-
             context.scriptCount += 1;
 
             //Only handle urls that can be inlined, so that means avoiding some
             //URLs like ones that require network access or may be too dynamic,
             //like JSONP
             if (require._isSupportedBuildUrl(url)) {
+                //Adjust the URL if it was not transformed to use baseUrl.
+                url = normalizeUrlWithBase(context, moduleName, url);
+                
                 //Save the module name to path  and path to module name mappings.
                 layer.buildPathMap[moduleName] = url;
                 layer.buildFileToModule[url] = moduleName;
