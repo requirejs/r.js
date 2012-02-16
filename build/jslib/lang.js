@@ -4,15 +4,17 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, strict: false */
-/*global define: false */
+/*jslint plusplus: true */
+/*global define */
 
 define(function () {
+    'use strict';
+
     var lang = {
         backSlashRegExp: /\\/g,
         ostring: Object.prototype.toString,
 
-        isArray: Array.isArray ? Array.isArray : function (it) {
+        isArray: Array.isArray || function (it) {
             return lang.ostring.call(it) === "[object Array]";
         },
 
@@ -25,31 +27,32 @@ define(function () {
         },
 
         _mixin: function(dest, source, override){
-            var name, s, empty = {};
+            var name;
             for (name in source) {
-                // the (!(name in empty) || empty[name] !== s) condition avoids copying properties in "source"
-                // inherited from Object.prototype.     For example, if dest has a custom toString() method,
-                // don't overwrite it with the toString() method that source inherited from Object.prototype
-                s = source[name];
-                if((override || !(name in dest)) && (!(name in empty) || empty[name] !== s)) {
-                    dest[name] = s;
+                if(source.hasOwnProperty(name)
+                    && (override || !dest.hasOwnProperty(name))) {
+                    dest[name] = source[name];
                 }
             }
 
             return dest; // Object
         },
 
-        mixin: function(dest, sources){
-            var parameters = Array.prototype.slice.call(arguments);
-            
+        /**
+         * mixin({}, obj1, obj2) is allowed. If the last argument is a boolean,
+         * then the source objects properties are force copied over to dest.
+         */
+        mixin: function(dest){
+            var parameters = Array.prototype.slice.call(arguments),
+                override, i, l;
+
             if (!dest) { dest = {}; }
-            
-            var override;
+
             if (parameters.length > 2 && typeof arguments[parameters.length-1] === 'boolean') {
                 override = parameters.pop();
             }
-            
-            for (var i = 1, l = parameters.length; i < l; i++) {
+
+            for (i = 1, l = parameters.length; i < l; i++) {
                 lang._mixin(dest, parameters[i], override);
             }
             return dest; // Object
