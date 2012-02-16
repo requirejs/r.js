@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.6 Mon, 13 Feb 2012 21:41:27 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.6+ Thu, 16 Feb 2012 22:18:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.6 Mon, 13 Feb 2012 21:41:27 GMT',
+        version = '1.0.6+ Thu, 16 Feb 2012 22:18:53 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2977,15 +2977,17 @@ define('rhino/file', function () {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, strict: false */
-/*global define: false */
+/*jslint plusplus: true */
+/*global define */
 
 define('lang', function () {
+    'use strict';
+
     var lang = {
         backSlashRegExp: /\\/g,
         ostring: Object.prototype.toString,
 
-        isArray: Array.isArray ? Array.isArray : function (it) {
+        isArray: Array.isArray || function (it) {
             return lang.ostring.call(it) === "[object Array]";
         },
 
@@ -2997,19 +2999,36 @@ define('lang', function () {
             return it && it instanceof RegExp;
         },
 
-        /**
-         * Simple function to mix in properties from source into target,
-         * but only if target does not already have a property of the same name.
-         */
-        mixin: function (target, source, override) {
-            //Use an empty object to avoid other bad JS code that modifies
-            //Object.prototype.
-            var empty = {}, prop;
-            for (prop in source) {
-                if (override || !(prop in target)) {
-                    target[prop] = source[prop];
+        _mixin: function(dest, source, override){
+            var name;
+            for (name in source) {
+                if(source.hasOwnProperty(name)
+                    && (override || !dest.hasOwnProperty(name))) {
+                    dest[name] = source[name];
                 }
             }
+
+            return dest; // Object
+        },
+
+        /**
+         * mixin({}, obj1, obj2) is allowed. If the last argument is a boolean,
+         * then the source objects properties are force copied over to dest.
+         */
+        mixin: function(dest){
+            var parameters = Array.prototype.slice.call(arguments),
+                override, i, l;
+
+            if (!dest) { dest = {}; }
+
+            if (parameters.length > 2 && typeof arguments[parameters.length-1] === 'boolean') {
+                override = parameters.pop();
+            }
+
+            for (i = 1, l = parameters.length; i < l; i++) {
+                lang._mixin(dest, parameters[i], override);
+            }
+            return dest; // Object
         },
 
         delegate: (function () {
@@ -8176,13 +8195,13 @@ function (file,           pragma,   parse) {
          * @returns {Boolean}
          */
         require._isSupportedBuildUrl = function (url) {
-            //Ignore URLs with protocols or question marks, means either network
+            //Ignore URLs with protocols, hosts or question marks, means either network
             //access is needed to fetch it or it is too dynamic. Note that
             //on Windows, full paths are used for some urls, which include
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
             return url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
-                   url.indexOf('empty:') !== 0;
+                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0;
         };
 
         //Override define() to catch modules that just define an object, so that
@@ -8221,15 +8240,15 @@ function (file,           pragma,   parse) {
             /*jslint evil: true */
             var contents, pluginBuilderMatch, builderName;
 
-            //Adjust the URL if it was not transformed to use baseUrl.
-            url = normalizeUrlWithBase(context, moduleName, url);
-
             context.scriptCount += 1;
 
             //Only handle urls that can be inlined, so that means avoiding some
             //URLs like ones that require network access or may be too dynamic,
             //like JSONP
             if (require._isSupportedBuildUrl(url)) {
+                //Adjust the URL if it was not transformed to use baseUrl.
+                url = normalizeUrlWithBase(context, moduleName, url);
+                
                 //Save the module name to path  and path to module name mappings.
                 layer.buildPathMap[moduleName] = url;
                 layer.buildFileToModule[url] = moduleName;
@@ -8594,7 +8613,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * sure to allow absolute paths on Windows, like C:\directory.
      */
     function disallowUrls(path) {
-        if (path.indexOf('://') !== -1 && path !== 'empty:') {
+        if ((path.indexOf('://') !== -1 || path.indexOf('//') === 0) && path !== 'empty:') {
             throw new Error('Path is not supported: ' + path +
                             '\nOptimizer can only handle' +
                             ' local paths. Download the locally if necessary' +
@@ -9139,12 +9158,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (typeof value === 'object' && value &&
                     !lang.isArray(value) && !lang.isFunction(value) &&
                     !lang.isRegExp(value)) {
-                    if (!target[prop]) {
-                        target[prop] = {};
-                    }
-                    lang.mixin(target[prop], source[prop], true);
+                    target[prop] = lang.mixin({}, target[prop], value, true);
                 } else {
-                    target[prop] = source[prop];
+                    target[prop] = value;
                 }
             }
         }
