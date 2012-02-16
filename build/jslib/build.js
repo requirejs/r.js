@@ -598,12 +598,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (typeof value === 'object' && value &&
                     !lang.isArray(value) && !lang.isFunction(value) &&
                     !lang.isRegExp(value)) {
-                    if (!target[prop]) {
-                        target[prop] = {};
-                    }
-                    lang.mixin(target[prop], source[prop], true);
+                    target[prop] = lang.mixin({}, target[prop], value, true);
                 } else {
-                    target[prop] = source[prop];
+                    target[prop] = value;
                 }
             }
         }
