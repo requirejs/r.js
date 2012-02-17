@@ -2,9 +2,25 @@
 body {
     background: blue url(../common/img/body.png) bottom center;
 }
+
+.relsub {
+    background-image: url(../../img/foo.png);
+}
+#nest {
+    background-image: url(../../img/bar.png);
+}
+
+
+
+
+
 nav {
     color: red;
     background-image: url(../nav.png);
+}
+
+#footer {
+    background-image: url(../../img/footer.png) repeat-x;
 }
 .sub {
     background: transparent url(../../img/sub.png);
