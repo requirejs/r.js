@@ -88,6 +88,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 //If no slash, so must be just a file name. Use empty string then.
                 importPath = (importEndIndex !== -1) ? importFileName.substring(0, importEndIndex + 1) : "";
 
+                //fix url() on relative import (#5)
+                importPath = importPath.replace(/^\.\//, '');
+
                 //Modify URL paths to match the path represented by this file.
                 importContents = importContents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
                     fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
