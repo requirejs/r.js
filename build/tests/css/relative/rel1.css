@@ -1,0 +1,3 @@
+/* tests issue #5 */
+@import url(./rel_sub.css);
+@import url("./nested/nest1.css");

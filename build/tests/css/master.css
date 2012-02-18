@@ -1,4 +1,5 @@
 @import url('common/common.css');
+@import url('relative/rel1.css');
 /**
  *
  * This is the master css file.
@@ -7,4 +8,8 @@
 nav {
     color: red;
     background-image: url("nav.png");
+}
+
+#footer {
+    background-image: url("../img/footer.png") repeat-x;
 }
