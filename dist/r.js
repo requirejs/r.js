@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.6+ Thu, 16 Feb 2012 22:18:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.6+ Sat, 18 Feb 2012 07:11:47 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.6+ Thu, 16 Feb 2012 22:18:53 GMT',
+        version = '1.0.6+ Sat, 18 Feb 2012 07:11:47 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -7891,6 +7891,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 //If no slash, so must be just a file name. Use empty string then.
                 importPath = (importEndIndex !== -1) ? importFileName.substring(0, importEndIndex + 1) : "";
 
+                //fix url() on relative import (#5)
+                importPath = importPath.replace(/^\.\//, '');
+
                 //Modify URL paths to match the path represented by this file.
                 importContents = importContents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
                     fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
@@ -8104,7 +8107,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
     };
 
     return optimize;
-});/**
+});
+/**
  * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
