@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.6+ Sat, 18 Feb 2012 07:11:47 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.6+ Mon, 20 Feb 2012 22:41:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.6+ Sat, 18 Feb 2012 07:11:47 GMT',
+        version = '1.0.6+ Mon, 20 Feb 2012 22:41:07 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -8727,8 +8727,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Adjust baseUrl if config.appDir is in play, and set up build output paths.
             buildPaths = {};
             if (config.appDir) {
-                //All the paths should be inside the appDir
-                buildPaths = paths;
+                //All the paths should be inside the appDir, so just adjust
+                //the paths to use the dirBaseUrl
+                for (prop in paths) {
+                    if (paths.hasOwnProperty(prop)) {
+                        buildPaths[prop] = paths[prop].replace(config.baseUrl, config.dirBaseUrl);
+                    }
+                }
             } else {
                 //If no appDir, then make sure to copy the other paths to this directory.
                 for (prop in paths) {
