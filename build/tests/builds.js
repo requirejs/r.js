@@ -1,7 +1,9 @@
-/*jslint plusplus: false, nomen: false, strict: false */
+/*jslint plusplus: true, nomen: true */
 /*global define: false, require: false, doh: false */
 
 define(['build', 'env!env/file'], function (build, file) {
+    'use strict';
+
     //Remove any old builds
     file.deleteFile("builds");
 
@@ -316,10 +318,8 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-    !function(tests) {
-        for (var i = 0; i < tests.length; ++i) {
-            var test = tests[i];
-            
+    (function (tests) {
+        function runTest(test) {
             doh.register("paths.invalid." + test,
                 [
                     function (t) {
@@ -338,7 +338,12 @@ define(['build', 'env!env/file'], function (build, file) {
             );
             doh.run();
         }
-    }(["http-url", "https-url", "url-without-protocol"]);
+
+        var i;
+        for (i = 0; i < tests.length; ++i) {
+            runTest(tests[i]);
+        }
+    }(["http-url", "https-url", "url-without-protocol"]));
 
     doh.register("preserveLicense",
         [
@@ -700,6 +705,29 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/onBuildWrite/expected.js")),
                      nol(c("lib/onBuildWrite/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("pristineSrc",
+        [
+            //Makes sure source locations are not overwritten by the
+            //normalization of paths to be absolute, when an appDir is
+            //in play.
+            function pristineSrc(t) {
+                file.deleteFile("lib/pristineSrc/built");
+
+                build(["lib/pristineSrc/build.js"]);
+
+                t.is(nol(c("lib/pristineSrc/expected-main.js")),
+                     nol(c("lib/pristineSrc/built/main.js")));
+
+                t.is(nol(c("lib/pristineSrc/expected-lib.js")),
+                     nol(c("lib/pristineSrc/built/vendor/lib.js")));
 
                 require._buildReset();
             }

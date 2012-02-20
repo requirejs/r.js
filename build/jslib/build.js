@@ -163,8 +163,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Adjust baseUrl if config.appDir is in play, and set up build output paths.
             buildPaths = {};
             if (config.appDir) {
-                //All the paths should be inside the appDir
-                buildPaths = paths;
+                //All the paths should be inside the appDir, so just adjust
+                //the paths to use the dirBaseUrl
+                for (prop in paths) {
+                    if (paths.hasOwnProperty(prop)) {
+                        buildPaths[prop] = paths[prop].replace(config.baseUrl, config.dirBaseUrl);
+                    }
+                }
             } else {
                 //If no appDir, then make sure to copy the other paths to this directory.
                 for (prop in paths) {
