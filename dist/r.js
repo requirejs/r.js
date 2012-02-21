@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.6+ Mon, 20 Feb 2012 22:41:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.6+ Tue, 21 Feb 2012 00:42:48 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.6+ Mon, 20 Feb 2012 22:41:07 GMT',
+        version = '1.0.6+ Tue, 21 Feb 2012 00:42:48 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -9602,7 +9602,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //define(\n//begin v1.x content
         //for a comment.
         return new RegExp('(^|[^\\.])(' + (namespace || '').replace(/\./g, '\\.') +
-                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|function|[\\w\\d_\\$]+\\s*\\)|\\{|["\']([^"\']+)["\'])(\\s*,\\s*f)?');
+                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|function|[\\w\\d_\\-\\$]+\\s*\\)|\\{|["\']([^"\']+)["\'])(\\s*,\\s*f)?');
     };
 
     build.leadingCommaRegExp = /^\s*,/;
