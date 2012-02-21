@@ -735,4 +735,21 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    doh.register("intDefine",
+        [
+            function intDefine(t) {
+                file.deleteFile("lib/intDefine/main-built.js");
+
+                build(["lib/intDefine/build.js"]);
+
+                t.is(nol(c("lib/intDefine/expected.js")),
+                     nol(c("lib/intDefine/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });
