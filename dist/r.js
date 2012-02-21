@@ -9263,6 +9263,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Set final output dir
         if (config.hasOwnProperty("baseUrl")) {
             if (config.appDir) {
+                if (!config.dir) {
+                    throw new Error("ERROR: 'appDir' option requires 'dir' to be set");
+                }
                 config.dirBaseUrl = build.makeAbsPath(config.originalBaseUrl, config.dir);
             } else {
                 config.dirBaseUrl = config.dir || config.baseUrl;
