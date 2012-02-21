@@ -1,4 +1,0 @@
-define({
-    id: 'util'
-});
-
