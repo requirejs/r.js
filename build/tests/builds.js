@@ -61,6 +61,23 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("buildOneJsFileOnlyInclude",
+        [
+            function buildOneJsFileOnlyInclude(t) {
+                build(["include=one,dimple", "out=builds/outSingleOnlyInclude.js",
+                       "baseUrl=../../../requirejs/tests", "optimize=none"]);
+
+                t.is(nol(oneResult), nol(c("builds/outSingleOnlyInclude.js")));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
 
     doh.register("buildOneJsFileWrapped",
         [
