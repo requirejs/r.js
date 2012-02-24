@@ -267,7 +267,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //things like text loader plugins loading CSS to get the optimized
         //CSS.
         if (config.optimizeCss && config.optimizeCss !== "none" && config.dir) {
-            optimize.css(config.dir, config);
+            buildFileContents += optimize.css(config.dir, config);
         }
 
         if (modules) {
@@ -420,7 +420,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //If just have one CSS file to optimize, do that here.
         if (config.cssIn) {
-            optimize.cssFile(config.cssIn, config.out, config);
+            buildFileContents += optimize.cssFile(config.cssIn, config.out, config);
         }
 
         //Print out what was built into which layers.
