@@ -412,7 +412,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
 
             //console.log('PLUGIN COLLECTOR: ' + JSON.stringify(pluginCollector, null, "  "));
-
+            buildFileContents = markDuplicates(buildFileContents);
 
             //All module layers are done, write out the build.txt file.
             file.saveUtf8File(config.dir + "build.txt", buildFileContents);
@@ -431,6 +431,37 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         return '';
     };
+
+    /**
+     * Check if built files contain duplicates and add a warning "[*]" next to
+     * each duplicate so it's easier to identify what can be merged/removed.
+     */
+    function markDuplicates(buildFileContents) {
+        var lines = buildFileContents.split("\n"),
+            ruler = /^-+$/,
+            duplicates = [],
+            idx;
+
+        lines.forEach(function(line, i, arr){
+            //not using filter to avoid inserting same "line" multiple times
+            if (!!line && !ruler.test(line) && duplicates.indexOf(line) === -1 && arr.indexOf(line, i + 1) !== -1) {
+                duplicates.push(line);
+            }
+        });
+
+        duplicates.forEach(function(line, i){
+            idx = lines.indexOf(line);
+            while (idx !== -1) {
+                if (!ruler.test(lines[idx + 1])) {
+                    //skip build targets since they can be present on their own module list
+                    lines[idx] += ' [*]';
+                }
+                idx = lines.indexOf(line, idx + 1);
+            }
+        });
+
+        return lines.join("\n");
+    }
 
     /**
      * Converts command line args like "paths.foo=../some/path"
