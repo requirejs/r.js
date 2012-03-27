@@ -9041,6 +9041,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build.convertArrayToObject = function (ary) {
         var result = {}, i, separatorIndex, prop, value,
             needArray = {
+                "deps": true,
                 "include": true,
                 "exclude": true,
                 "excludeShallow": true
