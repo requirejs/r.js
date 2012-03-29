@@ -11,9 +11,9 @@
  * the shell of the r.js file.
  */
 
-/*jslint strict: false, evil: true, nomen: false */
+/*jslint evil: true, nomen: true */
 /*global readFile: true, process: false, Packages: false, print: false,
-console: false, java: false, module: false */
+console: false, java: false, module: false, requirejsVars */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
@@ -204,7 +204,9 @@ var requirejs, require, define;
                 }
 
                 var req = requirejs({
-                    context: contextName
+                    context: contextName,
+                    requireLoad: requirejsVars.nodeLoad,
+                    requireExecCb: requirejsVars.nodeRequireExecCb
                 });
 
                 req(['build'], function () {
