@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.7 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.7+ Thu, 29 Mar 2012 03:45:54 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -11,16 +11,16 @@
  * the shell of the r.js file.
  */
 
-/*jslint strict: false, evil: true, nomen: false */
+/*jslint evil: true, nomen: true */
 /*global readFile: true, process: false, Packages: false, print: false,
-console: false, java: false, module: false */
+console: false, java: false, module: false, requirejsVars */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.7',
+        version = '1.0.7+ Thu, 29 Mar 2012 03:45:54 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -526,18 +526,19 @@ var requirejs, require, define;
                 fullName = map.fullName,
                 args = manager.deps,
                 listeners = manager.listeners,
+                execCb = config.requireExecCb || req.execCb,
                 cjsModule;
 
             //Call the callback to define the module, if necessary.
             if (cb && isFunction(cb)) {
                 if (config.catchError.define) {
                     try {
-                        ret = req.execCb(fullName, manager.callback, args, defined[fullName]);
+                        ret = execCb(fullName, manager.callback, args, defined[fullName]);
                     } catch (e) {
                         err = e;
                     }
                 } else {
-                    ret = req.execCb(fullName, manager.callback, args, defined[fullName]);
+                    ret = execCb(fullName, manager.callback, args, defined[fullName]);
                 }
 
                 if (fullName) {
@@ -1277,7 +1278,7 @@ var requirejs, require, define;
                         } else {
                             //Regular dependency.
                             if (!urlFetched[url] && !loaded[fullName]) {
-                                req.load(context, fullName, url);
+                                (config.requireLoad || req.load)(context, fullName, url);
 
                                 //Mark the URL as fetched, but only if it is
                                 //not an empty: URL, used by the optimizer.
@@ -2247,7 +2248,7 @@ var requirejs, require, define;
                 '\n}(requirejsVars.require, requirejsVars.requirejs, requirejsVars.define));';
     };
 
-    req.load = function (context, moduleName, url) {
+    requirejsVars.nodeLoad = req.load = function (context, moduleName, url) {
         var contents, err;
 
         //Indicate a the module is in process of loading.
@@ -2293,6 +2294,9 @@ var requirejs, require, define;
         text = req.makeNodeWrapper(text);
         return eval(text);
     };
+
+    //Hold on to the original execCb to use in useLib calls.
+    requirejsVars.nodeRequireExecCb = require.execCb;
 }());
 
     }
@@ -9734,7 +9738,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 var req = requirejs({
-                    context: contextName
+                    context: contextName,
+                    requireLoad: requirejsVars.nodeLoad,
+                    requireExecCb: requirejsVars.nodeRequireExecCb
                 });
 
                 req(['build'], function () {
