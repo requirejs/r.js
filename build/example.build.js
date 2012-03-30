@@ -99,9 +99,9 @@
     //- "standard.keepLines": like "standard" but keeps line returns.
     //- "none": skip CSS optimizations.
     //- "standard.keepComments": keeps the file comments, but removes line
-    //returns.
+    //returns.  (r.js 1.0.8+)
     //- "standard.keepComments.keepLines": keeps the file comments and line
-    //returns.
+    //returns. (r.js 1.0.8+)
     optimizeCss: "standard.keepLines",
 
     //If optimizeCss is in use, a list of of files to ignore for the @import
