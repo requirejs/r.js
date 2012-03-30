@@ -769,4 +769,21 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    doh.register("cssDuplicates",
+        [
+            function cssDuplicates(t) {
+                file.deleteFile("lib/cssDuplicates/main-built.css");
+
+                build(["lib/cssDuplicates/build.js"]);
+
+                t.is(nol(c("lib/cssDuplicates/expected.css")),
+                     nol(c("lib/cssDuplicates/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

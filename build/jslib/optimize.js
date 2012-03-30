@@ -37,11 +37,12 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     /**
      * Inlines nested stylesheets that have @import calls in them.
-     * @param {String} fileName
-     * @param {String} fileContents
-     * @param {String} [cssImportIgnore]
+     * @param {String} fileName the file name
+     * @param {String} fileContents the file contents
+     * @param {String} cssImportIgnore comma delimited string of files to ignore
+     * @param {Object} included an object used to track the files already imported
      */
-    function flattenCss(fileName, fileContents, cssImportIgnore) {
+    function flattenCss(fileName, fileContents, cssImportIgnore, included) {
         //Find the last slash in the name.
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
@@ -80,8 +81,14 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     importContents = file.readFile(fullImportFileName), i,
                     importEndIndex, importPath, fixedUrlMatch, colonIndex, parts, flat;
 
+                //Skip the file if it has already been included.
+                if (included[fullImportFileName]) {
+                    return '';
+                }
+                included[fullImportFileName] = true;
+
                 //Make sure to flatten any nested imports.
-                flat = flattenCss(fullImportFileName, importContents);
+                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, included);
                 importContents = flat.fileContents;
 
                 if (flat.importList.length) {
@@ -239,7 +246,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
             //Read in the file. Make sure we have a JS string.
             var originalFileContents = file.readFile(fileName),
-                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore),
+                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, {}),
                 fileContents = flat.fileContents,
                 startIndex, endIndex, buildText;
 
