@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.7+ Thu, 29 Mar 2012 03:45:54 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.7+ Fri, 30 Mar 2012 00:24:35 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.7+ Thu, 29 Mar 2012 03:45:54 GMT',
+        version = '1.0.7+ Fri, 30 Mar 2012 00:24:35 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -7844,24 +7844,27 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     /**
      * Inlines nested stylesheets that have @import calls in them.
-     * @param {String} fileName
-     * @param {String} fileContents
-     * @param {String} [cssImportIgnore]
+     * @param {String} fileName the file name
+     * @param {String} fileContents the file contents
+     * @param {String} cssImportIgnore comma delimited string of files to ignore
+     * @param {Object} included an object used to track the files already imported
      */
-    function flattenCss(fileName, fileContents, cssImportIgnore) {
+    function flattenCss(fileName, fileContents, cssImportIgnore, included) {
         //Find the last slash in the name.
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
             //Make a file path based on the last slash.
             //If no slash, so must be just a file name. Use empty string then.
-            filePath = (endIndex !== -1) ? fileName.substring(0, endIndex + 1) : "";
+            filePath = (endIndex !== -1) ? fileName.substring(0, endIndex + 1) : "",
+            //store a list of merged files
+            importList = [];
 
         //Make sure we have a delimited ignore list to make matching faster
         if (cssImportIgnore && cssImportIgnore.charAt(cssImportIgnore.length - 1) !== ",") {
             cssImportIgnore += ",";
         }
 
-        return fileContents.replace(cssImportRegExp, function (fullMatch, urlStart, importFileName, urlEnd, mediaTypes) {
+        fileContents = fileContents.replace(cssImportRegExp, function (fullMatch, urlStart, importFileName, urlEnd, mediaTypes) {
             //Only process media type "all" or empty media type rules.
             if (mediaTypes && ((mediaTypes.replace(/^\s\s*/, '').replace(/\s\s*$/, '')) !== "all")) {
                 return fullMatch;
@@ -7883,10 +7886,21 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 //and we will just skip that import.
                 var fullImportFileName = importFileName.charAt(0) === "/" ? importFileName : filePath + importFileName,
                     importContents = file.readFile(fullImportFileName), i,
-                    importEndIndex, importPath, fixedUrlMatch, colonIndex, parts;
+                    importEndIndex, importPath, fixedUrlMatch, colonIndex, parts, flat;
+
+                //Skip the file if it has already been included.
+                if (included[fullImportFileName]) {
+                    return '';
+                }
+                included[fullImportFileName] = true;
 
                 //Make sure to flatten any nested imports.
-                importContents = flattenCss(fullImportFileName, importContents);
+                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, included);
+                importContents = flat.fileContents;
+
+                if (flat.importList.length) {
+                    importList.push.apply(importList, flat.importList);
+                }
 
                 //Make the full import path
                 importEndIndex = importFileName.lastIndexOf("/");
@@ -7929,12 +7943,18 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     return "url(" + parts.join("/") + ")";
                 });
 
+                importList.push(fullImportFileName);
                 return importContents;
             } catch (e) {
-                logger.trace(fileName + "\n  Cannot inline css import, skipping: " + importFileName);
+                logger.warn(fileName + "\n  Cannot inline css import, skipping: " + importFileName);
                 return fullMatch;
             }
         });
+
+        return {
+            importList : importList,
+            fileContents : fileContents
+        };
     }
 
     optimize = {
@@ -8030,21 +8050,25 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * cssImportIgnore options.
          */
         cssFile: function (fileName, outFileName, config) {
+
             //Read in the file. Make sure we have a JS string.
             var originalFileContents = file.readFile(fileName),
-                fileContents = flattenCss(fileName, originalFileContents, config.cssImportIgnore),
-                startIndex, endIndex;
+                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, {}),
+                fileContents = flat.fileContents,
+                startIndex, endIndex, buildText;
 
             //Do comment removal.
             try {
-                startIndex = -1;
-                //Get rid of comments.
-                while ((startIndex = fileContents.indexOf("/*")) !== -1) {
-                    endIndex = fileContents.indexOf("*/", startIndex + 2);
-                    if (endIndex === -1) {
-                        throw "Improper comment in CSS file: " + fileName;
+                if (config.optimizeCss.indexOf(".keepComments") === -1) {
+                    startIndex = -1;
+                    //Get rid of comments.
+                    while ((startIndex = fileContents.indexOf("/*")) !== -1) {
+                        endIndex = fileContents.indexOf("*/", startIndex + 2);
+                        if (endIndex === -1) {
+                            throw "Improper comment in CSS file: " + fileName;
+                        }
+                        fileContents = fileContents.substring(0, startIndex) + fileContents.substring(endIndex + 2, fileContents.length);
                     }
-                    fileContents = fileContents.substring(0, startIndex) + fileContents.substring(endIndex + 2, fileContents.length);
                 }
                 //Get rid of newlines.
                 if (config.optimizeCss.indexOf(".keepLines") === -1) {
@@ -8063,6 +8087,14 @@ function (lang,   logger,   envOptimize,        file,           parse,
             }
 
             file.saveUtf8File(outFileName, fileContents);
+
+            //text output to stdout and/or written to build.txt file
+            buildText = "\n"+ outFileName.replace(config.dir, "") +"\n----------------\n";
+            flat.importList.push(fileName);
+            buildText += flat.importList.map(function(path){
+                return path.replace(config.dir, "");
+            }).join("\n");
+            return buildText +"\n";
         },
 
         /**
@@ -8073,17 +8105,19 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * cssImportIgnore options.
          */
         css: function (startDir, config) {
+            var buildText = "",
+                i, fileName, fileList;
             if (config.optimizeCss.indexOf("standard") !== -1) {
-                var i, fileName,
-                    fileList = file.getFilteredFileList(startDir, /\.css$/, true);
+                fileList = file.getFilteredFileList(startDir, /\.css$/, true);
                 if (fileList) {
                     for (i = 0; i < fileList.length; i++) {
                         fileName = fileList[i];
                         logger.trace("Optimizing (" + config.optimizeCss + ") CSS file: " + fileName);
-                        optimize.cssFile(fileName, fileName, config);
+                        buildText += optimize.cssFile(fileName, fileName, config);
                     }
                 }
             }
+            return buildText;
         },
 
         optimizers: {
@@ -8835,7 +8869,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //things like text loader plugins loading CSS to get the optimized
         //CSS.
         if (config.optimizeCss && config.optimizeCss !== "none" && config.dir) {
-            optimize.css(config.dir, config);
+            buildFileContents += optimize.css(config.dir, config);
         }
 
         if (modules) {
@@ -8988,7 +9022,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //If just have one CSS file to optimize, do that here.
         if (config.cssIn) {
-            optimize.cssFile(config.cssIn, config.out, config);
+            buildFileContents += optimize.cssFile(config.cssIn, config.out, config);
         }
 
         //Print out what was built into which layers.
