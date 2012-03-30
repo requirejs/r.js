@@ -3,6 +3,7 @@ r.js
 build/tests/builds
 build/tests/lib/amdefine/built.js
 build/tests/lib/cssDuplicates/main-built.css
+build/tests/lib/cssKeepComments/main-built.css
 build/tests/lib/comments/built.js
 build/tests/lib/empty/built
 build/tests/lib/intDefine/main-built.js

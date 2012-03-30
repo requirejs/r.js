@@ -98,6 +98,10 @@
     //of CSS.
     //- "standard.keepLines": like "standard" but keeps line returns.
     //- "none": skip CSS optimizations.
+    //- "standard.keepComments": keeps the file comments, but removes line
+    //returns.
+    //- "standard.keepComments.keepLines": keeps the file comments and line
+    //returns.
     optimizeCss: "standard.keepLines",
 
     //If optimizeCss is in use, a list of of files to ignore for the @import

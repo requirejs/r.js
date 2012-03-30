@@ -786,4 +786,21 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    doh.register("cssKeepComments",
+        [
+            function cssDuplicates(t) {
+                file.deleteFile("lib/cssKeepComments/main-built.css");
+
+                build(["lib/cssKeepComments/build.js"]);
+
+                t.is(nol(c("lib/cssKeepComments/expected.css")),
+                     nol(c("lib/cssKeepComments/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });
