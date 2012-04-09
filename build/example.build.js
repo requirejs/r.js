@@ -321,6 +321,16 @@
     //work out how best to surface the license information.
     preserveLicenseComments: true,
 
+    //Sets the logging level. It is a number. If you want "silent" running,
+    //set logLevel to 4. From the logger.js file:
+    //TRACE: 0,
+    //INFO: 1,
+    //WARN: 2,
+    //ERROR: 3,
+    //SILENT: 4
+    //Default is 0.
+    logLevel: 0,
+
     //A function that if defined will be called for every file read in the
     //build that is done to trace JS dependencies. This allows transforms of
     //the content.
