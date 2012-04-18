@@ -4,14 +4,12 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint strict: false */
+/*jslint */
 /*global require: false, java: false, load: false */
 
 (function () {
-
+    'use strict';
     require.load = function (context, moduleName, url) {
-        //Indicate a the module is in process of loading.
-        context.scriptCount += 1;
 
         load(url);
 

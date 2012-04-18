@@ -883,7 +883,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //WARNING: probably not robust for paths and packages/packagePaths,
         //since those property's objects can be modified. But for basic
         //config clone it works out.
-        require(lang.delegate(baseConfig));
+        require(lang.mixin({}, baseConfig, true));
 
         logger.trace("\nTracing dependencies for: " + (module.name || module.out));
         include = module.name && !module.create ? [module.name] : [];
@@ -893,7 +893,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //If there are overrides to basic config, set that up now.;
         if (module.override) {
-            override = lang.delegate(baseConfig);
+            override = lang.mixin({}, baseConfig, true);
             lang.mixin(override, module.override, true);
             require(override);
         }
@@ -937,7 +937,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Use override settings, particularly for pragmas
         if (module.override) {
-            config = lang.delegate(config);
+            config = lang.mixin({}, config, true);
             lang.mixin(config, module.override, true);
         }
 

@@ -4,7 +4,7 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint regexp: false, strict: false */
+/*jslint regexp: false */
 /*global require: false, define: false, requirejsVars: false, process: false */
 
 /**
@@ -15,6 +15,8 @@
  */
 
 (function () {
+    'use strict';
+
     var nodeReq = requirejsVars.nodeRequire,
         req = requirejsVars.require,
         def = requirejsVars.define,
@@ -32,9 +34,9 @@
             moduleMap = context.makeModuleMap(moduleName, relModuleMap);
 
         //Normalize module name, if it contains . or ..
-        moduleName = moduleMap.fullName;
+        moduleName = moduleMap.id;
 
-        if (moduleName in context.defined) {
+        if (context.defined.hasOwnProperty(moduleName)) {
             ret = context.defined[moduleName];
         } else {
             if (ret === undefined) {
@@ -59,9 +61,6 @@
 
     requirejsVars.nodeLoad = req.load = function (context, moduleName, url) {
         var contents, err;
-
-        //Indicate a the module is in process of loading.
-        context.scriptCount += 1;
 
         if (path.existsSync(url)) {
             contents = fs.readFileSync(url, 'utf8');
@@ -93,8 +92,6 @@
 
         //Support anonymous modules.
         context.completeLoad(moduleName);
-
-        return undefined;
     };
 
     //Override to provide the function wrapper for define/require.
