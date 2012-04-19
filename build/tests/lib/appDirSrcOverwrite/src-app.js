@@ -1,0 +1,4 @@
+
+require(['somelib'], function (somelib) {
+
+});

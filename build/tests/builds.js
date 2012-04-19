@@ -803,4 +803,29 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/150
+    doh.register("appDirSrcOverwrite",
+        [
+            function appDirSrcOverwrite(t) {
+                file.deleteFile("lib/appDirSrcOverwrite/www-built");
+
+                build(["lib/appDirSrcOverwrite/build.js"]);
+
+                //Make sure source file was not accidentally overwritten
+                t.is(nol(c("lib/appDirSrcOverwrite/src-app.js")),
+                     nol(c("lib/appDirSrcOverwrite/www/js/app.js")));
+
+                //Make sure built file contains the expected contents.
+                t.is(nol(c("lib/appDirSrcOverwrite/expected-app.js")),
+                     nol(c("lib/appDirSrcOverwrite/www-built/js/app.js")));
+
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

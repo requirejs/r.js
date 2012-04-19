@@ -167,7 +167,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //the paths to use the dirBaseUrl
                 for (prop in paths) {
                     if (paths.hasOwnProperty(prop)) {
-                        buildPaths[prop] = paths[prop].replace(config.baseUrl, config.dirBaseUrl);
+                        buildPaths[prop] = paths[prop].replace(config.appDir, config.dir);
                     }
                 }
             } else {
