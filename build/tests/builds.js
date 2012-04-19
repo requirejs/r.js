@@ -828,4 +828,22 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/r.js/issues/151
+    doh.register("jqueryConfig",
+        [
+            function jqueryConfig(t) {
+                file.deleteFile("lib/jqueryConfig/main-built.js");
+
+                build(["lib/jqueryConfig/build.js"]);
+
+                t.is(nol(c("lib/jqueryConfig/expected.js")),
+                     nol(c("lib/jqueryConfig/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

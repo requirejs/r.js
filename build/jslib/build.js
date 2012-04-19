@@ -665,6 +665,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         mainConfigFile = config.mainConfigFile || (buildFileConfig && buildFileConfig.mainConfigFile);
         if (mainConfigFile) {
             mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
+            if (!file.exists(mainConfigFile)) {
+                throw new Error(mainConfigFile + ' does not exist.');
+            }
             try {
                 mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
             } catch (configError) {
@@ -817,6 +820,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //compatibility
             file.exclusionRegExp = config.dirExclusionRegExp;
         }
+
+        //Remove things that may cause problems in the build.
+        delete config.jQuery;
 
         return config;
     };
