@@ -1,4 +1,5 @@
-define(["require", "exports", "module"], function(require, exports, module) {
+define(["exports"], function(exports) {
+
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -66,6 +67,7 @@ var KEYWORDS = array_to_hash([
         "catch",
         "const",
         "continue",
+        "debugger",
         "default",
         "delete",
         "do",
@@ -94,7 +96,6 @@ var RESERVED_WORDS = array_to_hash([
         "byte",
         "char",
         "class",
-        "debugger",
         "double",
         "enum",
         "export",
@@ -192,7 +193,7 @@ var OPERATORS = array_to_hash([
 
 var WHITESPACE_CHARS = array_to_hash(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
 
-var PUNC_BEFORE_EXPRESSION = array_to_hash(characters("[{}(,.;:"));
+var PUNC_BEFORE_EXPRESSION = array_to_hash(characters("[{(,.;:"));
 
 var PUNC_CHARS = array_to_hash(characters("[]{}(),;:"));
 
@@ -487,10 +488,10 @@ function tokenizer($TEXT) {
         };
 
         function read_name() {
-                var backslash = false, name = "", ch;
+                var backslash = false, name = "", ch, escaped = false, hex;
                 while ((ch = peek()) != null) {
                         if (!backslash) {
-                                if (ch == "\\") backslash = true, next();
+                                if (ch == "\\") escaped = backslash = true, next();
                                 else if (is_identifier_char(ch)) name += next();
                                 else break;
                         }
@@ -501,6 +502,10 @@ function tokenizer($TEXT) {
                                 name += ch;
                                 backslash = false;
                         }
+                }
+                if (HOP(KEYWORDS, name) && escaped) {
+                        hex = name.charCodeAt(0).toString(16).toUpperCase();
+                        name = "\\u" + "0000".substr(hex.length) + hex + name.slice(1);
                 }
                 return name;
         };
@@ -910,8 +915,11 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                         init = is("keyword", "var")
                                 ? (next(), var_(true))
                                 : expression(true, true);
-                        if (is("operator", "in"))
+                        if (is("operator", "in")) {
+                                if (init[0] == "var" && init[1].length > 1)
+                                        croak("Only one variable declaration allowed in for..in loop");
                                 return for_in(init);
+                        }
                 }
                 return regular_for(init);
         };
