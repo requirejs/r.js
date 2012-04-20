@@ -1,5 +1,5 @@
 /**
- * @license r.js 1.0.7+ Fri, 20 Apr 2012 21:43:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 1.0.8 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '1.0.7+ Fri, 20 Apr 2012 21:43:07 GMT',
+        version = '1.0.8',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -102,7 +102,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 1.0.7 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 1.0.8 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -110,9 +110,9 @@ var requirejs, require, define;
 /*global window, navigator, document, importScripts, jQuery, setTimeout, opera */
 
 
-(function () {
+(function (undefined) {
     //Change this version number for each release.
-    var version = "1.0.7",
+    var version = "1.0.8",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
         currDirRegExp = /^\.\//,
@@ -1582,7 +1582,8 @@ var requirejs, require, define;
                 moduleName = normalize(moduleName, relModuleMap && relModuleMap.fullName);
 
                 //If a colon is in the URL, it indicates a protocol is used and it is just
-                //an URL to a file, or if it starts with a slash or ends with .js, it is just a plain file.
+                //an URL to a file, or if it starts with a slash, contains a query arg (i.e. ?)
+                //or ends with .js, then assume the user meant to use an url and not a module id.
                 //The slash is important for protocol-less URLs as well as full paths.
                 if (req.jsExtRegExp.test(moduleName)) {
                     //Just a plain path, not module name lookup, so just return it.
@@ -1618,7 +1619,7 @@ var requirejs, require, define;
 
                     //Join the path parts together, then figure out if baseUrl is needed.
                     url = syms.join("/") + (ext || ".js");
-                    url = (url.charAt(0) === '/' || url.match(/^\w+:/) ? "" : config.baseUrl) + url;
+                    url = (url.charAt(0) === '/' || url.match(/^[\w\+\.\-]+:/) ? "" : config.baseUrl) + url;
                 }
 
                 return config.urlArgs ? url +
@@ -1982,7 +1983,15 @@ var requirejs, require, define;
             //https://connect.microsoft.com/IE/feedback/details/648057/script-onload-event-is-not-fired-immediately-after-script-execution
             //UNFORTUNATELY Opera implements attachEvent but does not follow the script
             //script execution mode.
-            if (node.attachEvent && !isOpera) {
+            if (node.attachEvent &&
+                // check if node.attachEvent is artificially added by custom script or
+                // natively supported by browser
+                // read https://github.com/jrburke/requirejs/issues/187
+                // if we can NOT find [native code] then it must NOT natively supported.
+                // in IE8, node.attachEvent does not have toString()
+                // TODO: a better way to check interactive mode
+                !(node.attachEvent.toString && node.attachEvent.toString().indexOf('[native code]') < 0) &&
+                !isOpera) {
                 //Probably IE. IE (at least 6-8) do not fire
                 //script onload right after executing the script, so
                 //we cannot tie the anonymous define call to a name.
