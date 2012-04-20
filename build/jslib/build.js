@@ -138,7 +138,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             baseConfig, config,
             modules, builtModule, srcPath, buildContext,
             destPath, moduleName, moduleMap, parentModuleMap, context,
-            resources, resource, pluginProcessed = {}, plugin;
+            resources, resource, pluginProcessed = {}, plugin, fileContents;
 
         //Can now run the patches to require.js to allow it to be used for
         //build generation. Do it here instead of at the top of the module
@@ -341,7 +341,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (config.out && !config.cssIn) {
             //Just need to worry about one JS file.
             fileName = config.modules[0]._buildPath;
-            optimize.jsFile(fileName, fileName, config);
+            optimize.jsFile(fileName, null, fileName, config);
         } else if (!config.cssIn) {
             //Normal optimizations across modules.
 
@@ -352,7 +352,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 moduleName = fileName.replace(config.dir, '');
                 //Get rid of the extension
                 moduleName = moduleName.substring(0, moduleName.length - 3);
-                optimize.jsFile(fileName, fileName, config, moduleName, pluginCollector);
+
+                //Convert the file to transport format, but without a name
+                //inserted (by passing null for moduleName) since the files are
+                //standalone, one module per file.
+                fileContents = file.readFile(fileName);
+                fileContents = build.toTransport(config.anonDefRegExp,
+                                                 config.namespaceWithDot,
+                                                 null,
+                                                 fileName,
+                                                 fileContents);
+
+                optimize.jsFile(fileName, fileContents, fileName, config, pluginCollector);
             }
 
             //Normalize all the plugin resources.
@@ -1075,7 +1086,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 layer.modulesWithNames[moduleName] = true;
             }
 
-            var deps = null;
+            var deps = null,
+                finalName;
 
             //Look for CommonJS require calls inside the function if this is
             //an anonymous define call that just has a function registered.
@@ -1093,7 +1105,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
 
-            return start + namespace + "define('" + (namedModule || moduleName) + "'," +
+            finalName = namedModule || moduleName || '';
+            if (finalName) {
+                finalName = "'" + (namedModule || moduleName) + "',";
+            }
+
+            return start + namespace + "define(" + finalName +
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
         });

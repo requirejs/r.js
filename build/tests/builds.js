@@ -846,4 +846,24 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/r.js/issues/125
+    doh.register("transportBeforeMinify",
+        [
+            function transportBeforeMinify(t) {
+                file.deleteFile("lib/transportBeforeMinify/www-built");
+
+                build(["lib/transportBeforeMinify/build.js"]);
+
+                //Make sure the dependencies are listed as an array in the
+                //file that is not part of a build layer, but still uglified
+                var contents = nol(c("lib/transportBeforeMinify/www-built/js/b.js"));
+                t.is(true, /define\(\["require"\,"a"\]\,function/.test(contents));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

@@ -159,21 +159,22 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * through an minifier if one is specified via config.optimize.
          *
          * @param {String} fileName the name of the file to optimize
+         * @param {String} fileContents the contents to optimize. If this is
+         * a null value, then fileName will be used to read the fileContents.
          * @param {String} outFileName the name of the file to use for the
          * saved optimized content.
          * @param {Object} config the build config object.
-         * @param {String} [moduleName] the module name to use for the file.
-         * Used for plugin resource collection.
          * @param {Array} [pluginCollector] storage for any plugin resources
          * found.
          */
-        jsFile: function (fileName, outFileName, config, moduleName, pluginCollector) {
+        jsFile: function (fileName, fileContents, outFileName, config, pluginCollector) {
             var parts = (config.optimize + "").split('.'),
                 optimizerName = parts[0],
-                keepLines = parts[1] === 'keepLines',
-                fileContents;
+                keepLines = parts[1] === 'keepLines';
 
-            fileContents = file.readFile(fileName);
+            if (!fileContents) {
+                fileContents = file.readFile(fileName);
+            }
 
             fileContents = optimize.js(fileName, fileContents, optimizerName,
                                        keepLines, config, pluginCollector);
