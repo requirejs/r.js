@@ -31,6 +31,7 @@ var fs = require('fs'),
     //since it is loaded separately.
     libFiles = [
         'build/jslib/env.js',
+        'env!env/assert',
         'env!env/args',
         'env!env/load',
         'env!env/file',

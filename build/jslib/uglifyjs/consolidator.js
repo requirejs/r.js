@@ -1,4 +1,4 @@
-define(["require", "exports", "module", "assert", "./parse-js", "./process"], function(require, exports, module, assert) {
+define(["require", "exports", "module", "env!env/assert", "./parse-js", "./process"], function(require, exports, module, assert) {
 
 /**
  * @preserve Copyright 2012 Robert Gust-Bardon <http://robert.gust-bardon.org/>.
@@ -1228,7 +1228,7 @@ if (require.main === module) {
          * @type {!TAssert}
          * @see http://nodejs.org/docs/v0.6.10/api/all.html#assert
          */
-        oAssert = (/** @type {!TAssert} */ require('assert')),
+        oAssert = (/** @type {!TAssert} */ require('env!env/assert')),
         /**
          * The parser of ECMA-262 found in UglifyJS.
          * @namespace
