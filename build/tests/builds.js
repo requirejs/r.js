@@ -866,4 +866,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/r.js/issues/138
+    doh.register("cssComment138",
+        [
+            function cssComment138(t) {
+                file.deleteFile("lib/cssComment138/main-built.css");
+
+                build(["lib/cssComment138/build.js"]);
+
+                t.is(nol(c("lib/cssComment138/expected.css")),
+                     nol(c("lib/cssComment138/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

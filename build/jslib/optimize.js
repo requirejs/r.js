@@ -14,6 +14,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
+        cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
         cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g;
 
     /**
@@ -51,6 +52,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
             filePath = (endIndex !== -1) ? fileName.substring(0, endIndex + 1) : "",
             //store a list of merged files
             importList = [];
+
+        //First make a pass by removing an commented out @import calls.
+        fileContents = fileContents.replace(cssCommentImportRegExp, '');
 
         //Make sure we have a delimited ignore list to make matching faster
         if (cssImportIgnore && cssImportIgnore.charAt(cssImportIgnore.length - 1) !== ",") {

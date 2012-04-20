@@ -3,6 +3,7 @@ r.js
 build/tests/builds
 build/tests/lib/appDirSrcOverwrite/www-built
 build/tests/lib/amdefine/built.js
+build/tests/lib/cssComment138/main-built.css
 build/tests/lib/cssDuplicates/main-built.css
 build/tests/lib/cssKeepComments/main-built.css
 build/tests/lib/comments/built.js
