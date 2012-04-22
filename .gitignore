@@ -1,12 +1,15 @@
 .DS_Store
 r.js
 build/tests/builds
+build/tests/lib/appDirSrcOverwrite/www-built
 build/tests/lib/amdefine/built.js
+build/tests/lib/cssComment138/main-built.css
 build/tests/lib/cssDuplicates/main-built.css
 build/tests/lib/cssKeepComments/main-built.css
 build/tests/lib/comments/built.js
 build/tests/lib/empty/built
 build/tests/lib/intDefine/main-built.js
+build/tests/lib/jqueryConfig/main-built.js
 build/tests/lib/namespace/foo.js
 build/tests/lib/plugins/main-built.js
 build/tests/lib/plugins/main-builtPluginFirst.js
@@ -26,6 +29,7 @@ build/tests/lib/nestedHas/main-builtNeedB.js
 build/tests/lib/nestedHas/main-builtNeedC.js
 build/tests/lib/nestedHas/main-builtNeedD.js
 build/tests/lib/nestedHas/main-builtNested.js
+build/tests/lib/transportBeforeMinify/www-built
 build/tests/override/node_modules
 build/tests/override/one-built.js
 tests/node/node_modules

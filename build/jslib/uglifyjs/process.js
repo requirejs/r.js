@@ -141,6 +141,9 @@ function ast_walker() {
                 "function": function(name, args, body) {
                         return [ this[0], name, args.slice(), MAP(body, walk) ];
                 },
+                "debugger": function() {
+                        return [ this[0] ];
+                },
                 "defun": function(name, args, body) {
                         return [ this[0], name, args.slice(), MAP(body, walk) ];
                 },
@@ -284,12 +287,13 @@ function Scope(parent) {
 };
 
 var base54 = (function(){
-        var DIGITS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$_";
+        var DIGITS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$_0123456789";
         return function(num) {
-                var ret = "";
+                var ret = "", base = 54;
                 do {
-                        ret = DIGITS.charAt(num % 54) + ret;
-                        num = Math.floor(num / 54);
+                        ret += DIGITS.charAt(num % base);
+                        num = Math.floor(num / base);
+                        base = 64;
                 } while (num > 0);
                 return ret;
         };
@@ -743,7 +747,9 @@ var when_constant = (function(){
                             case "string": ast =  [ "string", val ]; break;
                             case "number": ast =  [ "num", val ]; break;
                             case "boolean": ast =  [ "name", String(val) ]; break;
-                            default: throw new Error("Can't handle constant of type: " + (typeof val));
+                            default:
+                                if (val === null) { ast = [ "atom", "null" ]; break; }
+                                throw new Error("Can't handle constant of type: " + (typeof val));
                         }
                         return yes.call(expr, ast, val);
                 } catch(ex) {
@@ -812,17 +818,15 @@ function prepare_ifs(ast) {
 
                         var conditional = walk(fi[1]);
 
-                        var e_body = statements.slice(i + 1);
+                        var e_body = redo_if(statements.slice(i + 1));
                         var e = e_body.length == 1 ? e_body[0] : [ "block", e_body ];
 
-                        var ret = statements.slice(0, i).concat([ [
+                        return statements.slice(0, i).concat([ [
                                 fi[0],          // "if"
                                 conditional,    // conditional
                                 t,              // then
                                 e               // else
                         ] ]);
-
-                        return redo_if(ret);
                 }
 
                 return statements;
@@ -1187,6 +1191,16 @@ function ast_squeeze(ast, options) {
                 });
         };
 
+        function abort_else(c, t, e) {
+                var ret = [ [ "if", negate(c), e ] ];
+                if (t[0] == "block") {
+                        if (t[1]) ret = ret.concat(t[1]);
+                } else {
+                        ret.push(t);
+                }
+                return walk([ "block", ret ]);
+        };
+
         function make_real_if(c, t, e) {
                 c = walk(c);
                 t = walk(t);
@@ -1220,9 +1234,10 @@ function ast_squeeze(ast, options) {
                 }
                 else if (t[0] == "stat") {
                         if (e) {
-                                if (e[0] == "stat") {
+                                if (e[0] == "stat")
                                         ret = best_of(ret, [ "stat", make_conditional(c, t[1], e[1]) ]);
-                                }
+                                else if (aborts(e))
+                                        ret = abort_else(c, t, e);
                         }
                         else {
                                 ret = best_of(ret, [ "stat", make_conditional(c, t[1]) ]);
@@ -1242,13 +1257,7 @@ function ast_squeeze(ast, options) {
                         ret = walk([ "block", ret ]);
                 }
                 else if (t && aborts(e)) {
-                        ret = [ [ "if", negate(c), e ] ];
-                        if (t[0] == "block") {
-                                if (t[1]) ret = ret.concat(t[1]);
-                        } else {
-                                ret.push(t);
-                        }
-                        ret = walk([ "block", ret ]);
+                        ret = abort_else(c, t, e);
                 }
                 return ret;
         };
@@ -1380,7 +1389,6 @@ function make_string(str, ascii_only) {
                     case "\f": return "\\f";
                     case "\n": return "\\n";
                     case "\r": return "\\r";
-                    case "\t": return "\\t";
                     case "\u2028": return "\\u2028";
                     case "\u2029": return "\\u2029";
                     case '"': ++dq; return '"';
@@ -1541,6 +1549,7 @@ function gen_code(ast, options) {
                 "string": encode_string,
                 "num": make_num,
                 "name": make_name,
+                "debugger": function(){ return "debugger" },
                 "toplevel": function(statements) {
                         return make_block_statements(statements)
                                 .join(newline + newline);
@@ -1624,7 +1633,7 @@ function gen_code(ast, options) {
                         if (expr[0] == "num") {
                                 if (!/\./.test(expr[1]))
                                         out += ".";
-                        } else if (needs_parens(expr))
+                        } else if (expr[0] != "function" && needs_parens(expr))
                                 out = "(" + out + ")";
                         while (i < arguments.length)
                                 out += "." + make_name(arguments[i++]);
@@ -1722,7 +1731,7 @@ function gen_code(ast, options) {
                                         if (p.length == 3) {
                                                 // getter/setter.  The name is in p[0], the arg.list in p[1][2], the
                                                 // body in p[1][3] and type ("get" / "set") in p[2].
-                                                return indent(make_function(p[0], p[1][2], p[1][3], p[2]));
+                                                return indent(make_function(p[0], p[1][2], p[1][3], p[2], true));
                                         }
                                         var key = p[0], val = parenthesize(p[1], "seq");
                                         if (options.quote_keys) {
@@ -1799,14 +1808,14 @@ function gen_code(ast, options) {
                 return make(th);
         };
 
-        function make_function(name, args, body, keyword) {
+        function make_function(name, args, body, keyword, no_parens) {
                 var out = keyword || "function";
                 if (name) {
                         out += " " + make_name(name);
                 }
                 out += "(" + add_commas(MAP(args, make_name)) + ")";
                 out = add_spaces([ out, make_block(body) ]);
-                return needs_parens(this) ? "(" + out + ")" : out;
+                return (!no_parens && needs_parens(this)) ? "(" + out + ")" : out;
         };
 
         function must_has_semicolon(node) {
