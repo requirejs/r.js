@@ -867,10 +867,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (index !== -1) {
             layer.buildFilePaths.splice(index, 1);
         }
-
-        //Take it out of the specified modules. Specified modules are mostly
-        //used to find require modifiers.
-        delete layer.specified[module];
     };
 
     /**
@@ -917,9 +913,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Figure out module layer dependencies by calling require to do the work.
         require(include);
-
-        //Pull out the layer dependencies.
-        layer.specified = context.specified;
 
         //Reset config
         if (module.override) {
