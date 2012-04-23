@@ -800,7 +800,7 @@ var requirejs, require, define;
                             if (needFullExec[id]) {
                                 fullExec[id] = true;
                             }
-                            console.log(this.map.id + ' is defined now: ', this.depMaps);
+
                             if (req.onResourceLoad) {
                                 req.onResourceLoad(context, this.map, this.depMaps);
                             }
