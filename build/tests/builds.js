@@ -24,10 +24,10 @@ define(['build', 'env!env/file'], function (build, file) {
 
     var requireTextContents = c("builds/text.js"),
         oneResult = [
-            c("../../../requirejs/tests/dimple.js"),
             c("../../../requirejs/tests/two.js"),
             c("../../../requirejs/tests/one.js"),
-            ";"
+            ";",
+            c("../../../requirejs/tests/dimple.js")
         ].join("");
 
     doh.register("buildOneCssFile",
@@ -218,9 +218,9 @@ define(['build', 'env!env/file'], function (build, file) {
                 build(["name=one", "include=text", "out=builds/oneText.js",
                        "baseUrl=../../../requirejs/tests", "paths.text=../text", "optimize=none"]);
 
-                t.is(nol(requireTextContents +
-                         nol(c("../../../requirejs/tests/two.js") +
-                         c("../../../requirejs/tests/one.js") + ";")), nol(c("builds/oneText.js")));
+                t.is(nol(nol(c("../../../requirejs/tests/two.js") +
+                         c("../../../requirejs/tests/one.js") + ";") +
+                         requireTextContents), nol(c("builds/oneText.js")));
                 require._buildReset();
             }
 
