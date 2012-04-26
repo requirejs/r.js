@@ -70,7 +70,47 @@ define(function () {
                 }
                 return tmp; // Object
             };
-        }())
+        }()),
+
+        /**
+         * Helper function for iterating over an array. If the func returns
+         * a true value, it will break out of the loop.
+         */
+        each: function each(ary, func) {
+            if (ary) {
+                var i;
+                for (i = 0; i < ary.length; i += 1) {
+                    if (func(ary[i], i, ary)) {
+                        break;
+                    }
+                }
+            }
+        },
+
+        /**
+         * Cycles over properties in an object and calls a function for each
+         * property value. If the function returns a truthy value, then the
+         * iteration is stopped.
+         */
+        eachProp: function eachProp(obj, func) {
+            var prop;
+            for (prop in obj) {
+                if (obj.hasOwnProperty(prop)) {
+                    if (func(obj[prop], prop)) {
+                        break;
+                    }
+                }
+            }
+        },
+
+        //Similar to Function.prototype.bind, but the "this" object is specified
+        //first, since it is easier to read/figure out what "this" will be.
+        bind: function bind(obj, fn) {
+            return function () {
+                return fn.apply(obj, arguments);
+            };
+        }
+
     };
     return lang;
 });

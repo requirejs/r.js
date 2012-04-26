@@ -12,8 +12,8 @@
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
-define([ 'env!env/file', 'pragma', 'parse'],
-function (file,           pragma,   parse) {
+define([ 'env!env/file', 'pragma', 'parse', 'lang'],
+function (file,           pragma,   parse,   lang) {
     'use strict';
 
     var allowRun = true;
@@ -27,8 +27,8 @@ function (file,           pragma,   parse) {
 
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
+            oldNewContext = require.s.newContext,
             oldDef;
-
 
         /** Print out some extrs info about the module tree that caused the error. **/
         require.onError = function (err) {
@@ -100,6 +100,80 @@ function (file,           pragma,   parse) {
             //than just a colon.
             return url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
                    url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0;
+        };
+
+
+        //Overrides the new context call to add existing tracking features.
+
+        require.s.newContext = function (name) {
+            var context = oldNewContext(name),
+                oldEnable = context.enable,
+                moduleProto = context.Module.prototype,
+                oldInit = moduleProto.init,
+                oldCallPlugin = moduleProto.callPlugin;
+
+            //Only do this for the context used for building.
+            if (name === '_') {
+                context.needFullExec = {};
+                context.fullExec = {};
+                context.plugins = {};
+
+                context.enable = function (depMap, parent) {
+                    var id = depMap.id,
+                        parentId = parent && parent.map.id,
+                        needFullExec = context.needFullExec,
+                        fullExec = context.fullExec,
+                        mod = context.registry[id];
+
+                    if (mod && !mod.defined) {
+                        if (parentId && needFullExec[parentId]) {
+                            needFullExec[id] = true;
+                        }
+                    } else if ((needFullExec[id] && !fullExec[id]) ||
+                               (parentId && needFullExec[parentId] && !fullExec[id])) {
+                        context.undef(id);
+                    }
+
+                    return oldEnable.apply(context, arguments);
+                };
+
+                moduleProto.init = function(depMaps) {
+                    if (context.needFullExec[this.map.id]) {
+                        lang.each(depMaps, lang.bind(this, function (depMap) {
+                            if (typeof depMap === 'string') {
+                                depMap = context.makeModuleMap(depMap,
+                                               (this.map.isDefine ? this.map : this.map.parentMap));
+                            }
+
+                            if (!context.fullExec[depMap.id]) {
+                                context.undef(depMap.id);
+                            }
+                        }));
+                    }
+
+                    return oldInit.apply(this, arguments);
+                };
+
+                moduleProto.callPlugin = function () {
+                    var map = this.map,
+                        pluginMap = context.makeModuleMap(map.prefix),
+                        pluginId = pluginMap.id,
+                        pluginMod = context.registry[pluginId];
+
+                    context.plugins[pluginId] = true;
+                    context.needFullExec[pluginId] = true;
+
+                    //If the module is not waiting to finish being defined,
+                    //undef it and start over, to get full execution.
+                    if (!context.fullExec[pluginId] && (!pluginMod || pluginMod.defined)) {
+                        context.undef(pluginMap.id);
+                    }
+
+                    return oldCallPlugin.apply(this, arguments);
+                };
+            }
+
+            return context;
         };
 
         //Override define() to catch modules that just define an object, so that
@@ -250,6 +324,15 @@ function (file,           pragma,   parse) {
         require.onResourceLoad = function (context, map) {
             var id = map.id,
                 url;
+
+            //If build needed a full execution, indicate it
+            //has been done now. But only do it if the context is tracking
+            //that. Only valid for the context used in a build, not for
+            //other contexts being run, like for useLib, plain requirejs
+            //use in node/rhino.
+            if (context.needFullExec && context.needFullExec[id]) {
+                context.fullExec[id] = true;
+            }
 
             //A plugin.
             if (map.prefix) {
