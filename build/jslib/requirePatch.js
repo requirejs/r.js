@@ -102,9 +102,15 @@ function (file,           pragma,   parse,   lang) {
                    url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0;
         };
 
+        function normalizeUrlWithBase(context, moduleName, url) {
+            //Adjust the URL if it was not transformed to use baseUrl.
+            if (require.jsExtRegExp.test(moduleName)) {
+                url = (context.config.dir || context.config.dirBaseUrl) + url;
+            }
+            return url;
+        }
 
         //Overrides the new context call to add existing tracking features.
-
         require.s.newContext = function (name) {
             var context = oldNewContext(name),
                 oldEnable = context.enable,
@@ -135,6 +141,139 @@ function (file,           pragma,   parse,   lang) {
                     }
 
                     return oldEnable.apply(context, arguments);
+                };
+
+                //Override load so that the file paths can be collected.
+                context.load = function (context, moduleName, url) {
+                    /*jslint evil: true */
+                    var contents, pluginBuilderMatch, builderName;
+
+                    //Do not mark the url as fetched if it is
+                    //not an empty: URL, used by the optimizer.
+                    //In that case we need to be sure to call
+                    //load() for each module that is mapped to
+                    //empty: so that dependencies are satisfied
+                    //correctly.
+                    if (url.indexOf('empty:') === 0) {
+                        delete context.urlFetched[url];
+                    }
+
+                    //Only handle urls that can be inlined, so that means avoiding some
+                    //URLs like ones that require network access or may be too dynamic,
+                    //like JSONP
+                    if (require._isSupportedBuildUrl(url)) {
+                        //Adjust the URL if it was not transformed to use baseUrl.
+                        url = normalizeUrlWithBase(context, moduleName, url);
+
+                        //Save the module name to path  and path to module name mappings.
+                        layer.buildPathMap[moduleName] = url;
+                        layer.buildFileToModule[url] = moduleName;
+
+                        if (context.plugins.hasOwnProperty(moduleName)) {
+                            //plugins need to have their source evaled as-is.
+                            context.needFullExec[moduleName] = true;
+                        }
+
+                        try {
+                            if (require._cachedFileContents.hasOwnProperty(url) &&
+                                (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
+                                contents = require._cachedFileContents[url];
+                            } else {
+                                //Load the file contents, process for conditionals, then
+                                //evaluate it.
+                                contents = file.readFile(url);
+
+                                //If there is a read filter, run it now.
+                                if (context.config.onBuildRead) {
+                                    contents = context.config.onBuildRead(moduleName, url, contents);
+                                }
+
+                                contents = pragma.process(url, contents, context.config, 'OnExecute');
+
+                                //Find out if the file contains a require() definition. Need to know
+                                //this so we can inject plugins right after it, but before they are needed,
+                                //and to make sure this file is first, so that define calls work.
+                                //This situation mainly occurs when the build is done on top of the output
+                                //of another build, where the first build may include require somewhere in it.
+                                try {
+                                    if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                                        layer.existingRequireUrl = url;
+                                    }
+                                } catch (e1) {
+                                    throw new Error('Parse error using UglifyJS ' +
+                                                    'for file: ' + url + '\n' + e1);
+                                }
+
+                                if (context.plugins.hasOwnProperty(moduleName)) {
+                                    //This is a loader plugin, check to see if it has a build extension,
+                                    //otherwise the plugin will act as the plugin builder too.
+                                    pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
+                                    if (pluginBuilderMatch) {
+                                        //Load the plugin builder for the plugin contents.
+                                        builderName = context.normalize(pluginBuilderMatch[3], moduleName);
+                                        contents = file.readFile(context.nameToUrl(builderName));
+                                    }
+                                }
+
+                                //Parse out the require and define calls.
+                                //Do this even for plugins in case they have their own
+                                //dependencies that may be separate to how the pluginBuilder works.
+                                try {
+                                    if (!context.needFullExec[moduleName]) {
+                                        contents = parse(moduleName, url, contents, {
+                                            insertNeedsDefine: true,
+                                            has: context.config.has,
+                                            findNestedDependencies: context.config.findNestedDependencies
+                                        });
+                                    }
+                                } catch (e2) {
+                                    throw new Error('Parse error using UglifyJS ' +
+                                                    'for file: ' + url + '\n' + e2);
+                                }
+
+                                require._cachedFileContents[url] = contents;
+                            }
+
+                            if (contents) {
+                                eval(contents);
+                            }
+
+                            //Need to close out completion of this module
+                            //so that listeners will get notified that it is available.
+                            try {
+                                context.completeLoad(moduleName);
+                            } catch (e) {
+                                //Track which module could not complete loading.
+                                if (!e.moduleTree) {
+                                    e.moduleTree = [];
+                                }
+                                e.moduleTree.push(moduleName);
+                                throw e;
+                            }
+
+                        } catch (eOuter) {
+                            if (!eOuter.fileName) {
+                                eOuter.fileName = url;
+                            }
+                            throw eOuter;
+                        }
+                    } else {
+                        //With unsupported URLs still need to call completeLoad to
+                        //finish loading.
+                        context.completeLoad(moduleName);
+                    }
+                };
+
+                //Marks module has having a name, and optionally executes the
+                //callback, but only if it meets certain criteria.
+                context.execCb = function (name, cb, args, exports) {
+                    if (!layer.needsDefine[name]) {
+                        layer.modulesWithNames[name] = true;
+                    }
+                    if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
+                        return cb.apply(exports, args);
+                    }
+                    return undefined;
                 };
 
                 moduleProto.init = function(depMaps) {
@@ -178,7 +317,7 @@ function (file,           pragma,   parse,   lang) {
 
         //Override define() to catch modules that just define an object, so that
         //a dummy define call is not put in the build file for them. They do
-        //not end up getting defined via require.execCb, so we need to catch them
+        //not end up getting defined via context.execCb, so we need to catch them
         //at the define call.
         oldDef = define;
 
@@ -198,126 +337,6 @@ function (file,           pragma,   parse,   lang) {
         require._fileExists = function (path) {
             return file.exists(path);
         };
-
-        function normalizeUrlWithBase(context, moduleName, url) {
-            //Adjust the URL if it was not transformed to use baseUrl.
-            if (require.jsExtRegExp.test(moduleName)) {
-                url = (context.config.dir || context.config.dirBaseUrl) + url;
-            }
-            return url;
-        }
-
-        //Override load so that the file paths can be collected.
-        require.load = function (context, moduleName, url) {
-            /*jslint evil: true */
-            var contents, pluginBuilderMatch, builderName;
-
-            //Only handle urls that can be inlined, so that means avoiding some
-            //URLs like ones that require network access or may be too dynamic,
-            //like JSONP
-            if (require._isSupportedBuildUrl(url)) {
-                //Adjust the URL if it was not transformed to use baseUrl.
-                url = normalizeUrlWithBase(context, moduleName, url);
-
-                //Save the module name to path  and path to module name mappings.
-                layer.buildPathMap[moduleName] = url;
-                layer.buildFileToModule[url] = moduleName;
-
-                if (context.plugins.hasOwnProperty(moduleName)) {
-                    //plugins need to have their source evaled as-is.
-                    context.needFullExec[moduleName] = true;
-                }
-
-                try {
-                    if (require._cachedFileContents.hasOwnProperty(url) &&
-                        (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
-                        contents = require._cachedFileContents[url];
-                    } else {
-                        //Load the file contents, process for conditionals, then
-                        //evaluate it.
-                        contents = file.readFile(url);
-
-                        //If there is a read filter, run it now.
-                        if (context.config.onBuildRead) {
-                            contents = context.config.onBuildRead(moduleName, url, contents);
-                        }
-
-                        contents = pragma.process(url, contents, context.config, 'OnExecute');
-
-                        //Find out if the file contains a require() definition. Need to know
-                        //this so we can inject plugins right after it, but before they are needed,
-                        //and to make sure this file is first, so that define calls work.
-                        //This situation mainly occurs when the build is done on top of the output
-                        //of another build, where the first build may include require somewhere in it.
-                        try {
-                            if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                                layer.existingRequireUrl = url;
-                            }
-                        } catch (e1) {
-                            throw new Error('Parse error using UglifyJS ' +
-                                            'for file: ' + url + '\n' + e1);
-                        }
-
-                        if (context.plugins.hasOwnProperty(moduleName)) {
-                            //This is a loader plugin, check to see if it has a build extension,
-                            //otherwise the plugin will act as the plugin builder too.
-                            pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
-                            if (pluginBuilderMatch) {
-                                //Load the plugin builder for the plugin contents.
-                                builderName = context.normalize(pluginBuilderMatch[3], moduleName);
-                                contents = file.readFile(context.nameToUrl(builderName));
-                            }
-                        }
-
-                        //Parse out the require and define calls.
-                        //Do this even for plugins in case they have their own
-                        //dependencies that may be separate to how the pluginBuilder works.
-                        try {
-                            if (!context.needFullExec[moduleName]) {
-                                contents = parse(moduleName, url, contents, {
-                                    insertNeedsDefine: true,
-                                    has: context.config.has,
-                                    findNestedDependencies: context.config.findNestedDependencies
-                                });
-                            }
-                        } catch (e2) {
-                            throw new Error('Parse error using UglifyJS ' +
-                                            'for file: ' + url + '\n' + e2);
-                        }
-
-                        require._cachedFileContents[url] = contents;
-                    }
-
-                    if (contents) {
-                        eval(contents);
-                    }
-
-                    //Need to close out completion of this module
-                    //so that listeners will get notified that it is available.
-                    try {
-                        context.completeLoad(moduleName);
-                    } catch (e) {
-                        //Track which module could not complete loading.
-                        if (!e.moduleTree) {
-                            e.moduleTree = [];
-                        }
-                        e.moduleTree.push(moduleName);
-                        throw e;
-                    }
-
-                } catch (eOuter) {
-                    if (!eOuter.fileName) {
-                        eOuter.fileName = url;
-                    }
-                    throw eOuter;
-                }
-            } else {
-                //With unsupported URLs still need to call completeLoad to
-                //finish loading.
-                context.completeLoad(moduleName);
-            }
-        };
-
 
         //Called when execManager runs for a dependency. Used to figure out
         //what order of execution.
@@ -363,18 +382,6 @@ function (file,           pragma,   parse,   lang) {
         //ordering works correctly.
         require.needsDefine = function (moduleName) {
             layer.needsDefine[moduleName] = true;
-        };
-
-        //Marks module has having a name, and optionally executes the
-        //callback, but only if it meets certain criteria.
-        require.execCb = function (name, cb, args, exports) {
-            if (!layer.needsDefine[name]) {
-                layer.modulesWithNames[name] = true;
-            }
-            if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
-                return cb.apply(exports, args);
-            }
-            return undefined;
         };
     };
 });

@@ -180,12 +180,6 @@ var requirejs, require, define;
                 }
             };
 
-            //Enable execution of this callback in a build setting.
-            //Normally, once requirePatch is run, by default it will
-            //not execute callbacks, unless this property is set on
-            //the callback.
-            runBuild.__requireJsBuild = true;
-
             requirejs({
                 context: 'build'
             }, ['build', 'logger'], runBuild);
@@ -204,9 +198,7 @@ var requirejs, require, define;
                 }
 
                 var req = requirejs({
-                    context: contextName,
-                    requireLoad: requirejsVars.nodeLoad,
-                    requireExecCb: requirejsVars.nodeRequireExecCb
+                    context: contextName
                 });
 
                 req(['build'], function () {
