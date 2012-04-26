@@ -4,9 +4,12 @@
     dir: '../built',
     optimize: 'none',
     dirExclusionRegExp: null,
-    packagePaths: {
-        '.packages': ['sample']
-    },
+    packages: [
+        {
+            name: 'sample',
+            location: '.packages/sample'
+        }
+    ],
     modules: [
         {
             name: 'main'
