@@ -145,8 +145,7 @@ var requirejs, require, define;
                 waitSeconds: 7,
                 baseUrl: "./",
                 paths: {},
-                pkgs: {},
-                catchError: {}
+                pkgs: {}
             },
             registry = {},
             undefEvents = {},
@@ -364,6 +363,27 @@ var requirejs, require, define;
             }
         }
 
+        function onError(err, errback) {
+            var ids = err.requireModules,
+                notified = false;
+
+            if (errback) {
+                errback(err);
+            } else {
+                each(ids, function (id) {
+                    var mod = registry[id];
+                    if (mod && mod.events.error) {
+                        notified = true;
+                        mod.emit('error', err);
+                    }
+                });
+
+                if (!notified) {
+                    req.onError(err);
+                }
+            }
+        }
+
         function makeContextModuleFunc(func, relMap, enableBuildCallback) {
             return function () {
                 //A version of a require function that passes a moduleName
@@ -429,6 +449,21 @@ var requirejs, require, define;
                     break;
                 }
             }
+        }
+
+        function removeWaiting(id) {
+            //Clean up machinery used for waiting modules.
+            delete registry[id];
+
+            each(waitAry, function (mod, i) {
+                if (mod.map.id === id) {
+                    waitAry.splice(i, 1);
+                    if (!mod.defined) {
+                        context.waitCount -= 1;
+                    }
+                    return true;
+                }
+            });
         }
 
         function findCycle(mod, traced) {
@@ -546,7 +581,7 @@ var requirejs, require, define;
                 map = mod.map;
                 modId = map.id;
 
-                //Skip things that are not enabled.
+                //Skip things that are not enabled or in error state.
                 if (!mod.enabled) {
                     return;
                 }
@@ -577,8 +612,7 @@ var requirejs, require, define;
                 err.requireType = "timeout";
                 err.requireModules = noLoads;
                 err.contextName = context.contextName;
-//TODO: trigger error handlers for modules.
-                return req.onError(err);
+                return onError(err);
             }
 
             //Not expired, check for a cycle.
@@ -661,9 +695,9 @@ var requirejs, require, define;
                 } else if (this.events.error) {
                     //If no errback already, but there are error listeners
                     //on this module, set up an errback to pass to the deps.
-                    errback = function (err) {
+                    errback = bind(this, function (err) {
                         this.emit('error', err);
-                    };
+                    });
                 }
 
                 each(depMaps, bind(this, function (depMap, i) {
@@ -688,9 +722,7 @@ var requirejs, require, define;
                     }));
 
                     if (errback) {
-                        on(depMap, 'error', function (err) {
-                            errback(err);
-                        });
+                        on(depMap, 'error', errback);
                     }
                 }));
 
@@ -776,58 +808,53 @@ var requirejs, require, define;
                     depExports = this.depExports,
                     exports = this.exports,
                     factory = this.factory,
-                    err, cjsModule, errFile, errModuleTree;
+                    err, cjsModule;
 
                 if (!this.inited) {
                     this.fetch();
+                } else if (this.error) {
+                    this.emit('error', this.error);
                 } else {
                     if (this.depCount < 1 && !this.defined) {
-                        if (factory !== undefined) {
-                            if (isFunction(factory)) {
-                                if (config.catchError.define) {
-                                    try {
-                                        exports = context.execCb(id, factory, depExports, exports);
-                                    } catch (e) {
-                                        err = e;
-                                    }
-                                } else {
+                        if (isFunction(factory)) {
+                            //If there is an error listener, favor passing
+                            //to that instead of throwing an error.
+                            if (this.events.error) {
+                                try {
                                     exports = context.execCb(id, factory, depExports, exports);
+                                } catch (e) {
+                                    err = e;
                                 }
-
-                                if (this.map.isDefine) {
-                                    //If setting exports via "module" is in play,
-                                    //favor that over return value and exports. After that,
-                                    //favor a non-undefined return value over exports use.
-                                    cjsModule = this.module;
-                                    if (cjsModule &&
-                                        cjsModule.exports !== undefined &&
-                                        //Make sure it is not already the exports value
-                                        cjsModule.exports !== this.exports) {
-                                        exports = cjsModule.exports;
-                                    } else if (exports === undefined && this.usingExports) {
-                                        //exports already set the defined value.
-                                        exports = this.exports;
-                                    }
-                                }
-
-
-                                if (err) {
-                                    errFile = err.fileName || err.sourceURL || id;
-                                    errModuleTree = err.moduleTree;
-                                    err.moduleName = (errModuleTree && errModuleTree[0]) || id;
-                                    err = makeError('defineerror', 'Error evaluating ' +
-                                                    'module "' + err.moduleName + '" at location "' +
-                                                    errFile + '":\n' +
-                                                    err + '\nfileName:' + errFile +
-                                                    '\nlineNumber: ' + (err.lineNumber || err.line), err);
-                                    err.moduleTree = errModuleTree;
-                                    return req.onError(err);
-                                }
-
                             } else {
-                                //Just a literal value
-                                exports = factory;
+                                exports = context.execCb(id, factory, depExports, exports);
                             }
+
+                            if (this.map.isDefine) {
+                                //If setting exports via "module" is in play,
+                                //favor that over return value and exports. After that,
+                                //favor a non-undefined return value over exports use.
+                                cjsModule = this.module;
+                                if (cjsModule &&
+                                    cjsModule.exports !== undefined &&
+                                    //Make sure it is not already the exports value
+                                    cjsModule.exports !== this.exports) {
+                                    exports = cjsModule.exports;
+                                } else if (exports === undefined && this.usingExports) {
+                                    //exports already set the defined value.
+                                    exports = this.exports;
+                                }
+                            }
+
+                            if (err) {
+                                err.requireMap = this.map;
+                                err.requireModules = [this.map.id];
+                                err.requireType = 'define';
+                                return onError((this.error = err));
+                            }
+
+                        } else {
+                            //Just a literal value
+                            exports = factory;
                         }
 
                         this.exports = exports;
@@ -863,24 +890,25 @@ var requirejs, require, define;
 
             callPlugin: function() {
                 var map = this.map,
+                    id = map.id,
                     pluginMap = makeModuleMap(map.prefix);
 
                 on(pluginMap, 'defined', bind(this, function (plugin) {
                     var name = this.map.name,
                         parentName = this.map.parentMap ? this.map.parentMap.name : null,
-                        normalizedName, load, normalizedMap;
+                        load, normalizedMap, normalizedMod;
 
-                    //Normalize the ID if the plugin allows it.
-                    if (plugin.normalize) {
-                        normalizedName = plugin.normalize(name, function (name) {
-                            return normalize(name, parentName);
-                        });
-                    }
+                    //If current map is not normalized, wait for that
+                    //normalized name to load instead of continuing.
+                    if (this.map.unnormalized) {
+                        //Normalize the ID if the plugin allows it.
+                        if (plugin.normalize) {
+                            name = plugin.normalize(name, function (name) {
+                                return normalize(name, parentName);
+                            });
+                        }
 
-                    //If the name was normalized to something else, then wait
-                    //for that normalized name to load instead of continuing.
-                    if ((normalizedName && normalizedName !== name) || this.map.unnormalized) {
-                        normalizedMap = makeModuleMap(map.prefix + '!' + (normalizedName || name));
+                        normalizedMap = makeModuleMap(map.prefix + '!' + name);
                         on(normalizedMap,
                            'defined', bind(this, function (value) {
                             this.init([], function () { return value; }, null, {
@@ -888,7 +916,15 @@ var requirejs, require, define;
                                 ignore: true
                             });
                         }));
-                        context.enable(normalizedMap);
+                        normalizedMod = registry[normalizedMap.id];
+                        if (normalizedMod) {
+                            if (this.events.error) {
+                                normalizedMod.on('error', bind(this, function (err) {
+                                    this.emit('error', err);
+                                }));
+                            }
+                            normalizedMod.enable();
+                        }
 
                         return;
                     }
@@ -897,6 +933,22 @@ var requirejs, require, define;
                         this.init([], function () { return value; }, null, {
                             enabled: true
                         });
+                    });
+
+                    load.error = bind(this, function (err) {
+                        this.inited = true;
+                        this.error = err;
+                        err.requireModules = [id];
+
+                        //Remove temp unnormalized modules for this module,
+                        //since they will never be resolved otherwise now.
+                        eachProp(registry, function (mod) {
+                            if (mod.map.id.indexOf(id + '_unnormalized') === 0) {
+                                removeWaiting(mod.map.id);
+                            }
+                        });
+
+                        onError(err);
                     });
 
                     //Allow plugins to load other code without having to know the
@@ -978,6 +1030,12 @@ var requirejs, require, define;
                 each(this.events[name], function (cb) {
                     cb(evt);
                 });
+                if (name === 'error') {
+                    //Now that the error handler was triggered, remove
+                    //the listeners, since this broken Module instance
+                    //can stay around for a while in the registry/waitAry.
+                    delete this.events[name];
+                }
             }
         };
 
@@ -1066,7 +1124,7 @@ var requirejs, require, define;
                 if (typeof deps === "string") {
                     if (isFunction(callback)) {
                         //Invalid call
-                        return req.onError(makeError("requireargs", "Invalid require call"));
+                        return onError(makeError("requireargs", "Invalid require call"), errback);
                     }
 
                     //Synchronous access to one module. If require.get is
@@ -1087,7 +1145,7 @@ var requirejs, require, define;
                     id = map.id;
 
                     if (!defined.hasOwnProperty(id)) {
-                        return req.onError(makeError("notloaded", "Module name '" +
+                        return onError(makeError("notloaded", "Module name '" +
                                     id +
                                     "' has not been loaded yet for context: " +
                                     contextName));
@@ -1109,7 +1167,7 @@ var requirejs, require, define;
                 while (context.defQueue.length) {
                     args = context.defQueue.shift();
                     if (args[0] === null) {
-                        return req.onError(makeError('mismatch', 'Mismatched anonymous define() module: ' + args[args.length - 1]));
+                        return onError(makeError('mismatch', 'Mismatched anonymous define() module: ' + args[args.length - 1]));
                     } else {
                         //args are id, deps, factory. Should be normalized by the
                         //define() function.
@@ -1139,14 +1197,14 @@ var requirejs, require, define;
                 delete undefEvents[id];
 
                 if (mod) {
-                    delete registry[id];
-
                     //Hold on to listeners in case the
                     //module will be attempted to be reloaded
                     //using a different config.
                     if (mod.events.defined) {
                         undefEvents[id] = mod.events;
                     }
+
+                    removeWaiting(id);
                 }
             },
 
@@ -1324,7 +1382,7 @@ var requirejs, require, define;
      * on a require that are not standardized), and to give a short
      * name for minification/local scope use.
      */
-    req = requirejs = function (deps, callback, possibleCallback) {
+    req = requirejs = function (deps, callback, errback, optional) {
 
         //Find the right context, use default
         var contextName = defContextName,
@@ -1337,7 +1395,8 @@ var requirejs, require, define;
             if (isArray(callback)) {
                 // Adjust args if there are dependencies
                 deps = callback;
-                callback = possibleCallback;
+                callback = errback;
+                errback = optional;
             } else {
                 deps = [];
             }
@@ -1356,7 +1415,7 @@ var requirejs, require, define;
             context.configure(config);
         }
 
-        return context.require(deps, callback);
+        return context.require(deps, callback, errback);
     };
 
     /**
