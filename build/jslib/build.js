@@ -636,7 +636,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build.createConfig = function (cfg) {
         /*jslint evil: true */
         var config = {}, buildFileContents, buildFileConfig, mainConfig,
-            mainConfigFile, prop, buildFile, absFilePath;
+            mainConfigFile, mainConfigPath, prop, buildFile, absFilePath;
 
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
@@ -691,11 +691,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         ' into a build file or command line arguments given to the optimizer.');
             }
             if (mainConfig) {
+                mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
+
                 //If no baseUrl, then use the directory holding the main config.
                 if (!mainConfig.baseUrl) {
-                    mainConfig.baseUrl = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
+                    mainConfig.baseUrl = mainConfigPath;
                 }
-                build.makeAbsConfig(mainConfig, mainConfigFile);
+                build.makeAbsConfig(mainConfig, mainConfigPath);
                 mixConfig(config, mainConfig);
             }
         }

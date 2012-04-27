@@ -127,10 +127,9 @@ var requirejs, require, define;
         if (isFunction(requirejs)) {
             //Do not overwrite and existing requirejs instance.
             return;
-        } else {
-            cfg = requirejs;
-            requirejs = undefined;
         }
+        cfg = requirejs;
+        requirejs = undefined;
     }
 
     //Allow for a require config object
@@ -205,7 +204,9 @@ var requirejs, require, define;
          * @returns {String} normalized name
          */
         function normalize(name, baseName) {
-            var pkgName, pkgConfig;
+            var baseParts = baseName && baseName.split("/"),
+                map = config.map,
+                pkgName, pkgConfig, mapValue, nameParts, i;
 
             //Adjust any relative paths.
             if (name && name.charAt(0) === ".") {
@@ -216,18 +217,17 @@ var requirejs, require, define;
                     if (config.pkgs[baseName]) {
                         //If the baseName is a package name, then just treat it as one
                         //name to concat the name with.
-                        baseName = [baseName];
+                        baseParts = [baseName];
                     } else {
                         //Convert baseName to array, and lop off the last part,
                         //so that . matches that "directory" and not name of the baseName's
                         //module. For instance, baseName of "one/two/three", maps to
                         //"one/two/three.js", but we want the directory, "one/two" for
                         //this normalization.
-                        baseName = baseName.split("/");
-                        baseName = baseName.slice(0, baseName.length - 1);
+                        baseParts = baseParts.slice(0, baseParts.length - 1);
                     }
 
-                    name = baseName.concat(name.split("/"));
+                    name = baseParts.concat(name.split("/"));
                     trimDots(name);
 
                     //Some use of packages may use a . path to reference the
@@ -243,6 +243,30 @@ var requirejs, require, define;
                     name = name.substring(2);
                 }
             }
+
+            //Apply map config if available.
+            if (baseParts && map) {
+                nameParts = name.split('/');
+
+                //Find the longest baseName segment match in the config.
+                //So, do joins on the biggest to smallest lengths of baseParts.
+                for (i = baseParts.length; i > 0; i -= 1) {
+                    mapValue = map[baseParts.slice(0, i).join('/')];
+
+                    //baseName segment has  config, find if it has one for
+                    //this name.
+                    if (mapValue) {
+                        mapValue = mapValue[nameParts[0]];
+                        if (mapValue) {
+                            //Match, update name to the new value.
+                            nameParts[0] = mapValue;
+                            name = nameParts.join('/');
+                            break;
+                        }
+                    }
+                }
+            }
+
             return name;
         }
 
@@ -382,6 +406,22 @@ var requirejs, require, define;
                 if (!notified) {
                     req.onError(err);
                 }
+            }
+        }
+
+        /**
+         * Internal method to transfer globalQueue items to this context's
+         * defQueue.
+         */
+        function takeGlobalQueue() {
+            //Push all the globalDefQueue items into the context's defQueue
+            if (globalDefQueue.length) {
+                //Array splice in the values since the context code has a
+                //local var ref to defQueue, so cannot just reassign the one
+                //on context.
+                apsp.apply(context.defQueue,
+                           [context.defQueue.length - 1, 0].concat(globalDefQueue));
+                globalDefQueue = [];
             }
         }
 
@@ -1074,8 +1114,6 @@ var requirejs, require, define;
              * @param {Object} cfg config object to integrate.
              */
             configure: function (cfg) {
-                var paths, packages, pkgs, legacy;
-
                 //Make sure the baseUrl ends in a slash.
                 if (cfg.baseUrl) {
                     if (cfg.baseUrl.charAt(cfg.baseUrl.length - 1) !== "/") {
@@ -1085,10 +1123,10 @@ var requirejs, require, define;
 
                 //Save off the paths and packages since they require special processing,
                 //they are additive.
-                paths = config.paths;
-                packages = config.packages;
-                pkgs = config.pkgs;
-                legacy = config.legacy;
+                var paths = config.paths,
+                    pkgs = config.pkgs,
+                    legacy = config.legacy,
+                    map = config.map || {};
 
                 //Mix in the config values, favoring the new values over
                 //existing ones in context.config.
@@ -1097,6 +1135,12 @@ var requirejs, require, define;
                 //Merge paths.
                 mixin(paths, cfg.paths, true);
                 config.paths = paths;
+
+                //Merge map
+                if (cfg.map) {
+                    mixin(map, cfg.map, true);
+                    config.map = map;
+                }
 
                 //Merge legacy
                 if (cfg.legacy) {
@@ -1206,7 +1250,7 @@ var requirejs, require, define;
                 }
 
                 //Any defined modules in the global queue, intake them now.
-                context.takeGlobalQueue();
+                takeGlobalQueue();
 
                 //Make sure any remaining defQueue items get properly processed.
                 while (context.defQueue.length) {
@@ -1266,22 +1310,6 @@ var requirejs, require, define;
             },
 
             /**
-             * Internal method to transfer globalQueue items to this context's
-             * defQueue.
-             */
-            takeGlobalQueue: function () {
-                //Push all the globalDefQueue items into the context's defQueue
-                if (globalDefQueue.length) {
-                    //Array splice in the values since the context code has a
-                    //local var ref to defQueue, so cannot just reassign the one
-                    //on context.
-                    apsp.apply(context.defQueue,
-                               [context.defQueue.length - 1, 0].concat(globalDefQueue));
-                    globalDefQueue = [];
-                }
-            },
-
-            /**
              * Internal method used by environment adapters to complete a load event.
              * A load event could be a script load or just a load pass from a synchronous
              * load call.
@@ -1291,7 +1319,7 @@ var requirejs, require, define;
                 var legacy = config.legacy[moduleName] || {},
                 found, args;
 
-                context.takeGlobalQueue();
+                takeGlobalQueue();
 
                 while (context.defQueue.length) {
                     args = context.defQueue.shift();
@@ -1504,12 +1532,9 @@ var requirejs, require, define;
     req.isBrowser = isBrowser;
     s = req.s = {
         contexts: contexts,
-        newContext: newContext,
-        //Stores a list of URLs that should not get async script tag treatment.
-        skipAsync: {}
+        newContext: newContext
     };
 
-    req.isAsync = req.isBrowser = isBrowser;
     if (isBrowser) {
         head = s.head = document.getElementsByTagName("head")[0];
         //If BASE tag is in play, using appendChild is a problem for IE6.
@@ -1625,13 +1650,8 @@ var requirejs, require, define;
      * @param {moduleName} the name of the module that is associated with the script.
      * @param {Function} [callback] optional callback, defaults to require.onScriptLoad
      * @param {String} [type] optional type, defaults to text/javascript
-     * @param {Function} [fetchOnlyFunction] optional function to indicate the script node
-     * should be set up to fetch the script but do not attach it to the DOM
-     * so that it can later be attached to execute it. This is a way for the
-     * order plugin to support ordered loading in IE. Once the script is fetched,
-     * but not executed, the fetchOnlyFunction will be called.
      */
-    req.attach = function (url, context, moduleName, callback, type, fetchOnlyFunction) {
+    req.attach = function (url, context, moduleName, callback, type) {
         var node;
         if (isBrowser) {
             //In the browser so use a script tag
@@ -1642,17 +1662,6 @@ var requirejs, require, define;
             node.type = type || (context && context.config.scriptType) ||
                         "text/javascript";
             node.charset = "utf-8";
-            //Use async so Gecko does not block on executing the script if something
-            //like a long-polling comet tag is being run first. Gecko likes
-            //to evaluate scripts in DOM order, even for dynamic scripts.
-            //It will fetch them async, but only evaluate the contents in DOM
-            //order, so a long-polling script tag can delay execution of scripts
-            //after it. But telling Gecko we expect async gets us the behavior
-            //we want -- execute it whenever it is finished downloading. Only
-            //Helps Firefox 3.6+
-            //Allow some URLs to not be fetched async. Mostly helps the order!
-            //plugin
-            node.async = !s.skipAsync[url];
 
             if (context) {
                 node.setAttribute("data-requirecontext", context.contextName);
@@ -1684,33 +1693,14 @@ var requirejs, require, define;
                 useInteractive = true;
 
 
-                if (fetchOnlyFunction) {
-                    //Need to use old school onreadystate here since
-                    //when the event fires and the node is not attached
-                    //to the DOM, the evt.srcElement is null, so use
-                    //a closure to remember the node.
-                    node.onreadystatechange = function () {
-                        //Script loaded but not executed.
-                        //Clear loaded handler, set the real one that
-                        //waits for script execution.
-                        if (node.readyState === 'loaded') {
-                            node.onreadystatechange = null;
-                            node.attachEvent("onreadystatechange", callback);
-                            fetchOnlyFunction(node);
-                        }
-                    };
-                } else {
-                    node.attachEvent("onreadystatechange", callback);
-                }
+                node.attachEvent("onreadystatechange", callback);
             } else {
                 node.addEventListener("load", callback, false);
             }
             node.src = url;
 
             //Fetch only means waiting to attach to DOM after loaded.
-            if (!fetchOnlyFunction) {
-                req.addScriptToDom(node);
-            }
+            req.addScriptToDom(node);
 
             return node;
         } else if (isWebWorker) {
@@ -1834,8 +1824,6 @@ var requirejs, require, define;
         //occurs. If no context, use the global queue, and get it processed
         //in the onscript load callback.
         (context ? context.defQueue : globalDefQueue).push([name, deps, callback]);
-
-        return undefined;
     };
 
     define.amd = {
