@@ -907,4 +907,23 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("mapConfig",
+        [
+            function mapConfig(t) {
+                var outFile = "../../../requirejs/tests/mapConfig/built/mapConfig-tests.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/mapConfig/build.js"]);
+
+                t.is(nol(c("lib/mapConfig/expected.js")),
+                     nol(c(outFile)));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
