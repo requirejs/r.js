@@ -942,7 +942,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             context = layer.context,
             anonDefRegExp = config.anonDefRegExp,
             path, reqIndex, fileContents, currContents,
-            i, moduleName,
+            i, moduleName, legacy,
             parts, builder, writeApi;
 
         //Use override settings, particularly for pragmas
@@ -1020,16 +1020,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //after the module is processed.
             //If we have a name, but no defined module, then add in the placeholder.
             if (moduleName && !layer.modulesWithNames[moduleName] && !config.skipModuleInsertion) {
-                //If including jquery, register the module correctly, otherwise
-                //register an empty function. For jquery, make sure jQuery is
-                //a real object, and perhaps not some other file mapping, like
-                //to zepto.
-                if (moduleName === 'jquery') {
-                    fileContents += '\n(function () {\n' +
-                                   'var jq = typeof jQuery !== "undefined" && jQuery;\n' +
-                                   namespace +
-                                   'define("jquery", [], function () { return jq; });\n' +
-                                   '}());\n';
+                legacy = config.legacy && config.legacy[moduleName];
+                if (legacy) {
+                    fileContents += '\n' + namespace + 'define("' + moduleName + '", ' +
+                                     (legacy.deps && legacy.deps.length ?
+                                            build.makeJsArrayString(legacy.deps) + ', ' : '') +
+                                     (legacy.exports ? legacy.exports() : 'function(){}') +
+                                     ');\n';
                 } else {
                     fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
                 }
@@ -1042,6 +1039,15 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     fileContents,
             buildText: buildFileContents
         };
+    };
+
+    //Converts an JS array of strings to a string representation.
+    //Not using JSON.stringify() for Rhino's sake.
+    build.makeJsArrayString = function (ary) {
+        return '["' + ary.map(function (item) {
+            //Escape any double quotes, backslashes
+            return lang.jsEscape(item);
+        }).join('","') + '"]';
     };
 
     /**

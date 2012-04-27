@@ -58,34 +58,6 @@ function (file,           pragma,   parse,   lang) {
         //Stored cached file contents for reuse in other layers.
         require._cachedFileContents = {};
 
-        /** Reset state for each build layer pass. */
-        require._buildReset = function () {
-            var oldContext = require.s.contexts._;
-
-            //Clear up the existing context.
-            delete require.s.contexts._;
-
-            //Set up new context, so the layer object can hold onto it.
-            require({});
-
-            layer = require._layer = {
-                buildPathMap: {},
-                buildFileToModule: {},
-                buildFilePaths: [],
-                pathAdded: {},
-                modulesWithNames: {},
-                needsDefine: {},
-                existingRequireUrl: "",
-                context: require.s.contexts._
-            };
-
-            //Return the previous context in case it is needed, like for
-            //the basic config object.
-            return oldContext;
-        };
-
-        require._buildReset();
-
         /**
          * Makes sure the URL is something that can be supported by the
          * optimization tool.
@@ -124,6 +96,35 @@ function (file,           pragma,   parse,   lang) {
                 context.fullExec = {};
                 context.plugins = {};
 
+                //Override the legacy exports function generator to just
+                //spit out strings that can be used in the stringified
+                //build output.
+                context.makeLegacyExports = function (exports) {
+                    var result;
+                    if (typeof exports === 'string') {
+                        result = function () {
+                            return '(function (global) {\n' +
+                            '    return function () {\n' +
+                            '        return global["' + exports + '"];\n' +
+                            '    }\n' +
+                            '}(this))';
+                        };
+                    } else {
+                        result = function () {
+                            return '(function (global) {\n' +
+                            '    return function () {\n' +
+                            '        var func = ' + exports.toString() + ';\n' +
+                            '        return func.apply(global, arguments);\n' +
+                            '    }\n' +
+                            '}(this))';
+                        };
+                    }
+
+                    //Mark the result has being tranformed by the build already.
+                    result.__buildReady = true;
+                    return result;
+                };
+
                 context.enable = function (depMap, parent) {
                     var id = depMap.id,
                         parentId = parent && parent.map.id,
@@ -144,7 +145,7 @@ function (file,           pragma,   parse,   lang) {
                 };
 
                 //Override load so that the file paths can be collected.
-                context.load = function (context, moduleName, url) {
+                context.load = function (moduleName, url) {
                     /*jslint evil: true */
                     var contents, pluginBuilderMatch, builderName;
 
@@ -314,6 +315,38 @@ function (file,           pragma,   parse,   lang) {
 
             return context;
         };
+
+        //Clear up the existing context so that the newContext modifications
+        //above will be active.
+        delete require.s.contexts._;
+
+        /** Reset state for each build layer pass. */
+        require._buildReset = function () {
+            var oldContext = require.s.contexts._;
+
+            //Clear up the existing context.
+            delete require.s.contexts._;
+
+            //Set up new context, so the layer object can hold onto it.
+            require({});
+
+            layer = require._layer = {
+                buildPathMap: {},
+                buildFileToModule: {},
+                buildFilePaths: [],
+                pathAdded: {},
+                modulesWithNames: {},
+                needsDefine: {},
+                existingRequireUrl: "",
+                context: require.s.contexts._
+            };
+
+            //Return the previous context in case it is needed, like for
+            //the basic config object.
+            return oldContext;
+        };
+
+        require._buildReset();
 
         //Override define() to catch modules that just define an object, so that
         //a dummy define call is not put in the build file for them. They do

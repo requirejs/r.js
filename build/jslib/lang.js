@@ -109,8 +109,18 @@ define(function () {
             return function () {
                 return fn.apply(obj, arguments);
             };
-        }
+        },
 
+        //Escapes a content string to be be a string that has characters escaped
+        //for inclusion as part of a JS string.
+        jsEscape: function (content) {
+            return content.replace(/(["'\\])/g, '\\$1')
+                .replace(/[\f]/g, "\\f")
+                .replace(/[\b]/g, "\\b")
+                .replace(/[\n]/g, "\\n")
+                .replace(/[\t]/g, "\\t")
+                .replace(/[\r]/g, "\\r");
+        }
     };
     return lang;
 });

@@ -7,7 +7,7 @@
 /*global window, navigator, document, importScripts, jQuery, setTimeout, opera */
 
 var requirejs, require, define;
-(function () {
+(function (global) {
     'use strict';
 
     var version = "2.0.0zdev",
@@ -145,7 +145,8 @@ var requirejs, require, define;
                 waitSeconds: 7,
                 baseUrl: "./",
                 paths: {},
-                pkgs: {}
+                pkgs: {},
+                legacy: {}
             },
             registry = {},
             undefEvents = {},
@@ -432,6 +433,9 @@ var requirejs, require, define;
                 return (mod.module = {
                     id: mod.map.id,
                     uri: mod.map.url,
+                    config: function () {
+                        return config.config[mod.map.id] || {};
+                    },
                     exports: defined[mod.map.id]
                 });
             }
@@ -664,6 +668,7 @@ var requirejs, require, define;
         Module = function (map) {
             this.events = undefEvents[map.id] || {};
             this.map = map;
+            this.legacy = config.legacy[map.id];
             this.depExports = [];
             this.depMaps = [];
             this.depMatched = [];
@@ -776,20 +781,29 @@ var requirejs, require, define;
 
                 context.startTime = (new Date()).getTime();
 
-                var map = this.map,
-                    url = map.url,
-                    id = map.id;
+                var map = this.map;
 
                 //If the manager is for a plugin managed resource,
                 //ask the plugin to load it now.
                 if (map.prefix) {
                     this.callPlugin();
+                } else if (this.legacy) {
+                    makeRequire(this, true)(this.legacy.deps || [], bind(this, function () {
+                        this.load();
+                    }));
                 } else {
                     //Regular dependency.
-                    if (!urlFetched[url] && !this.inited) {
-                        urlFetched[url] = true;
-                        context.load(context, id, url);
-                    }
+                    this.load();
+                }
+            },
+
+            load: function() {
+                var url = this.map.url;
+
+                //Regular dependency.
+                if (!urlFetched[url]) {
+                    urlFetched[url] = true;
+                    context.load(this.map.id, url);
                 }
             },
 
@@ -1060,7 +1074,7 @@ var requirejs, require, define;
              * @param {Object} cfg config object to integrate.
              */
             configure: function (cfg) {
-                var paths, packages, pkgs;
+                var paths, packages, pkgs, legacy;
 
                 //Make sure the baseUrl ends in a slash.
                 if (cfg.baseUrl) {
@@ -1074,6 +1088,7 @@ var requirejs, require, define;
                 paths = config.paths;
                 packages = config.packages;
                 pkgs = config.pkgs;
+                legacy = config.legacy;
 
                 //Mix in the config values, favoring the new values over
                 //existing ones in context.config.
@@ -1082,6 +1097,23 @@ var requirejs, require, define;
                 //Merge paths.
                 mixin(paths, cfg.paths, true);
                 config.paths = paths;
+
+                //Merge legacy
+                if (cfg.legacy) {
+                    eachProp(cfg.legacy, function (value, id) {
+                        //Normalize the structure
+                        if (isArray(value)) {
+                            value = {
+                                deps: value
+                            };
+                        }
+                        if (value.exports && !value.exports.__buildReady) {
+                            value.exports = context.makeLegacyExports(value.exports);
+                        }
+                        legacy[id] = value;
+                    });
+                    config.legacy = legacy;
+                }
 
                 //Adjust packages if necessary.
                 if (cfg.packages) {
@@ -1116,6 +1148,19 @@ var requirejs, require, define;
                 //config object before require.js is loaded.
                 if (cfg.deps || cfg.callback) {
                     context.require(cfg.deps || [], cfg.callback);
+                }
+            },
+
+            makeLegacyExports: function (exports) {
+
+                if (typeof exports === 'string') {
+                    return function () {
+                        return global[exports];
+                    };
+                } else {
+                    return function () {
+                        return exports.apply(global, arguments);
+                    };
                 }
             },
 
@@ -1243,7 +1288,8 @@ var requirejs, require, define;
              * @param {String} moduleName the name of the module to potentially complete.
              */
             completeLoad: function (moduleName) {
-                var found, args;
+                var legacy = config.legacy[moduleName] || {},
+                found, args;
 
                 context.takeGlobalQueue();
 
@@ -1269,7 +1315,7 @@ var requirejs, require, define;
                 if (!found && !defined[moduleName]) {
                     //A script that does not call define(), so just simulate
                     //the call for it.
-                    callGetModule([moduleName, [], null]);
+                    callGetModule([moduleName, (legacy.deps || []), legacy.exports]);
                 }
 
                 checkLoaded();
@@ -1351,7 +1397,7 @@ var requirejs, require, define;
 
             //Delegates to req.load. Broken out as a separate function to
             //allow overriding in the optimizer.
-            load: function (context, id, url) {
+            load: function (id, url) {
                 req.load(context, id, url);
             },
 
@@ -1821,4 +1867,4 @@ var requirejs, require, define;
             ctx.require([]);
         }, 0);
     }
-}());
+}(this));
