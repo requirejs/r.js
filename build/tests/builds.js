@@ -926,4 +926,23 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("mapConfigStar",
+        [
+            function mapConfigStar(t) {
+                var outFile = "../../../requirejs/tests/mapConfig/built/mapConfigStar-tests.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/mapConfig/buildStar.js"]);
+
+                t.is(nol(c("lib/mapConfig/expectedStar.js")),
+                     nol(c(outFile)));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
