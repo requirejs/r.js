@@ -11,7 +11,7 @@
 /*global require: false */
 
 var uglify = require('uglify-js'),
-    requirejs = require('../../../r.js');
+    requirejs = require('../../../../r.js');
 
 //Register the replacement module. Note that for uglifyjs, r.js uses the
 //"uglifyjs/index" module name for it. The list of replaceable modules
@@ -22,7 +22,7 @@ requirejs.define('uglifyjs/index', [], function () {
 
 //Do the build.
 requirejs.optimize({
-    baseUrl: "../../../../requirejs/tests",
+    baseUrl: "../../../../../requirejs/tests",
     name: "one",
     include: "dimple",
     out: "one-built.js",
