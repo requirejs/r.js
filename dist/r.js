@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Sat, 28 Apr 2012 00:19:25 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Sun, 29 Apr 2012 04:04:11 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '2.0.0zdev Sat, 28 Apr 2012 00:19:25 GMT',
+        version = '2.0.0zdev Sun, 29 Apr 2012 04:04:11 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -9994,7 +9994,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
         useStrictRegExp: /['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-        nsRegExp: /(^|[^\.])(requirejs|require|define)\s*\(/,
+        nsRegExp: /(^|[^\.])(requirejs|require|define)(\.config)?\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
@@ -10010,7 +10010,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         namespace: function (fileContents, ns, onLifecycleName) {
             if (ns) {
                 //Namespace require/define calls
-                fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2(');
+                fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2$3(');
 
                 //Namespace define ternary use:
                 fileContents = fileContents.replace(pragma.defineTernaryRegExp,
