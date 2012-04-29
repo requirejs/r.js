@@ -1,3 +1,11 @@
+requirejs.config({
+    placeholder: true
+});
+
+require.config({
+    placeholder: true
+});
+
 require(['modules/one', 'modules/two', 'modules/three'], function (one, two, three) {
     console.log("One's name is: " + one.name);
     console.log("Two's name is: " + two.name);

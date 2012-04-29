@@ -37,6 +37,14 @@ if(false){
 
 }));
 
+foo.requirejs.config({
+    placeholder: true
+});
+
+foo.require.config({
+    placeholder: true
+});
+
 foo.require(['modules/one', 'modules/two', 'modules/three'], function (one, two, three) {
     console.log("One's name is: " + one.name);
     console.log("Two's name is: " + two.name);
