@@ -363,7 +363,7 @@ define(['./uglifyjs/index'], function (uglify) {
         var callback, i, n, call, args;
 
         if (isArray(node)) {
-            if (node[0] === 'call') {
+            if (node[0] === 'call' && node.length > 2) {
                 call = node[1];
                 args = node[2];
                 if ((call[0] === 'name' && call[1] === 'define') ||
