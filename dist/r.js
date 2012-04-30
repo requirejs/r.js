@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Sun, 29 Apr 2012 04:04:11 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Mon, 30 Apr 2012 20:57:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '2.0.0zdev Sun, 29 Apr 2012 04:04:11 GMT',
+        version = '2.0.0zdev Mon, 30 Apr 2012 20:57:15 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -9478,7 +9478,7 @@ define('parse', ['./uglifyjs/index'], function (uglify) {
         var callback, i, n, call, args;
 
         if (isArray(node)) {
-            if (node[0] === 'call') {
+            if (node[0] === 'call' && node.length > 2) {
                 call = node[1];
                 args = node[2];
                 if ((call[0] === 'name' && call[1] === 'define') ||
