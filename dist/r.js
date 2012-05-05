@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Mon, 30 Apr 2012 20:57:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Sat, 05 May 2012 04:32:51 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '2.0.0zdev Mon, 30 Apr 2012 20:57:15 GMT',
+        version = '2.0.0zdev Sat, 05 May 2012 04:32:51 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -248,7 +248,7 @@ var requirejs, require, define;
                 baseUrl: "./",
                 paths: {},
                 pkgs: {},
-                legacy: {}
+                shim: {}
             },
             registry = {},
             undefEvents = {},
@@ -828,7 +828,7 @@ var requirejs, require, define;
         Module = function (map) {
             this.events = undefEvents[map.id] || {};
             this.map = map;
-            this.legacy = config.legacy[map.id];
+            this.shim = config.shim[map.id];
             this.depExports = [];
             this.depMaps = [];
             this.depMatched = [];
@@ -947,8 +947,8 @@ var requirejs, require, define;
                 //ask the plugin to load it now.
                 if (map.prefix) {
                     this.callPlugin();
-                } else if (this.legacy) {
-                    makeRequire(this, true)(this.legacy.deps || [], bind(this, function () {
+                } else if (this.shim) {
+                    makeRequire(this, true)(this.shim.deps || [], bind(this, function () {
                         this.load();
                     }));
                 } else {
@@ -1245,7 +1245,7 @@ var requirejs, require, define;
                 //they are additive.
                 var paths = config.paths,
                     pkgs = config.pkgs,
-                    legacy = config.legacy,
+                    shim = config.shim,
                     map = config.map || {};
 
                 //Mix in the config values, favoring the new values over
@@ -1262,9 +1262,9 @@ var requirejs, require, define;
                     config.map = map;
                 }
 
-                //Merge legacy
-                if (cfg.legacy) {
-                    eachProp(cfg.legacy, function (value, id) {
+                //Merge shim
+                if (cfg.shim) {
+                    eachProp(cfg.shim, function (value, id) {
                         //Normalize the structure
                         if (isArray(value)) {
                             value = {
@@ -1272,11 +1272,11 @@ var requirejs, require, define;
                             };
                         }
                         if (value.exports && !value.exports.__buildReady) {
-                            value.exports = context.makeLegacyExports(value.exports);
+                            value.exports = context.makeShimExports(value.exports);
                         }
-                        legacy[id] = value;
+                        shim[id] = value;
                     });
-                    config.legacy = legacy;
+                    config.shim = shim;
                 }
 
                 //Adjust packages if necessary.
@@ -1315,7 +1315,7 @@ var requirejs, require, define;
                 }
             },
 
-            makeLegacyExports: function (exports) {
+            makeShimExports: function (exports) {
 
                 if (typeof exports === 'string') {
                     return function () {
@@ -1436,7 +1436,7 @@ var requirejs, require, define;
              * @param {String} moduleName the name of the module to potentially complete.
              */
             completeLoad: function (moduleName) {
-                var legacy = config.legacy[moduleName] || {},
+                var shim = config.shim[moduleName] || {},
                 found, args;
 
                 takeGlobalQueue();
@@ -1463,7 +1463,7 @@ var requirejs, require, define;
                 if (!found && !defined[moduleName]) {
                     //A script that does not call define(), so just simulate
                     //the call for it.
-                    callGetModule([moduleName, (legacy.deps || []), legacy.exports]);
+                    callGetModule([moduleName, (shim.deps || []), shim.exports]);
                 }
 
                 checkLoaded();
@@ -10770,10 +10770,10 @@ function (file,           pragma,   parse,   lang) {
                 context.fullExec = {};
                 context.plugins = {};
 
-                //Override the legacy exports function generator to just
+                //Override the shim exports function generator to just
                 //spit out strings that can be used in the stringified
                 //build output.
-                context.makeLegacyExports = function (exports) {
+                context.makeShimExports = function (exports) {
                     var result;
                     if (typeof exports === 'string') {
                         result = function () {
@@ -12190,7 +12190,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             context = layer.context,
             anonDefRegExp = config.anonDefRegExp,
             path, reqIndex, fileContents, currContents,
-            i, moduleName, legacy,
+            i, moduleName, shim,
             parts, builder, writeApi;
 
         //Use override settings, particularly for pragmas
@@ -12268,12 +12268,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //after the module is processed.
             //If we have a name, but no defined module, then add in the placeholder.
             if (moduleName && !layer.modulesWithNames[moduleName] && !config.skipModuleInsertion) {
-                legacy = config.legacy && config.legacy[moduleName];
-                if (legacy) {
+                shim = config.shim && config.shim[moduleName];
+                if (shim) {
                     fileContents += '\n' + namespace + 'define("' + moduleName + '", ' +
-                                     (legacy.deps && legacy.deps.length ?
-                                            build.makeJsArrayString(legacy.deps) + ', ' : '') +
-                                     (legacy.exports ? legacy.exports() : 'function(){}') +
+                                     (shim.deps && shim.deps.length ?
+                                            build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                     (shim.exports ? shim.exports() : 'function(){}') +
                                      ');\n';
                 } else {
                     fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
