@@ -96,10 +96,10 @@ function (file,           pragma,   parse,   lang) {
                 context.fullExec = {};
                 context.plugins = {};
 
-                //Override the legacy exports function generator to just
+                //Override the shim exports function generator to just
                 //spit out strings that can be used in the stringified
                 //build output.
-                context.makeLegacyExports = function (exports) {
+                context.makeShimExports = function (exports) {
                     var result;
                     if (typeof exports === 'string') {
                         result = function () {

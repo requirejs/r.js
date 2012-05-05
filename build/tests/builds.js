@@ -885,19 +885,19 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.run();
 
 
-    doh.register("legacyBasic",
+    doh.register("shimBasic",
         [
-            function legacyBasic(t) {
-                var outFile = "../../../requirejs/tests/legacy/built/basic-tests.js";
+            function shimBasic(t) {
+                var outFile = "../../../requirejs/tests/shim/built/basic-tests.js";
 
                 file.deleteFile(outFile);
 
-                build(["lib/legacyBasic/build.js"]);
+                build(["lib/shimBasic/build.js"]);
 
                 //Also remove spaces, since rhino and node differ on their
                 //Function.prototype.toString() output by whitespace, and
                 //the semicolon on end of A.name
-                t.is(nol(c("lib/legacyBasic/expected.js")).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'),
+                t.is(nol(c("lib/shimBasic/expected.js")).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'),
                      nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'));
 
                 require._buildReset();

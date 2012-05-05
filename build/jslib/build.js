@@ -944,7 +944,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             context = layer.context,
             anonDefRegExp = config.anonDefRegExp,
             path, reqIndex, fileContents, currContents,
-            i, moduleName, legacy,
+            i, moduleName, shim,
             parts, builder, writeApi;
 
         //Use override settings, particularly for pragmas
@@ -1022,12 +1022,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //after the module is processed.
             //If we have a name, but no defined module, then add in the placeholder.
             if (moduleName && !layer.modulesWithNames[moduleName] && !config.skipModuleInsertion) {
-                legacy = config.legacy && config.legacy[moduleName];
-                if (legacy) {
+                shim = config.shim && config.shim[moduleName];
+                if (shim) {
                     fileContents += '\n' + namespace + 'define("' + moduleName + '", ' +
-                                     (legacy.deps && legacy.deps.length ?
-                                            build.makeJsArrayString(legacy.deps) + ', ' : '') +
-                                     (legacy.exports ? legacy.exports() : 'function(){}') +
+                                     (shim.deps && shim.deps.length ?
+                                            build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                     (shim.exports ? shim.exports() : 'function(){}') +
                                      ');\n';
                 } else {
                     fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
