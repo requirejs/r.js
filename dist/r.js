@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Sat, 05 May 2012 04:32:51 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Mon, 07 May 2012 02:48:04 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '2.0.0zdev Sat, 05 May 2012 04:32:51 GMT',
+        version = '2.0.0zdev Mon, 07 May 2012 02:48:04 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -988,7 +988,13 @@ var requirejs, require, define;
                     this.fetch();
                 } else if (this.error) {
                     this.emit('error', this.error);
-                } else {
+                } else if (!this.defining) {
+                    //The factory could trigger another require call
+                    //that would result in checking this module to
+                    //define itself again. If already in the process
+                    //of doing that, skip this work.
+                    this.defining = true;
+
                     if (this.depCount < 1 && !this.defined) {
                         if (isFunction(factory)) {
                             //If there is an error listener, favor passing
@@ -1051,6 +1057,11 @@ var requirejs, require, define;
                             waitAry = [];
                         }
                     }
+
+                    //Finished the define stage. Allow calling check again
+                    //to allow define notifications below in the case of a
+                    //cycle.
+                    this.defining = false;
 
                     if (!silent) {
                         if (this.defined && !this.defineEmitted) {
