@@ -1071,7 +1071,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
 
         //If anonymous module, insert the module name.
-        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix, namedModule, namedFuncStart) {
+        var module = contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix, namedModule, namedFuncStart) {
             //A named module with either listed dependencies or an object
             //literal for a value. Skip it. If named module, only want ones
             //whose next argument is a function literal to scan for
@@ -1114,6 +1114,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                    (deps ? ('[' + deps.toString() + '],') : '') +
                    (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
         });
+        
+        if(!/@ sourceURL/.test(module)) {
+             module = "eval(" + JSON.stringify(module + "\n//\@ sourceURL=" + path) + " )";
+        }
+        return module;
 
     };
 
