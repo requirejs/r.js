@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Mon, 07 May 2012 02:48:04 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Fri, 18 May 2012 23:22:25 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '2.0.0zdev Mon, 07 May 2012 02:48:04 GMT',
+        version = '2.0.0zdev Fri, 18 May 2012 23:22:25 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -12017,7 +12017,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     out: config.out,
                     include: config.include,
                     exclude: config.exclude,
-                    excludeShallow: config.excludeShallow
+                    excludeShallow: config.excludeShallow,
+                    endRequire: config.endRequire
                 }
             ];
         }
@@ -12290,6 +12291,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
                 }
             }
+        }
+
+        //Add a require at the end to kick start module execution, if that
+        //was desired. Usually this is only specified when using small shim
+        //loaders like almond.
+        if (module.endRequire) {
+            fileContents += '\n' + namespace + 'require(["' + module.endRequire.join('", "') + '"]);\n';
         }
 
         return {
