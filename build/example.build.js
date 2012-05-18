@@ -264,16 +264,31 @@
             excludeShallow: [
                 "foo/bar/bot"
             ]
+        },
+
+        //This module entry shows the use endRequire (first available in 2.0):
+        //if the target module only calls define and does not call require()
+        //at the top level, and this build output is used with an AMD shim
+        //loader like almond, where the data-main script in the HTML page is
+        //replaced with just a script to the built file, if there is no
+        //top-level require, no modules will execute. specify endRequire to
+        //have a require([]) call placed at the end of the file to trigger the
+        //execution of modules. More detail at
+        //https://github.com/jrburke/almond
+        {
+            name: "foo/baz",
+            endRequire: ["foo/baz"]
         }
     ],
 
     //If you only intend to optimize a module (and its dependencies), with
     //a single file as the output, you can specify the module options inline,
     //instead of using the 'modules' section above. 'exclude',
-    //'excludeShallow' and 'include' are all allowed as siblings to name.
-    //The name of the optimized file is specified by 'out'.
+    //'excludeShallow', 'include' and 'endRequire' are all allowed as siblings
+    //to name. The name of the optimized file is specified by 'out'.
     name: "foo/bar/bop",
     include: ["foo/bar/bee"],
+    endRequire: ['foo/bar/bop'],
     out: "path/to/optimized-file.js",
 
     //Wrap any build layer in a start and end text specified by wrap.

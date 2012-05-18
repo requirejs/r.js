@@ -15,6 +15,7 @@ build/tests/lib/plugins/main-built.js
 build/tests/lib/plugins/main-builtPluginFirst.js
 build/tests/lib/pristineSrc/built
 build/tests/lib/dotpackage/built
+build/tests/lib/endRequire/main-built.js
 build/tests/lib/mainConfigFile/basic/main-built.js
 build/tests/lib/mainConfigFile/mergeConfig/main-built.js
 build/tests/lib/moduleThenPlugin/built.js

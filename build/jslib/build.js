@@ -760,7 +760,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     out: config.out,
                     include: config.include,
                     exclude: config.exclude,
-                    excludeShallow: config.excludeShallow
+                    excludeShallow: config.excludeShallow,
+                    endRequire: config.endRequire
                 }
             ];
         }
@@ -1033,6 +1034,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
                 }
             }
+        }
+
+        //Add a require at the end to kick start module execution, if that
+        //was desired. Usually this is only specified when using small shim
+        //loaders like almond.
+        if (module.endRequire) {
+            fileContents += '\n' + namespace + 'require(["' + module.endRequire.join('", "') + '"]);\n';
         }
 
         return {
