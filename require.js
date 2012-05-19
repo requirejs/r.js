@@ -12,7 +12,7 @@ var requirejs, require, define;
 
     var version = "2.0.0zdev",
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
-        cjsRequireRegExp = /require\(\s*["']([^'"\s]+)["']\s*\)/g,
+        cjsRequireRegExp = /require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
         currDirRegExp = /^\.\//,
         ostring = Object.prototype.toString,
@@ -491,7 +491,7 @@ var requirejs, require, define;
                     id: mod.map.id,
                     uri: mod.map.url,
                     config: function () {
-                        return config.config[mod.map.id] || {};
+                        return (config.config && config.config[mod.map.id]) || {};
                     },
                     exports: defined[mod.map.id]
                 });
