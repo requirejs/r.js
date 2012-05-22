@@ -210,6 +210,10 @@
     //by default.
     findNestedDependencies: false,
 
+    //If set to true, any files that were combined into a build layer will be
+    //removed from the output folder.
+    removeCombined: false,
+
     //List the modules that will be optimized. All their immediate and deep
     //dependencies will be included in the module's file when the build is
     //done. If that module or any of its dependencies includes i18n bundles,

@@ -334,6 +334,19 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     file.deleteFile(finalPath);
                 }
                 file.renameFile(finalPath + '-temp', finalPath);
+
+                //And finally, if removeCombined is specified, remove
+                //any of the files that were used in this layer.
+                //Be sure not to remove other build layers.
+                if (config.removeCombined) {
+                    module.layer.buildFilePaths.forEach(function (path) {
+                        if (file.exists(path) && !modules.some(function (mod) {
+                            return mod._buildPath === path;
+                        })) {
+                            file.deleteFile(path);
+                        }
+                    });
+                }
             });
         }
 

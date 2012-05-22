@@ -945,7 +945,6 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-
     //Tests https://github.com/jrburke/r.js/issues/165 endRequire
     doh.register("endRequire",
         [
@@ -956,6 +955,54 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/endRequire/expected.js")),
                      nol(c("lib/endRequire/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/30 removeCombined
+    doh.register("removeCombinedApp",
+        [
+            function removeCombinedApp(t) {
+                file.deleteFile("lib/removeCombined/app-built");
+
+                build(["lib/removeCombined/build.js"]);
+
+                t.is(nol(c("lib/removeCombined/expected-main.js")),
+                     nol(c("lib/removeCombined/app-built/js/main.js")));
+                t.is(nol(c("lib/removeCombined/expected-secondary.js")),
+                     nol(c("lib/removeCombined/app-built/js/secondary.js")));
+                t.is(false, file.exists("lib/removeCombined/app-built/js/a.js"));
+                t.is(false, file.exists("lib/removeCombined/app-built/js/b.js"));
+                t.is(false, file.exists("lib/removeCombined/app-built/js/c.js"));
+                t.is(true, file.exists("lib/removeCombined/app-built/js/d.js"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/30 removeCombined
+    doh.register("removeCombinedBaseUrl",
+        [
+            function removeCombinedBaseUrl(t) {
+                file.deleteFile("lib/removeCombined/baseUrl-built");
+
+                build(["lib/removeCombined/build-baseUrl.js"]);
+
+                t.is(nol(c("lib/removeCombined/expected-main.js")),
+                     nol(c("lib/removeCombined/baseUrl-built/main.js")));
+                t.is(nol(c("lib/removeCombined/expected-secondary.js")),
+                     nol(c("lib/removeCombined/baseUrl-built/secondary.js")));
+                t.is(false, file.exists("lib/removeCombined/baseUrl-built/a.js"));
+                t.is(false, file.exists("lib/removeCombined/baseUrl-built/b.js"));
+                t.is(false, file.exists("lib/removeCombined/baseUrl-built/c.js"));
+                t.is(true, file.exists("lib/removeCombined/baseUrl-built/d.js"));
 
                 require._buildReset();
             }

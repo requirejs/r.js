@@ -30,6 +30,8 @@ build/tests/lib/nestedHas/main-builtNeedB.js
 build/tests/lib/nestedHas/main-builtNeedC.js
 build/tests/lib/nestedHas/main-builtNeedD.js
 build/tests/lib/nestedHas/main-builtNested.js
+build/tests/lib/removeCombined/app-built
+build/tests/lib/removeCombined/baseUrl-built
 build/tests/lib/transportBeforeMinify/www-built
 build/tests/tools/override/node_modules
 build/tests/tools/override/one-built.js
