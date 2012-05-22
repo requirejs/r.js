@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Tue, 22 May 2012 21:23:24 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Tue, 22 May 2012 23:28:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '2.0.0zdev Tue, 22 May 2012 21:23:24 GMT',
+        version = '2.0.0zdev Tue, 22 May 2012 23:28:15 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -11657,6 +11657,19 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     file.deleteFile(finalPath);
                 }
                 file.renameFile(finalPath + '-temp', finalPath);
+
+                //And finally, if removeCombined is specified, remove
+                //any of the files that were used in this layer.
+                //Be sure not to remove other build layers.
+                if (config.removeCombined) {
+                    module.layer.buildFilePaths.forEach(function (path) {
+                        if (file.exists(path) && !modules.some(function (mod) {
+                            return mod._buildPath === path;
+                        })) {
+                            file.deleteFile(path);
+                        }
+                    });
+                }
             });
         }
 
