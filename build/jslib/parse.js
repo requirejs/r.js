@@ -4,10 +4,12 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, strict: false */
+/*jslint plusplus: true */
 /*global define: false */
 
-define(['./uglifyjs/index'], function (uglify) {
+define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
+    'use strict';
+
     var parser = uglify.parser,
         processor = uglify.uglify,
         ostring = Object.prototype.toString,
@@ -840,6 +842,33 @@ define(['./uglifyjs/index'], function (uglify) {
      */
     parse.nodeToString = function (node) {
         return processor.gen_code(node, true);
+    };
+
+
+    parse.getLicenseComments = function (fileName, contents) {
+        var ast = esprima.parse(contents, {
+                comment: true
+            }),
+            result = '';
+
+        if (ast.comments) {
+            ast.comments.forEach(function(commentNode) {
+                var value = commentNode.value;
+                if (value.indexOf('license') !== -1 ||
+                    value.indexOf('*!') === 0 ||
+                    value.indexOf('opyright') !== -1 ||
+                    value.indexOf('(c)') !== -1) {
+
+                    if (commentNode.type === 'Block') {
+                        result += '/*' + value + '*/\n';
+                    } else {
+                        result += '//' + value + '\n';
+                    }
+                }
+            });
+        }
+
+        return result;
     };
 
     return parse;

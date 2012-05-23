@@ -235,4 +235,18 @@ define(['parse', 'env!env/file'], function (parse, file) {
         ]
     );
     doh.run();
+
+    doh.register('parseLicenseComments',
+        [
+            function parseLicenseComments(t) {
+                debugger;
+                var manyCommentsName = 'parse/comments/manyComments.js',
+                    multiLineName = 'parse/comments/multiLine.js',
+                    multiSingleLineName = 'parse/comments/multiSingleLine.js';
+
+                console.log(parse.getLicenseComments(manyCommentsName, file.readFile(manyCommentsName)));
+            }
+        ]
+    );
+    doh.run();
 });
