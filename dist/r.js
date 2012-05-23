@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Wed, 23 May 2012 21:03:22 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Wed, 23 May 2012 21:09:10 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Wed, 23 May 2012 21:03:22 GMT',
+        version = '2.0.0zdev Wed, 23 May 2012 21:09:10 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15765,6 +15765,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     endRequire: config.endRequire
                 }
             ];
+        } else if (config.modules && config.out) {
+            throw new Error('If the "modules" option is used, then there ' +
+                            'should be a "dir" option set and "out" should ' +
+                            'not be used since "out" is only for single file ' +
+                            'optimization output.');
         }
 
         if (config.out && !config.cssIn) {
