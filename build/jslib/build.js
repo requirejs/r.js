@@ -787,6 +787,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     endRequire: config.endRequire
                 }
             ];
+        } else if (config.modules && config.out) {
+            throw new Error('If the "modules" option is used, then there ' +
+                            'should be a "dir" option set and "out" should ' +
+                            'not be used since "out" is only for single file ' +
+                            'optimization output.');
         }
 
         if (config.out && !config.cssIn) {
