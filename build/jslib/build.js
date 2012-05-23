@@ -462,12 +462,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * name = paths.foo and value = ../some/path, so it assumes the
      * name=value splitting has already happened.
      */
-    function stringDotToObj(result, prop, name, value) {
-        if (!result[prop]) {
-            result[prop] = {};
-        }
-        name = name.substring((prop + '.').length, name.length);
-        result[prop][name] = value;
+    function stringDotToObj(result, name, value) {
+        var parts = name.split('.'),
+            prop = parts[0];
+
+        parts.forEach(function (prop, i) {
+            if (i === parts.length - 1) {
+                result[prop] = value;
+            } else {
+                if (!result[prop]) {
+                    result[prop] = {};
+                }
+                result = result[prop];
+            }
+
+        });
     }
 
     //Used by convertArrayToObject to convert some things from prop.name=value
@@ -527,7 +536,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
 
             if (build.hasDotPropMatch(prop)) {
-                stringDotToObj(result, prop.split('.')[0], prop, value);
+                stringDotToObj(result, prop, value);
             } else {
                 result[prop] = value;
             }
