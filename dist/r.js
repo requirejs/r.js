@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Wed, 23 May 2012 00:13:05 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Wed, 23 May 2012 00:26:35 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Wed, 23 May 2012 00:13:05 GMT',
+        version = '2.0.0zdev Wed, 23 May 2012 00:26:35 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -10414,13 +10414,14 @@ define('rhino/optimize', ['logger'], function (logger) {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, nomen: false, regexp: false */
+/*jslint plusplus: true, nomen: true, regexp: true */
 /*global define: false */
 
 define('optimize', [ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
          'pragma', 'uglifyjs/index'],
 function (lang,   logger,   envOptimize,        file,           parse,
           pragma, uglify) {
+    'use strict';
 
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
@@ -10744,6 +10745,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     ast = processor.ast_squeeze(ast, config);
 
                     fileContents = processor.gen_code(ast, config);
+
+                    if (config.max_line_length) {
+                        fileContents = processor.split_lines(fileContents, config.max_line_length);
+                    }
                 } catch (e) {
                     logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
