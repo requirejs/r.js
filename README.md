@@ -155,6 +155,13 @@ Use GitHub pull requests to point to code changes, although for larger changes,
 contact the [requirejs mailing list](http://groups.google.com/group/requirejs)
 to discuss them first.
 
+# Included libraries
+
+r.js includes modules from these projects:
+
+* [Esprima](http://esprima.org/)
+* [UglifyJS](https://github.com/mishoo/UglifyJS)
+
 # Doing a release
 
 To do a release of version 0.0.0:
