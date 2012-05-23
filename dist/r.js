@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Tue, 22 May 2012 23:28:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Wed, 23 May 2012 00:13:05 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -11,7 +11,7 @@
  * the shell of the r.js file.
  */
 
-/*jslint evil: true, nomen: true */
+/*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false, requirejsVars */
 
@@ -19,8 +19,8 @@ var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists, reqMain, loadedOptimizedLib,
-        version = '2.0.0zdev Tue, 22 May 2012 23:28:15 GMT',
+        nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
+        version = '2.0.0zdev Wed, 23 May 2012 00:13:05 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -70,6 +70,9 @@ var requirejs, require, define;
         fs = require('fs');
         vm = require('vm');
         path = require('path');
+        //In Node 0.7+ existsSync is on fs.
+        existsForNode = fs.existsSync || path.existsSync;
+
         nodeRequire = require;
         nodeDefine = define;
         reqMain = require.main;
@@ -89,7 +92,7 @@ var requirejs, require, define;
         };
 
         exists = function (fileName) {
-            return path.existsSync(fileName);
+            return existsForNode(fileName);
         };
 
 
@@ -2109,7 +2112,9 @@ var requirejs, require, define;
         def = requirejsVars.define,
         fs = nodeReq('fs'),
         path = nodeReq('path'),
-        vm = nodeReq('vm');
+        vm = nodeReq('vm'),
+        //In Node 0.7+ existsSync is on fs.
+        exists = fs.existsSync || path.existsSync;
 
     //Supply an implementation that allows synchronous get of a module.
     req.get = function (context, moduleName, relModuleMap) {
@@ -2149,7 +2154,7 @@ var requirejs, require, define;
     req.load = function (context, moduleName, url) {
         var contents, err;
 
-        if (path.existsSync(url)) {
+        if (exists(url)) {
             contents = fs.readFileSync(url, 'utf8');
 
             contents = req.makeNodeWrapper(contents);
