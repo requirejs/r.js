@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Wed, 23 May 2012 21:14:13 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Wed, 23 May 2012 23:40:27 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Wed, 23 May 2012 21:14:13 GMT',
+        version = '2.0.0zdev Wed, 23 May 2012 23:40:27 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14418,8 +14418,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
-define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang'],
-function (file,           pragma,   parse,   lang) {
+define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger'],
+function (file,           pragma,   parse,   lang,   logger) {
     'use strict';
 
     var allowRun = true;
@@ -14476,8 +14476,16 @@ function (file,           pragma,   parse,   lang) {
             //on Windows, full paths are used for some urls, which include
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
-            return url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
-                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0;
+            if (url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
+                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0) {
+                return true;
+            } else {
+                if (!layer.ignoredUrls[url]) {
+                    logger.info('Cannot optimize network URL, skipping: ' + url);
+                    layer.ignoredUrls[url] = true;
+                }
+                return false;
+            }
         };
 
         function normalizeUrlWithBase(context, moduleName, url) {
@@ -14744,6 +14752,7 @@ function (file,           pragma,   parse,   lang) {
                 modulesWithNames: {},
                 needsDefine: {},
                 existingRequireUrl: "",
+                ignoredUrls: {},
                 context: require.s.contexts._
             };
 
@@ -15024,27 +15033,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
     }
 
-    /**
-     * If the path looks like an URL, throw an error. This is to prevent
-     * people from using URLs with protocols in the build config, since
-     * the optimizer is not set up to do network access. However, be
-     * sure to allow absolute paths on Windows, like C:\directory.
-     */
-    function disallowUrls(path) {
-        if ((path.indexOf('://') !== -1 || path.indexOf('//') === 0) && path !== 'empty:') {
-            throw new Error('Path is not supported: ' + path +
-                            '\nOptimizer can only handle' +
-                            ' local paths. Download the locally if necessary' +
-                            ' and update the config to use a local path.\n' +
-                            'http://requirejs.org/docs/errors.html#pathnotsupported');
-        }
-    }
-
     function endsWithSlash(dirName) {
         if (dirName.charAt(dirName.length - 1) !== "/") {
             dirName += "/";
         }
-        disallowUrls(dirName);
         return dirName;
     }
 
@@ -15793,7 +15785,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (config.paths) {
             for (prop in config.paths) {
                 if (config.paths.hasOwnProperty(prop)) {
-                    disallowUrls(config.paths[prop]);
                 }
             }
         }
