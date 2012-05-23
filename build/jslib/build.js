@@ -792,6 +792,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             'should be a "dir" option set and "out" should ' +
                             'not be used since "out" is only for single file ' +
                             'optimization output.');
+        } else if (config.modules && config.name) {
+            throw new Error('"name" and "modules" options are incompatible. ' +
+                            'Either use "name" if doing a single file ' +
+                            'optimization, or "modules" if you want to target ' +
+                            'more than one file for optimization.');
         }
 
         if (config.out && !config.cssIn) {
