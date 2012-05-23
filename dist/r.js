@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Wed, 23 May 2012 21:09:10 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Wed, 23 May 2012 21:14:13 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Wed, 23 May 2012 21:09:10 GMT',
+        version = '2.0.0zdev Wed, 23 May 2012 21:14:13 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15770,6 +15770,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             'should be a "dir" option set and "out" should ' +
                             'not be used since "out" is only for single file ' +
                             'optimization output.');
+        } else if (config.modules && config.name) {
+            throw new Error('"name" and "modules" options are incompatible. ' +
+                            'Either use "name" if doing a single file ' +
+                            'optimization, or "modules" if you want to target ' +
+                            'more than one file for optimization.');
         }
 
         if (config.out && !config.cssIn) {
