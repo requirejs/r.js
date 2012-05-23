@@ -335,33 +335,6 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-    (function (tests) {
-        function runTest(test) {
-            doh.register("paths.invalid." + test,
-                [
-                    function (t) {
-                        try {
-                            build(["lib/paths/invalid/" + test + ".js"]);
-                        }
-                        catch (e) {
-                            t.t(e.message.indexOf('#pathnotsupported') >= 0);
-                        }
-                        finally {
-                            file.deleteFile("lib/paths/invalid/built");
-                            require._buildReset();
-                        }
-                    }
-                ]
-            );
-            doh.run();
-        }
-
-        var i;
-        for (i = 0; i < tests.length; ++i) {
-            runTest(tests[i]);
-        }
-    }(["http-url", "https-url", "url-without-protocol"]));
-
     doh.register("preserveLicense",
         [
             function preserveLicense(t) {
@@ -1011,4 +984,22 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    //Tests https://github.com/jrburke/r.js/issues/163 URLs as empty:
+    doh.register("urlToEmpty",
+        [
+            function urlToEmpty(t) {
+                file.deleteFile("lib/urlToEmpty/main-built.js");
+
+                build(["lib/urlToEmpty/build.js"]);
+
+                t.is(nol(c("lib/urlToEmpty/expected.js")),
+                     nol(c("lib/urlToEmpty/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

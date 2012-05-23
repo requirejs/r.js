@@ -12,8 +12,8 @@
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
-define([ 'env!env/file', 'pragma', 'parse', 'lang'],
-function (file,           pragma,   parse,   lang) {
+define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger'],
+function (file,           pragma,   parse,   lang,   logger) {
     'use strict';
 
     var allowRun = true;
@@ -70,8 +70,16 @@ function (file,           pragma,   parse,   lang) {
             //on Windows, full paths are used for some urls, which include
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
-            return url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
-                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0;
+            if (url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
+                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0) {
+                return true;
+            } else {
+                if (!layer.ignoredUrls[url]) {
+                    logger.info('Cannot optimize network URL, skipping: ' + url);
+                    layer.ignoredUrls[url] = true;
+                }
+                return false;
+            }
         };
 
         function normalizeUrlWithBase(context, moduleName, url) {
@@ -338,6 +346,7 @@ function (file,           pragma,   parse,   lang) {
                 modulesWithNames: {},
                 needsDefine: {},
                 existingRequireUrl: "",
+                ignoredUrls: {},
                 context: require.s.contexts._
             };
 

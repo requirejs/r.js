@@ -46,27 +46,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
     }
 
-    /**
-     * If the path looks like an URL, throw an error. This is to prevent
-     * people from using URLs with protocols in the build config, since
-     * the optimizer is not set up to do network access. However, be
-     * sure to allow absolute paths on Windows, like C:\directory.
-     */
-    function disallowUrls(path) {
-        if ((path.indexOf('://') !== -1 || path.indexOf('//') === 0) && path !== 'empty:') {
-            throw new Error('Path is not supported: ' + path +
-                            '\nOptimizer can only handle' +
-                            ' local paths. Download the locally if necessary' +
-                            ' and update the config to use a local path.\n' +
-                            'http://requirejs.org/docs/errors.html#pathnotsupported');
-        }
-    }
-
     function endsWithSlash(dirName) {
         if (dirName.charAt(dirName.length - 1) !== "/") {
             dirName += "/";
         }
-        disallowUrls(dirName);
         return dirName;
     }
 
@@ -815,7 +798,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (config.paths) {
             for (prop in config.paths) {
                 if (config.paths.hasOwnProperty(prop)) {
-                    disallowUrls(config.paths[prop]);
                 }
             }
         }
