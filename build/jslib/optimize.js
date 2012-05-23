@@ -4,13 +4,14 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, nomen: false, regexp: false */
+/*jslint plusplus: true, nomen: true, regexp: true */
 /*global define: false */
 
 define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
          'pragma', 'uglifyjs/index'],
 function (lang,   logger,   envOptimize,        file,           parse,
           pragma, uglify) {
+    'use strict';
 
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
@@ -334,6 +335,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     ast = processor.ast_squeeze(ast, config);
 
                     fileContents = processor.gen_code(ast, config);
+
+                    if (config.max_line_length) {
+                        fileContents = processor.split_lines(fileContents, config.max_line_length);
+                    }
                 } catch (e) {
                     logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }

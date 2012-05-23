@@ -80,7 +80,8 @@
     uglify: {
         toplevel: true,
         ascii_only: true,
-        beautify: true
+        beautify: true,
+        max_line_length: 1000
     },
 
     //If using Closure Compiler for script optimization, these config options
