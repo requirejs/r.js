@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Wed, 23 May 2012 00:26:35 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Wed, 23 May 2012 01:50:39 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Wed, 23 May 2012 00:26:35 GMT',
+        version = '2.0.0zdev Wed, 23 May 2012 01:50:39 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -11795,12 +11795,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * name = paths.foo and value = ../some/path, so it assumes the
      * name=value splitting has already happened.
      */
-    function stringDotToObj(result, prop, name, value) {
-        if (!result[prop]) {
-            result[prop] = {};
-        }
-        name = name.substring((prop + '.').length, name.length);
-        result[prop][name] = value;
+    function stringDotToObj(result, name, value) {
+        var parts = name.split('.'),
+            prop = parts[0];
+
+        parts.forEach(function (prop, i) {
+            if (i === parts.length - 1) {
+                result[prop] = value;
+            } else {
+                if (!result[prop]) {
+                    result[prop] = {};
+                }
+                result = result[prop];
+            }
+
+        });
     }
 
     //Used by convertArrayToObject to convert some things from prop.name=value
@@ -11860,7 +11869,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
 
             if (build.hasDotPropMatch(prop)) {
-                stringDotToObj(result, prop.split('.')[0], prop, value);
+                stringDotToObj(result, prop, value);
             } else {
                 result[prop] = value;
             }
