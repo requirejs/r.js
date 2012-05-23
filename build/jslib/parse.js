@@ -50,7 +50,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         ],
         i, item;
 
-        for (i = 0; (item = ary[i]); i++) {
+        for (i = 0; i < ary.length; i++) {
+            item = ary[i];
             output[1].push([
                 'string',
                 item
@@ -182,7 +183,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                 name = null;
             }
 
-            if (!(deps = getValidDeps(deps))) {
+            deps = getValidDeps(deps);
+            if (!deps) {
                 deps = [];
             }
 
@@ -218,7 +220,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         }
 
         if (moduleDeps.length || moduleList.length) {
-            for (i = 0; (moduleCall = moduleList[i]); i++) {
+            for (i = 0; i < moduleList.length; i++) {
+                moduleCall = moduleList[i];
                 if (result) {
                     result += '\n';
                 }
@@ -243,7 +246,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
             }
         }
 
-        return result ? result : null;
+        return result || null;
     }
 
     //Add some private methods to object for use in derived objects.
@@ -290,12 +293,12 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                             this.recurse([node[3]], onMatch, options, recurseCallback);
                         }
                     } else {
-                        if (recurseCallback(node, onMatch)) {
-                            //The onMatch indicated parsing should
-                            //stop for children of this node.
-                            continue;
+                        //If the onMatch indicated parsing should
+                        //stop for children of this node, stop, otherwise,
+                        //keep going.
+                        if (!recurseCallback(node, onMatch)) {
+                            this.recurse(node, onMatch, options, recurseCallback);
                         }
-                        this.recurse(node, onMatch, options, recurseCallback);
                     }
                 }
             }
@@ -385,7 +388,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
             //Check child nodes
             for (i = 0; i < node.length; i++) {
                 n = node[i];
-                if ((callback = this.findAnonDefineFactory(n))) {
+                callback = this.findAnonDefineFactory(n);
+                if (callback) {
                     return callback;
                 }
             }
@@ -448,7 +452,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                 name = null;
             }
 
-            if ((deps = getValidDeps(deps))) {
+            deps = getValidDeps(deps);
+            if (deps) {
                 dependencies = dependencies.concat(deps);
             }
         }, options);
@@ -611,12 +616,14 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * @returns {Boolean}
      */
     parse.nodeHasRequire = function (node) {
+        var i, n;
+
         if (this.isDefineNode(node)) {
             return true;
         }
 
         if (isArray(node)) {
-            for (var i = 0, n; i < node.length; i++) {
+            for (i = 0; i < node.length; i++) {
                 n = node[i];
                 if (this.nodeHasRequire(n)) {
                     return true;
@@ -684,7 +691,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                         config = null;
                     }
 
-                    if (!(deps = validateDeps(deps))) {
+                    deps = validateDeps(deps);
+                    if (!deps) {
                         return null;
                     }
 
@@ -844,28 +852,62 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         return processor.gen_code(node, true);
     };
 
-
+    /**
+     * Extracts license comments from JS text.
+     * @param {String} fileName
+     * @param {String} contents
+     * @returns {String} a string of license comments.
+     */
     parse.getLicenseComments = function (fileName, contents) {
         var ast = esprima.parse(contents, {
                 comment: true
             }),
-            result = '';
+            result = '',
+            lineEnd = contents.indexOf('\r') === -1 ? '\n' : '\r\n',
+            commentNode, refNode, subNode, value, i, j;
 
         if (ast.comments) {
-            ast.comments.forEach(function(commentNode) {
-                var value = commentNode.value;
+            for (i = 0; i < ast.comments.length; i++) {
+                commentNode = ast.comments[i];
+
+                if (commentNode.type === 'Line') {
+                    value = '//' + commentNode.value + lineEnd;
+                    refNode = commentNode;
+
+                    if (i + 1 >= ast.comments.length) {
+                        value += lineEnd;
+                    } else {
+                        //Look for immediately adjacent single line comments since
+                        //it could from a multiple line comment made out of single
+                        //line comments. Like this comment.
+                        for (j = i + 1; j < ast.comments.length; j++) {
+                            subNode = ast.comments[j];
+                            if (subNode.type === 'Line' && subNode.range[0] === refNode.range[1]) {
+                                //Adjacent single line comment. Collect it.
+                                value += '//' + subNode.value + lineEnd;
+                                refNode = subNode;
+                            } else {
+                                //No more single line comment blocks. Break out
+                                //and continue outer looping.
+                                value += lineEnd;
+                                i = j - 1;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    value = '/*' + commentNode.value + '*/' + lineEnd + lineEnd;
+                }
+
                 if (value.indexOf('license') !== -1 ||
-                    value.indexOf('*!') === 0 ||
+                    (commentNode.type === 'Block' && value.indexOf('/*!') === 0) ||
                     value.indexOf('opyright') !== -1 ||
                     value.indexOf('(c)') !== -1) {
 
-                    if (commentNode.type === 'Block') {
-                        result += '/*' + value + '*/\n';
-                    } else {
-                        result += '//' + value + '\n';
-                    }
+                    result += value;
                 }
-            });
+
+            }
         }
 
         return result;

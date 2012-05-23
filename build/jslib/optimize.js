@@ -156,8 +156,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
     }
 
     optimize = {
-        licenseCommentRegExp: /\/\*[\s\S]*?\*\//g,
-
         /**
          * Optimizes a file that contains JavaScript content. Optionally collects
          * plugin resources mentioned in a file, and then passes the content
@@ -173,7 +171,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * found.
          */
         jsFile: function (fileName, fileContents, outFileName, config, pluginCollector) {
-            var parts = (config.optimize + "").split('.'),
+            var parts = (String(config.optimize)).split('.'),
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines';
 
@@ -222,14 +220,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 if (config.preserveLicenseComments) {
                     //Pull out any license comments for prepending after optimization.
-                    optimize.licenseCommentRegExp.lastIndex = 0;
-                    while ((match = optimize.licenseCommentRegExp.exec(fileContents))) {
-                        comment = match[0];
-                        //Only keep the comments if they are license comments.
-                        if (comment.indexOf('@license') !== -1 ||
-                            comment.indexOf('/*!') === 0) {
-                            licenseContents += comment + '\n';
-                        }
+                    try {
+                        licenseContents = parse.getLicenseComments(fileName, fileContents);
+                    } catch (e) {
+                        logger.error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
                     }
                 }
 

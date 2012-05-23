@@ -5,9 +5,6 @@
  */
 
 define({
-    //@license comment to be IGNORED
+    //@license comment to be found
     name: 'license'
-    /**
-     * A license fake-out, should be IGNORED
-     */
 });

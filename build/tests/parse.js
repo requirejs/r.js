@@ -1,7 +1,8 @@
-/*jslint plusplus: false, strict: false */
+/*jslint */
 /*global load: false, doh: false, define:false */
 
 define(['parse', 'env!env/file'], function (parse, file) {
+    'use strict';
 
     doh.register("parseConfig",
         [
@@ -239,12 +240,22 @@ define(['parse', 'env!env/file'], function (parse, file) {
     doh.register('parseLicenseComments',
         [
             function parseLicenseComments(t) {
-                debugger;
                 var manyCommentsName = 'parse/comments/manyComments.js',
                     multiLineName = 'parse/comments/multiLine.js',
-                    multiSingleLineName = 'parse/comments/multiSingleLine.js';
+                    multiSingleLineName = 'parse/comments/multiSingleLine.js',
+                    expectedManyCommentsName = 'parse/comments/expected/manyComments.js',
+                    expectedMultiLineName = 'parse/comments/expected/multiLine.js',
+                    expectedMultiSingleLineName = 'parse/comments/expected/multiSingleLine.js';
 
-                console.log(parse.getLicenseComments(manyCommentsName, file.readFile(manyCommentsName)));
+
+                t.is(file.readFile(expectedManyCommentsName).trim(),
+                     parse.getLicenseComments(manyCommentsName, file.readFile(manyCommentsName)).trim());
+
+                t.is(file.readFile(expectedMultiLineName).trim(),
+                     parse.getLicenseComments(multiLineName, file.readFile(multiLineName)).trim());
+
+                t.is(file.readFile(expectedMultiSingleLineName).trim(),
+                     parse.getLicenseComments(multiSingleLineName, file.readFile(multiSingleLineName)).trim());
             }
         ]
     );
