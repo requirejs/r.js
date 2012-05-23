@@ -22,7 +22,9 @@
         def = requirejsVars.define,
         fs = nodeReq('fs'),
         path = nodeReq('path'),
-        vm = nodeReq('vm');
+        vm = nodeReq('vm'),
+        //In Node 0.7+ existsSync is on fs.
+        exists = fs.existsSync || path.existsSync;
 
     //Supply an implementation that allows synchronous get of a module.
     req.get = function (context, moduleName, relModuleMap) {
@@ -62,7 +64,7 @@
     req.load = function (context, moduleName, url) {
         var contents, err;
 
-        if (path.existsSync(url)) {
+        if (exists(url)) {
             contents = fs.readFileSync(url, 'utf8');
 
             contents = req.makeNodeWrapper(contents);

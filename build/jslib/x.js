@@ -11,7 +11,7 @@
  * the shell of the r.js file.
  */
 
-/*jslint evil: true, nomen: true */
+/*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false, requirejsVars */
 
@@ -19,7 +19,7 @@ var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists, reqMain, loadedOptimizedLib,
+        nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
         version = '2.0.0zdev',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
@@ -70,6 +70,9 @@ var requirejs, require, define;
         fs = require('fs');
         vm = require('vm');
         path = require('path');
+        //In Node 0.7+ existsSync is on fs.
+        existsForNode = fs.existsSync || path.existsSync;
+
         nodeRequire = require;
         nodeDefine = define;
         reqMain = require.main;
@@ -89,7 +92,7 @@ var requirejs, require, define;
         };
 
         exists = function (fileName) {
-            return path.existsSync(fileName);
+            return existsForNode(fileName);
         };
 
 
