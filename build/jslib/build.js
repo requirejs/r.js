@@ -751,7 +751,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             throw new Error("ERROR: 'out' option missing.");
         }
         if (!config.cssIn && !config.baseUrl) {
-            throw new Error("ERROR: 'baseUrl' option missing.");
+            //Just use the current directory as the baseUrl
+            config.baseUrl = './';
         }
         if (!config.out && !config.dir) {
             throw new Error('Missing either an "out" or "dir" config value. ' +
