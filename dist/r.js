@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Wed, 23 May 2012 06:18:00 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Wed, 23 May 2012 21:03:22 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Wed, 23 May 2012 06:18:00 GMT',
+        version = '2.0.0zdev Wed, 23 May 2012 21:03:22 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15729,7 +15729,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             throw new Error("ERROR: 'out' option missing.");
         }
         if (!config.cssIn && !config.baseUrl) {
-            throw new Error("ERROR: 'baseUrl' option missing.");
+            //Just use the current directory as the baseUrl
+            config.baseUrl = './';
         }
         if (!config.out && !config.dir) {
             throw new Error('Missing either an "out" or "dir" config value. ' +
