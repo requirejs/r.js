@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Thu, 24 May 2012 01:20:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Thu, 24 May 2012 04:27:17 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Thu, 24 May 2012 01:20:15 GMT',
+        version = '2.0.0zdev Thu, 24 May 2012 04:27:17 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -309,9 +309,11 @@ var requirejs, require, define;
          * @param {String} name the relative name
          * @param {String} baseName a real name that the name arg is relative
          * to.
+         * @param {Boolean} applyMap apply the map config to the value. Should
+         * only be done if this normalization is for a dependency ID.
          * @returns {String} normalized name
          */
-        function normalize(name, baseName) {
+        function normalize(name, baseName, applyMap) {
             var baseParts = baseName && baseName.split('/'),
                 map = config.map,
                 starMap = map && map['*'],
@@ -355,7 +357,7 @@ var requirejs, require, define;
             }
 
             //Apply map config if available.
-            if ((baseParts || starMap) && map) {
+            if (applyMap && (baseParts || starMap) && map) {
                 nameParts = name.split('/');
 
                 for (i = nameParts.length; i > 0; i -= 1) {
@@ -434,10 +436,12 @@ var requirejs, require, define;
          * for the module name, used to resolve relative names.
          * @param {Boolean} isNormalized: is the ID already normalized.
          * This is true if this call is done for a define() module ID.
+         * @param {Boolean} applyMap: apply the map config to the ID.
+         * Should only be true if this map is for a dependency.
          *
          * @returns {Object}
          */
-        function makeModuleMap(name, parentModuleMap, isNormalized) {
+        function makeModuleMap(name, parentModuleMap, isNormalized, applyMap) {
             var index = name ? name.indexOf('!') : -1,
                 prefix = null,
                 parentName = parentModuleMap ? parentModuleMap.name : null,
@@ -458,7 +462,7 @@ var requirejs, require, define;
             }
 
             if (prefix) {
-                prefix = normalize(prefix, parentName);
+                prefix = normalize(prefix, parentName, applyMap);
             }
 
             //Account for relative paths if there is a base name.
@@ -468,14 +472,14 @@ var requirejs, require, define;
                     if (pluginModule && pluginModule.normalize) {
                         //Plugin is loaded, use its normalize method.
                         normalizedName = pluginModule.normalize(name, function (name) {
-                            return normalize(name, parentName);
+                            return normalize(name, parentName, applyMap);
                         });
                     } else {
-                        normalizedName = normalize(name, parentName);
+                        normalizedName = normalize(name, parentName, applyMap);
                     }
                 } else {
                     //A regular module.
-                    normalizedName = normalize(name, parentName);
+                    normalizedName = normalize(name, parentName, applyMap);
 
                     url = urlMap[normalizedName];
                     if (!url) {
@@ -895,7 +899,9 @@ var requirejs, require, define;
                 each(depMaps, bind(this, function (depMap, i) {
                     if (typeof depMap === 'string') {
                         depMap = makeModuleMap(depMap,
-                                               (this.map.isDefine ? this.map : this.map.parentMap));
+                                               (this.map.isDefine ? this.map : this.map.parentMap),
+                                               false,
+                                               true);
                         this.depMaps.push(depMap);
                     }
 
@@ -1103,7 +1109,7 @@ var requirejs, require, define;
             callPlugin: function() {
                 var map = this.map,
                     id = map.id,
-                    pluginMap = makeModuleMap(map.prefix);
+                    pluginMap = makeModuleMap(map.prefix, null, false, true);
 
                 on(pluginMap, 'defined', bind(this, function (plugin) {
                     var name = this.map.name,
@@ -1116,7 +1122,7 @@ var requirejs, require, define;
                         //Normalize the ID if the plugin allows it.
                         if (plugin.normalize) {
                             name = plugin.normalize(name, function (name) {
-                                return normalize(name, parentName);
+                                return normalize(name, parentName, true);
                             });
                         }
 
@@ -1428,7 +1434,7 @@ var requirejs, require, define;
                     relMap = callback;
 
                     //Normalize module name, if it contains . or ..
-                    map = makeModuleMap(moduleName, relMap);
+                    map = makeModuleMap(moduleName, relMap, false, true);
                     id = map.id;
 
                     if (!defined.hasOwnProperty(id)) {
@@ -1591,7 +1597,7 @@ var requirejs, require, define;
                     parentPath;
 
                 //Normalize module name if have a base relative module name to work from.
-                moduleName = normalize(moduleName, relModuleMap && relModuleMap.id);
+                moduleName = normalize(moduleName, relModuleMap && relModuleMap.id, true);
 
                 //If a colon is in the URL, it indicates a protocol is used and it is just
                 //an URL to a file, or if it starts with a slash, contains a query arg (i.e. ?)
@@ -1842,13 +1848,14 @@ var requirejs, require, define;
             //UNFORTUNATELY Opera implements attachEvent but does not follow the script
             //script execution mode.
             if (node.attachEvent &&
-                // check if node.attachEvent is artificially added by custom script or
-                // natively supported by browser
-                // read https://github.com/jrburke/requirejs/issues/187
-                // if we can NOT find [native code] then it must NOT natively supported.
-                // in IE8, node.attachEvent does not have toString()
-                // TODO: a better way to check interactive mode
-                !(node.attachEvent.toString && node.attachEvent.toString().indexOf('[native code]') < 0) &&
+                //Check if node.attachEvent is artificially added by custom script or
+                //natively supported by browser
+                //read https://github.com/jrburke/requirejs/issues/187
+                //if we can NOT find [native code] then it must NOT natively supported.
+                //in IE8, node.attachEvent does not have toString()
+                //Note the test for "[native code" with no closing brace, see:
+                //https://github.com/jrburke/requirejs/issues/273
+                !(node.attachEvent.toString && node.attachEvent.toString().indexOf('[native code') < 0) &&
                 !isOpera) {
                 //Probably IE. IE (at least 6-8) do not fire
                 //script onload right after executing the script, so
