@@ -762,13 +762,47 @@ define(['build', 'env!env/file'], function (build, file) {
 
     doh.register("cssKeepComments",
         [
-            function cssDuplicates(t) {
+            function cssKeepComments(t) {
                 file.deleteFile("lib/cssKeepComments/main-built.css");
 
                 build(["lib/cssKeepComments/build.js"]);
 
                 t.is(nol(c("lib/cssKeepComments/expected.css")),
                      nol(c("lib/cssKeepComments/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("cssKeepLicense",
+        [
+            function cssKeepLicense(t) {
+                file.deleteFile("lib/cssKeepLicense/main-built.css");
+
+                build(["lib/cssKeepLicense/build.js"]);
+
+                t.is(nol(c("lib/cssKeepLicense/expected.css")),
+                     nol(c("lib/cssKeepLicense/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("cssKeepLicenseNoLicense",
+        [
+            function cssKeepLicenseNoLicense(t) {
+                file.deleteFile("lib/cssKeepLicense/main-nolicense-built.css");
+
+                build(["lib/cssKeepLicense/build-nolicense.js"]);
+
+                t.is(nol(c("lib/cssKeepLicense/expected-nolicense.css")),
+                     nol(c("lib/cssKeepLicense/main-nolicense-built.css")));
 
                 require._buildReset();
             }

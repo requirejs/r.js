@@ -7,6 +7,8 @@ build/tests/lib/comments/built.js
 build/tests/lib/cssComment138/main-built.css
 build/tests/lib/cssDuplicates/main-built.css
 build/tests/lib/cssKeepComments/main-built.css
+build/tests/lib/cssKeepLicense/main-license-built.css
+build/tests/lib/cssKeepLicense/main-built.css
 build/tests/lib/dotpackage/built
 build/tests/lib/empty/built
 build/tests/lib/endRequire/main-built.js
