@@ -343,7 +343,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
             //JS optimizations.
             fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
-            for (i = 0; (fileName = fileNames[i]); i++) {
+            for (i = 0; i < fileNames.length; i++) {
+                fileName = fileNames[i];
+
                 //Generate the module name from the config.dir root.
                 moduleName = fileName.replace(config.dir, '');
                 //Get rid of the extension
@@ -369,7 +371,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (pluginCollector.hasOwnProperty(moduleName)) {
                     parentModuleMap = context.makeModuleMap(moduleName);
                     resources = pluginCollector[moduleName];
-                    for (i = 0; (resource = resources[i]); i++) {
+                    for (i = 0; i < resources.length; i++) {
+                        resource = resources[i];
                         moduleMap = context.makeModuleMap(resource, parentModuleMap);
                         if (!context.plugins[moduleMap.prefix]) {
                             //Set the value in context.plugins so it
@@ -542,7 +545,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build.makeAbsObject = function (props, obj, absFilePath) {
         var i, prop;
         if (obj) {
-            for (i = 0; (prop = props[i]); i++) {
+            for (i = 0; i < props.length; i++) {
+                prop = props[i];
                 if (obj.hasOwnProperty(prop)) {
                     obj[prop] = build.makeAbsPath(obj[prop], absFilePath);
                 }
@@ -558,7 +562,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         var props, prop, i;
 
         props = ["appDir", "dir", "baseUrl"];
-        for (i = 0; (prop = props[i]); i++) {
+        for (i = 0; i < props.length; i++) {
+            prop = props[i];
+
             if (config[prop]) {
                 //Add abspath if necessary, make sure these paths end in
                 //slashes
@@ -794,12 +800,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
-        //Do not allow URLs for paths resources.
-        if (config.paths) {
-            for (prop in config.paths) {
-                if (config.paths.hasOwnProperty(prop)) {
-                }
-            }
+        //Create a hash lookup for the stubModules config to make lookup
+        //cheaper later.
+        if (config.stubModules) {
+            config.stubModules._byName = {};
+            config.stubModules.forEach(function (id) {
+                config.stubModules._byName[id] = true;
+            });
         }
 
         //Get any wrap text.
@@ -837,13 +844,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
 
         //Set file.fileExclusionRegExp if desired
-        if ('fileExclusionRegExp' in config) {
+        if (config.hasOwnProperty('fileExclusionRegExp')) {
             if (typeof config.fileExclusionRegExp === "string") {
                 file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
             } else {
                 file.exclusionRegExp = config.fileExclusionRegExp;
             }
-        } else if ('dirExclusionRegExp' in config) {
+        } else if (config.hasOwnProperty('dirExclusionRegExp')) {
             //Set file.dirExclusionRegExp if desired, this is the old
             //name for fileExclusionRegExp before 1.0.2. Support for backwards
             //compatibility
@@ -865,7 +872,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.findBuildModule = function (moduleName, modules) {
         var i, module;
-        for (i = 0; (module = modules[i]); i++) {
+        for (i = 0; i < modules.length; i++) {
+            module = modules[i];
             if (module.name === moduleName) {
                 return module;
             }
@@ -957,6 +965,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build.flattenModule = function (module, layer, config) {
         var buildFileContents = "",
             namespace = config.namespace ? config.namespace + '.' : '',
+            stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
             context = layer.context,
             anonDefRegExp = config.anonDefRegExp,
             path, reqIndex, fileContents, currContents,
@@ -985,7 +994,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Write the built module to disk, and build up the build output.
         fileContents = "";
-        for (i = 0; (path = layer.buildFilePaths[i]); i++) {
+        for (i = 0; i < layer.buildFilePaths.length; i++) {
+            path = layer.buildFilePaths[i];
             moduleName = layer.buildFileToModule[path];
 
             //Figure out if the module is a result of a build plugin, and if so,
@@ -1011,7 +1021,20 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
-                currContents = file.readFile(path);
+                if (stubModulesByName.hasOwnProperty(moduleName)) {
+                    //Just want to insert a simple module definition instead
+                    //of the source module. Useful for plugins that inline
+                    //all their resources.
+                    if (layer.context.plugins.hasOwnProperty(moduleName)) {
+                        //Slightly different content for plugins, to indicate
+                        //that dynamic loading will not work.
+                        currContents = 'define({load: function(id){throw new Error("Dynamic load not allowed: " + id);}});';
+                    } else {
+                        currContents = 'define({});';
+                    }
+                } else {
+                    currContents = file.readFile(path);
+                }
 
                 if (config.onBuildRead) {
                     currContents = config.onBuildRead(moduleName, path, currContents);

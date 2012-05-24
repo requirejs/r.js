@@ -196,6 +196,21 @@
     //together.
     skipModuleInsertion: false,
 
+    //Specify modules to stub out in the optimized file. The optimizer will
+    //use the source version of these modules for dependency tracing and for
+    //plugin use, but when writing the text into an optimized layer, these
+    //modules will get the following text instead:
+    //If the module is used as a plugin:
+    //    define({load: function(id){throw new Error("Dynamic load not allowed: " + id);}});
+    //If just a plain module:
+    //    define({});
+    //This is useful particularly for plugins that inline all their resources
+    //and use the default module resolution behavior (do *not* implement the
+    //normalize() method). In those cases, an AMD loader just needs to know
+    //that the module has a definition. These small stubs can be used instead of
+    //including the full source for a plugin.
+    stubModules: ['text', 'bar'],
+
     //If it is not a one file optimization, scan through all .js files in the
     //output directory for any plugin resource dependencies, and if the plugin
     //supports optimizing them as separate files, optimize them. Can be a

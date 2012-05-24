@@ -32,6 +32,7 @@ build/tests/lib/plugins/main-builtPluginFirst.js
 build/tests/lib/pristineSrc/built
 build/tests/lib/removeCombined/app-built
 build/tests/lib/removeCombined/baseUrl-built
+build/tests/lib/stubModules/main-built.js
 build/tests/lib/transportBeforeMinify/www-built
 build/tests/lib/urlToEmpty/main-built.js
 build/tests/tools/override/node_modules
