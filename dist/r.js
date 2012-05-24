@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Thu, 24 May 2012 04:27:17 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Thu, 24 May 2012 06:38:25 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Thu, 24 May 2012 04:27:17 GMT',
+        version = '2.0.0zdev Thu, 24 May 2012 06:38:25 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14316,19 +14316,30 @@ function (lang,   logger,   envOptimize,        file,           parse,
             var originalFileContents = file.readFile(fileName),
                 flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, {}),
                 fileContents = flat.fileContents,
-                startIndex, endIndex, buildText;
+                startIndex, endIndex, buildText, comment;
 
             //Do comment removal.
             try {
                 if (config.optimizeCss.indexOf(".keepComments") === -1) {
-                    startIndex = -1;
+                    startIndex = 0;
                     //Get rid of comments.
-                    while ((startIndex = fileContents.indexOf("/*")) !== -1) {
+                    while ((startIndex = fileContents.indexOf("/*", startIndex)) !== -1) {
                         endIndex = fileContents.indexOf("*/", startIndex + 2);
                         if (endIndex === -1) {
                             throw "Improper comment in CSS file: " + fileName;
                         }
-                        fileContents = fileContents.substring(0, startIndex) + fileContents.substring(endIndex + 2, fileContents.length);
+                        comment = fileContents.substring(startIndex, endIndex);
+
+                        if (config.preserveLicenseComments &&
+                            (comment.indexOf('license') !== -1 ||
+                             comment.indexOf('opyright') !== -1 ||
+                             comment.indexOf('(c)') !== -1)) {
+                            //Keep the comment, just increment the startIndex
+                            startIndex = endIndex;
+                        } else {
+                            fileContents = fileContents.substring(0, startIndex) + fileContents.substring(endIndex + 2, fileContents.length);
+                            startIndex = 0;
+                        }
                     }
                 }
                 //Get rid of newlines.
