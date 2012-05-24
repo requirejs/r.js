@@ -906,7 +906,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * be in the flattened module.
      */
     build.traceDependencies = function (module, config) {
-        var include, override, layer, context, baseConfig, oldContext;
+        var include, override, layer, context, baseConfig, oldContext,
+            registry, id, idParts, pluginId,
+            errMessage = '',
+            failedPluginMap = {},
+            failedPluginIds = [],
+            errIds = [];
 
         //Reset some state set up in requirePatch.js, and clean up require's
         //current context.
@@ -943,6 +948,37 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Reset config
         if (module.override) {
             require(baseConfig);
+        }
+
+        //Check to see if it all loaded. If not, then stop, and give
+        //a message on what is left.
+        registry = context.registry;
+        for (id in registry) {
+            if (registry.hasOwnProperty(id) && id.indexOf('_@r') !== 0) {
+                if (id.indexOf('_unnormalized') === -1) {
+                    errIds.push(id);
+                }
+
+                //Look for plugins that did not call load()
+                idParts = id.split('!');
+                pluginId = idParts[0];
+                if (idParts.length > 1 && !failedPluginMap.hasOwnProperty(pluginId)) {
+                    failedPluginIds.push(pluginId);
+                    failedPluginMap[pluginId] = true;
+                }
+            }
+        }
+
+        if (errIds.length || failedPluginIds.length) {
+            if (failedPluginIds.length) {
+                errMessage += 'Loader plugin' +
+                (failedPluginIds.length === 1 ? '' : 's') +
+                ' did not call ' +
+                'the load callback in the build: ' +
+                failedPluginIds.join(', ') + '\n';
+            }
+            errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
+            throw new Error(errMessage);
         }
 
         return layer;
