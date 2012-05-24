@@ -328,7 +328,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             uglify: function (fileName, fileContents, keepLines, config) {
                 var parser = uglify.parser,
                     processor = uglify.uglify,
-                    ast;
+                    ast, errMessage, errMatch;
 
                 config = config || {};
 
@@ -345,7 +345,12 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         fileContents = processor.split_lines(fileContents, config.max_line_length);
                     }
                 } catch (e) {
-                    logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
+                    errMessage = e.toString();
+                    errMatch = /\nError(\r)?\n/.exec(errMessage);
+                    if (errMatch) {
+                        errMessage = errMessage.substring(0, errMatch.index);
+                    }
+                    logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
                 }
                 return fileContents;
             }

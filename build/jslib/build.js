@@ -4,14 +4,14 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: true, nomen: true  */
+/*jslint plusplus: true, nomen: true, regexp: true  */
 /*global define, require */
 
 
 define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
-         'env!env/load', 'requirePatch'],
+         'env!env/load', 'requirePatch', 'env!env/quit'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
-          load,           requirePatch) {
+          load,           requirePatch,   quit) {
     'use strict';
 
     var build, buildBaseConfig,
@@ -86,31 +86,79 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * there is a problem completing the build.
      */
     build = function (args) {
-        var buildFile, cmdConfig;
+        var stackRegExp = /( {4}at[^\n]+)\n/,
+            standardIndent = '  ',
+            buildFile, cmdConfig, errorMsg, stackMatch, errorTree,
+            i, j, errorMod;
 
-        if (!args || lang.isArray(args)) {
-            if (!args || args.length < 1) {
-                logger.error("build.js buildProfile.js\n" +
-                      "where buildProfile.js is the name of the build file (see example.build.js for hints on how to make a build file).");
-                return undefined;
+        try {
+            if (!args || lang.isArray(args)) {
+                if (!args || args.length < 1) {
+                    logger.error("build.js buildProfile.js\n" +
+                          "where buildProfile.js is the name of the build file (see example.build.js for hints on how to make a build file).");
+                    return undefined;
+                }
+
+                //Next args can include a build file path as well as other build args.
+                //build file path comes first. If it does not contain an = then it is
+                //a build file path. Otherwise, just all build args.
+                if (args[0].indexOf("=") === -1) {
+                    buildFile = args[0];
+                    args.splice(0, 1);
+                }
+
+                //Remaining args are options to the build
+                cmdConfig = build.convertArrayToObject(args);
+                cmdConfig.buildFile = buildFile;
+            } else {
+                cmdConfig = args;
             }
 
-            //Next args can include a build file path as well as other build args.
-            //build file path comes first. If it does not contain an = then it is
-            //a build file path. Otherwise, just all build args.
-            if (args[0].indexOf("=") === -1) {
-                buildFile = args[0];
-                args.splice(0, 1);
+            return build._run(cmdConfig);
+        } catch (e) {
+            errorMsg = e.toString();
+            errorTree = e.moduleTree;
+            stackMatch = stackRegExp.exec(errorMsg);
+
+            if (stackMatch) {
+                errorMsg = errorMsg.substring(0, stackMatch.index + stackMatch[0].length + 1);
+            }
+            logger.error(errorMsg);
+
+            //If a module tree that shows what module triggered the error,
+            //print it out.
+            if (errorTree && errorTree.length > 0) {
+                errorMsg = 'In module tree:\n';
+
+                for (i = errorTree.length - 1; i > -1; i--) {
+                    errorMod = errorTree[i];
+                    if (errorMod) {
+                        for (j = errorTree.length - i; j > -1; j--) {
+                            errorMsg += standardIndent;
+                        }
+                        errorMsg += errorMod + '\n';
+                    }
+                }
+
+                logger.error(errorMsg);
             }
 
-            //Remaining args are options to the build
-            cmdConfig = build.convertArrayToObject(args);
-            cmdConfig.buildFile = buildFile;
-        } else {
-            cmdConfig = args;
+            errorMsg = e.stack;
+
+            if (args.indexOf('stacktrace=true') !== -1) {
+                logger.error(errorMsg);
+            } else {
+                if (!stackMatch && errorMsg) {
+                    //Just trim out the first "at" in the stack.
+                    stackMatch = stackRegExp.exec(errorMsg);
+                    if (stackMatch) {
+                        logger.error(stackMatch[0] || '');
+                    }
+                }
+            }
+
+            quit(1);
         }
-
-        return build._run(cmdConfig);
     };
 
     build._run = function (cmdConfig) {

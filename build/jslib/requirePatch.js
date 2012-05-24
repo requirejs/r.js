@@ -30,31 +30,6 @@ function (file,           pragma,   parse,   lang,   logger) {
             oldNewContext = require.s.newContext,
             oldDef;
 
-        /** Print out some extrs info about the module tree that caused the error. **/
-        require.onError = function (err) {
-
-            var msg = '\nIn module tree:\n',
-                standardIndent = '  ',
-                tree = err.moduleTree,
-                i, j, mod;
-
-            if (tree && tree.length > 0) {
-                for (i = tree.length - 1; i > -1; i--) {
-                    mod = tree[i];
-                    if (mod) {
-                        for (j = tree.length - i; j > -1; j--) {
-                            msg += standardIndent;
-                        }
-                        msg += mod + '\n';
-                    }
-                }
-
-                err = new Error(err.toString() + msg);
-            }
-
-            throw err;
-        };
-
         //Stored cached file contents for reuse in other layers.
         require._cachedFileContents = {};
 
