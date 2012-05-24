@@ -918,6 +918,26 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/requirejs/issues/277
+    doh.register("mapConfigStarAdapter",
+        [
+            function mapConfigStar(t) {
+                var outFile = "../../../requirejs/tests/mapConfig/built/mapConfigStarAdapter-tests.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/mapConfig/buildStarAdapter.js"]);
+
+                t.is(nol(c("lib/mapConfig/expectedStarAdapter.js")),
+                     nol(c(outFile)));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/165 endRequire
     doh.register("endRequire",
         [
