@@ -1002,4 +1002,22 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/116 stub modules
+    doh.register("stubModules",
+        [
+            function stubModules(t) {
+                file.deleteFile("lib/stubModules/main-built.js");
+
+                build(["lib/stubModules/build.js"]);
+
+                t.is(nol(c("lib/stubModules/expected.js")),
+                     nol(c("lib/stubModules/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });
