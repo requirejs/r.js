@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Thu, 24 May 2012 07:25:52 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Thu, 24 May 2012 18:34:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Thu, 24 May 2012 07:25:52 GMT',
+        version = '2.0.0zdev Thu, 24 May 2012 18:34:53 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2908,6 +2908,27 @@ define('rhino/file', function () {
     };
 
     return file;
+});
+
+}
+
+if(env === 'node') {
+/*global process */
+define('node/quit', function () {
+    'use strict';
+    return function (code) {
+        return process.exit(code);
+    };
+});
+}
+
+if(env === 'rhino') {
+/*global quit */
+define('rhino/quit', function () {
+    'use strict';
+    return function (code) {
+        return quit(code);
+    };
 });
 
 }
@@ -14396,7 +14417,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             uglify: function (fileName, fileContents, keepLines, config) {
                 var parser = uglify.parser,
                     processor = uglify.uglify,
-                    ast;
+                    ast, errMessage, errMatch;
 
                 config = config || {};
 
@@ -14413,7 +14434,12 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         fileContents = processor.split_lines(fileContents, config.max_line_length);
                     }
                 } catch (e) {
-                    logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
+                    errMessage = e.toString();
+                    errMatch = /\nError(\r)?\n/.exec(errMessage);
+                    if (errMatch) {
+                        errMessage = errMessage.substring(0, errMatch.index);
+                    }
+                    logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
                 }
                 return fileContents;
             }
@@ -14453,31 +14479,6 @@ function (file,           pragma,   parse,   lang,   logger) {
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
             oldNewContext = require.s.newContext,
             oldDef;
-
-        /** Print out some extrs info about the module tree that caused the error. **/
-        require.onError = function (err) {
-
-            var msg = '\nIn module tree:\n',
-                standardIndent = '  ',
-                tree = err.moduleTree,
-                i, j, mod;
-
-            if (tree && tree.length > 0) {
-                for (i = tree.length - 1; i > -1; i--) {
-                    mod = tree[i];
-                    if (mod) {
-                        for (j = tree.length - i; j > -1; j--) {
-                            msg += standardIndent;
-                        }
-                        msg += mod + '\n';
-                    }
-                }
-
-                err = new Error(err.toString() + msg);
-            }
-
-            throw err;
-        };
 
         //Stored cached file contents for reuse in other layers.
         require._cachedFileContents = {};
@@ -15009,14 +15010,14 @@ define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: true, nomen: true  */
+/*jslint plusplus: true, nomen: true, regexp: true  */
 /*global define, require */
 
 
 define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
-         'env!env/load', 'requirePatch'],
+         'env!env/load', 'requirePatch', 'env!env/quit'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
-          load,           requirePatch) {
+          load,           requirePatch,   quit) {
     'use strict';
 
     var build, buildBaseConfig,
@@ -15091,31 +15092,79 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * there is a problem completing the build.
      */
     build = function (args) {
-        var buildFile, cmdConfig;
+        var stackRegExp = /( {4}at[^\n]+)\n/,
+            standardIndent = '  ',
+            buildFile, cmdConfig, errorMsg, stackMatch, errorTree,
+            i, j, errorMod;
 
-        if (!args || lang.isArray(args)) {
-            if (!args || args.length < 1) {
-                logger.error("build.js buildProfile.js\n" +
-                      "where buildProfile.js is the name of the build file (see example.build.js for hints on how to make a build file).");
-                return undefined;
+        try {
+            if (!args || lang.isArray(args)) {
+                if (!args || args.length < 1) {
+                    logger.error("build.js buildProfile.js\n" +
+                          "where buildProfile.js is the name of the build file (see example.build.js for hints on how to make a build file).");
+                    return undefined;
+                }
+
+                //Next args can include a build file path as well as other build args.
+                //build file path comes first. If it does not contain an = then it is
+                //a build file path. Otherwise, just all build args.
+                if (args[0].indexOf("=") === -1) {
+                    buildFile = args[0];
+                    args.splice(0, 1);
+                }
+
+                //Remaining args are options to the build
+                cmdConfig = build.convertArrayToObject(args);
+                cmdConfig.buildFile = buildFile;
+            } else {
+                cmdConfig = args;
             }
 
-            //Next args can include a build file path as well as other build args.
-            //build file path comes first. If it does not contain an = then it is
-            //a build file path. Otherwise, just all build args.
-            if (args[0].indexOf("=") === -1) {
-                buildFile = args[0];
-                args.splice(0, 1);
+            return build._run(cmdConfig);
+        } catch (e) {
+            errorMsg = e.toString();
+            errorTree = e.moduleTree;
+            stackMatch = stackRegExp.exec(errorMsg);
+
+            if (stackMatch) {
+                errorMsg = errorMsg.substring(0, stackMatch.index + stackMatch[0].length + 1);
+            }
+            logger.error(errorMsg);
+
+            //If a module tree that shows what module triggered the error,
+            //print it out.
+            if (errorTree && errorTree.length > 0) {
+                errorMsg = 'In module tree:\n';
+
+                for (i = errorTree.length - 1; i > -1; i--) {
+                    errorMod = errorTree[i];
+                    if (errorMod) {
+                        for (j = errorTree.length - i; j > -1; j--) {
+                            errorMsg += standardIndent;
+                        }
+                        errorMsg += errorMod + '\n';
+                    }
+                }
+
+                logger.error(errorMsg);
             }
 
-            //Remaining args are options to the build
-            cmdConfig = build.convertArrayToObject(args);
-            cmdConfig.buildFile = buildFile;
-        } else {
-            cmdConfig = args;
+            errorMsg = e.stack;
+
+            if (args.indexOf('stacktrace=true') !== -1) {
+                logger.error(errorMsg);
+            } else {
+                if (!stackMatch && errorMsg) {
+                    //Just trim out the first "at" in the stack.
+                    stackMatch = stackRegExp.exec(errorMsg);
+                    if (stackMatch) {
+                        logger.error(stackMatch[0] || '');
+                    }
+                }
+            }
+
+            quit(1);
         }
-
-        return build._run(cmdConfig);
     };
 
     build._run = function (cmdConfig) {
