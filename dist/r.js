@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Thu, 24 May 2012 22:33:33 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Fri, 25 May 2012 17:34:56 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Thu, 24 May 2012 22:33:33 GMT',
+        version = '2.0.0zdev Fri, 25 May 2012 17:34:56 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14146,7 +14146,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
             //If no slash, so must be just a file name. Use empty string then.
             filePath = (endIndex !== -1) ? fileName.substring(0, endIndex + 1) : "",
             //store a list of merged files
-            importList = [];
+            importList = [],
+            skippedList = [];
 
         //First make a pass by removing an commented out @import calls.
         fileContents = fileContents.replace(cssCommentImportRegExp, '');
@@ -14159,6 +14160,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
         fileContents = fileContents.replace(cssImportRegExp, function (fullMatch, urlStart, importFileName, urlEnd, mediaTypes) {
             //Only process media type "all" or empty media type rules.
             if (mediaTypes && ((mediaTypes.replace(/^\s\s*/, '').replace(/\s\s*$/, '')) !== "all")) {
+                skippedList.push(fileName);
                 return fullMatch;
             }
 
@@ -14192,6 +14194,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 if (flat.importList.length) {
                     importList.push.apply(importList, flat.importList);
+                }
+                if (flat.skippedList.length) {
+                    skippedList.push.apply(skippedList, flat.skippedList);
                 }
 
                 //Make the full import path
@@ -14245,6 +14250,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
         return {
             importList : importList,
+            skippedList: skippedList,
             fileContents : fileContents
         };
     }
@@ -14341,8 +14347,15 @@ function (lang,   logger,   envOptimize,        file,           parse,
             //Read in the file. Make sure we have a JS string.
             var originalFileContents = file.readFile(fileName),
                 flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, {}),
-                fileContents = flat.fileContents,
+                //Do not use the flattened CSS if there was one that was skipped.
+                fileContents = flat.skippedList.length ? originalFileContents : flat.fileContents,
                 startIndex, endIndex, buildText, comment;
+
+            if (flat.skippedList.length) {
+                logger.warn('Cannot inline @imports for ' + fileName +
+                            ',\nthe following files had media queries in them:\n' +
+                            flat.skippedList.join('\n'));
+            }
 
             //Do comment removal.
             try {
