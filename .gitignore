@@ -9,6 +9,7 @@ build/tests/lib/cssDuplicates/main-built.css
 build/tests/lib/cssKeepComments/main-built.css
 build/tests/lib/cssKeepLicense/main-license-built.css
 build/tests/lib/cssKeepLicense/main-built.css
+build/tests/lib/cssMediaQuery/main-built.css
 build/tests/lib/dotpackage/built
 build/tests/lib/empty/built
 build/tests/lib/endRequire/main-built.js

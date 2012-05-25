@@ -811,6 +811,24 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/r.js/issues/167 @import in media query
+    doh.register("cssMediaQuery",
+        [
+            function cssMediaQuery(t) {
+                file.deleteFile("lib/cssMediaQuery/main-built.css");
+
+                build(["lib/cssMediaQuery/build.js"]);
+
+                t.is(nol(c("lib/cssMediaQuery/expected.css")),
+                     nol(c("lib/cssMediaQuery/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/150
     doh.register("appDirSrcOverwrite",
         [
