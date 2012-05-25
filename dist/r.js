@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Fri, 25 May 2012 17:34:56 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Fri, 25 May 2012 17:55:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Fri, 25 May 2012 17:34:56 GMT',
+        version = '2.0.0zdev Fri, 25 May 2012 17:55:15 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13731,11 +13731,11 @@ define('parse', ['./esprima', './uglifyjs/index'], function (esprima, uglify) {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint regexp: false, strict: false, plusplus: false  */
+/*jslint regexp: true, plusplus: true  */
 /*global define: false */
 
 define('pragma', ['parse', 'logger'], function (parse, logger) {
-
+    'use strict';
     function Temp() {}
 
     function create(obj, mixin) {
@@ -13747,7 +13747,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
 
         if (mixin) {
             for (prop in mixin) {
-                if (mixin.hasOwnProperty(prop) && !(prop in temp)) {
+                if (mixin.hasOwnProperty(prop) && !temp.hasOwnProperty(prop)) {
                     temp[prop] = mixin[prop];
                 }
             }
@@ -13764,6 +13764,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
+        defineTypeFirstCheckRegExp: /\s*["']function["']\s*===\s*typeof\s+define\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
         defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
@@ -13791,10 +13792,12 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                                                     "typeof " + ns + ".define === 'function' && typeof " + ns + ".define.amd === 'object' && " + ns + ".define.amd");
 
                 //Namespace define checks.
-                //Do this one last, since it is a subset of the more specific
+                //Do these ones last, since they are a subset of the more specific
                 //checks above.
                 fileContents = fileContents.replace(pragma.defineCheckRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
+                fileContents = fileContents.replace(pragma.defineTypeFirstCheckRegExp,
+                                                    "'function' === typeof " + ns + ".define && " + ns + ".define.amd");
 
                 //Check for require.js with the require/define definitions
                 if (pragma.apiDefRegExp.test(fileContents) &&
@@ -13825,7 +13828,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                                    'requirejs = ' + ns + '.requirejs,' +
                                    'define = ' + ns + '.define;\n' +
                                    fileContents +
-                                   '\n}());'
+                                   '\n}());';
                 }
             }
 
@@ -13840,7 +13843,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
             var foundIndex = -1, startIndex = 0, lineEndIndex, conditionLine,
                 matches, type, marker, condition, isTrue, endRegExp, endMatches,
                 endMarkerIndex, shouldInclude, startLength, lifecycleHas, deps,
-                i, dep, moduleName,
+                i, dep, moduleName, collectorMod,
                 lifecyclePragmas, pragmas = config.pragmas, hasConfig = config.has,
                 //Legacy arg defined to help in dojo conversion script. Remove later
                 //when dojo no longer needs conversion:
@@ -13866,7 +13869,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
             //Replace has references if desired
             if (hasConfig) {
                 fileContents = fileContents.replace(pragma.hasRegExp, function (match, test) {
-                    if (test in hasConfig) {
+                    if (hasConfig.hasOwnProperty(test)) {
                         return !!hasConfig[test];
                     }
                     return match;
@@ -13948,10 +13951,14 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 try {
                     deps = parse.findDependencies(fileName, fileContents);
                     if (deps.length) {
-                        for (i = 0; (dep = deps[i]); i++) {
+                        for (i = 0; i < deps.length; i++) {
+                            dep = deps[i];
                             if (dep.indexOf('!') !== -1) {
-                                (pluginCollector[moduleName] ||
-                                 (pluginCollector[moduleName] = [])).push(dep);
+                                collectorMod = pluginCollector[moduleName];
+                                if (!collectorMod) {
+                                 collectorMod = pluginCollector[moduleName] = [];
+                                }
+                                collectorMod.push(dep);
                             }
                         }
                     }
