@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Sat, 26 May 2012 03:24:26 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Sat, 26 May 2012 05:27:30 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Sat, 26 May 2012 03:24:26 GMT',
+        version = '2.0.0zdev Sat, 26 May 2012 05:27:30 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13752,7 +13752,7 @@ define('transform', ['./esprima', './parse', 'logger'], function (esprima, parse
             } catch(e) {
                 logger.trace('toTransport skipping ' + path + ': ' +
                              e.toString());
-                return;
+                return contents;
             }
 
             //Find the define calls and their position in the files.
