@@ -1111,4 +1111,23 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Confirm that deps: [] works in a build config file.
+    doh.register("depsConfig",
+        [
+            function depsConfig(t) {
+                file.deleteFile("lib/depsConfig/main-built.js");
+
+                build(["lib/depsConfig/build.js"]);
+
+                t.is(nol(c("lib/depsConfig/expected.js")),
+                     nol(c("lib/depsConfig/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
