@@ -1,8 +1,8 @@
-/*jslint plusplus: false, strict: false */
-/*global load: false, doh: false, define:false */
+/*jslint */
+/*global doh: false */
 
 define(['build'], function (build) {
-
+    'use strict';
     doh.register("toTransport",
         [
             function toTransport(t) {
@@ -12,19 +12,22 @@ define(['build'], function (build) {
                     bad4 = 'define(fields, callback);',
                     good1 = 'if (typeof define === "function" && define.amd) {\n' +
                             '    define(definition);\n' +
-                            '}';
+                            '}',
                     goodExpected1 = 'if (typeof define === "function" && define.amd) {\n' +
                             '    define(\'good/1\',[],definition);\n' +
-                            '}';
-                    layer = {
-                        modulesWithNames: {}
-                    };
+                            '}',
+                    good2 = '//    define([\'bad\'], function () {});\n' +
+                            'define([\'foo\'], function () {});',
+                    goodExpected2 = '//    define([\'bad\'], function () {});\n' +
+                            'define(\'good/2\',[\'foo\'], function () {});';
 
-                t.is(bad1, build.toTransport('', 'bad/1', 'bad1', bad1, layer));
-                t.is(bad2, build.toTransport('', 'bad/2', 'bad2', bad2, layer));
-                t.is(bad3, build.toTransport('', 'bad/3', 'bad3', bad3, layer));
-                t.is(bad4, build.toTransport('', 'bad/4', 'bad4', bad4, layer));
-                t.is(goodExpected1, build.toTransport('', 'good/1', 'good1', good1, layer));
+
+                t.is(bad1, build.toTransport('', 'bad/1', 'bad1', bad1));
+                t.is(bad2, build.toTransport('', 'bad/2', 'bad2', bad2));
+                t.is(bad3, build.toTransport('', 'bad/3', 'bad3', bad3));
+                t.is(bad4, build.toTransport('', 'bad/4', 'bad4', bad4));
+                t.is(goodExpected1, build.toTransport('', 'good/1', 'good1', good1));
+                t.is(goodExpected2, build.toTransport('', 'good/2', 'good2', good2));
             }
         ]
     );
