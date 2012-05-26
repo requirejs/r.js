@@ -145,7 +145,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
             errorMsg = e.stack;
 
-            if (args.indexOf('stacktrace=true') !== -1) {
+            if (typeof args === 'string' && args.indexOf('stacktrace=true') !== -1) {
                 logger.error(errorMsg);
             } else {
                 if (!stackMatch && errorMsg) {
@@ -274,7 +274,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Just set up the _buildPath for the module layer.
             require(config);
             if (!config.cssIn) {
-                config.modules[0]._buildPath = config.out;
+                config.modules[0]._buildPath = typeof config.out === 'function' ?
+                                               'FUNCTION' : config.out;
             }
         } else if (!config.cssIn) {
             //Now set up the config for require to use the build area, and calculate the
@@ -359,29 +360,35 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //Save it to a temp file for now, in case there are other layers that
                 //contain optimized content that should not be included in later
                 //layer optimizations. See issue #56.
-                file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
+                if (module._buildPath === 'FUNCTION') {
+                    module._buildText = builtModule.text;
+                } else {
+                    file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
+                }
                 buildFileContents += builtModule.buildText;
             });
 
             //Now move the build layers to their final position.
             modules.forEach(function (module) {
                 var finalPath = module._buildPath;
-                if (file.exists(finalPath)) {
-                    file.deleteFile(finalPath);
-                }
-                file.renameFile(finalPath + '-temp', finalPath);
+                if (finalPath !== 'FUNCTION') {
+                    if (file.exists(finalPath)) {
+                        file.deleteFile(finalPath);
+                    }
+                    file.renameFile(finalPath + '-temp', finalPath);
 
-                //And finally, if removeCombined is specified, remove
-                //any of the files that were used in this layer.
-                //Be sure not to remove other build layers.
-                if (config.removeCombined) {
-                    module.layer.buildFilePaths.forEach(function (path) {
-                        if (file.exists(path) && !modules.some(function (mod) {
-                            return mod._buildPath === path;
-                        })) {
-                            file.deleteFile(path);
-                        }
-                    });
+                    //And finally, if removeCombined is specified, remove
+                    //any of the files that were used in this layer.
+                    //Be sure not to remove other build layers.
+                    if (config.removeCombined) {
+                        module.layer.buildFilePaths.forEach(function (path) {
+                            if (file.exists(path) && !modules.some(function (mod) {
+                                return mod._buildPath === path;
+                            })) {
+                                file.deleteFile(path);
+                            }
+                        });
+                    }
                 }
             });
         }
@@ -390,7 +397,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (config.out && !config.cssIn) {
             //Just need to worry about one JS file.
             fileName = config.modules[0]._buildPath;
-            optimize.jsFile(fileName, null, fileName, config);
+            if (fileName === 'FUNCTION') {
+                config.modules[0]._buildText = optimize.js(fileName,
+                                                           config.modules[0]._buildText,
+                                                           config);
+            } else {
+                optimize.jsFile(fileName, null, fileName, config);
+            }
         } else if (!config.cssIn) {
             //Normal optimizations across modules.
 
@@ -482,6 +495,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //If just have one CSS file to optimize, do that here.
         if (config.cssIn) {
             buildFileContents += optimize.cssFile(config.cssIn, config.out, config);
+        }
+
+        if (typeof config.out === 'function') {
+            config.out(config.modules[0]._buildText);
         }
 
         //Print out what was built into which layers.
@@ -598,7 +615,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (obj) {
             for (i = 0; i < props.length; i++) {
                 prop = props[i];
-                if (obj.hasOwnProperty(prop)) {
+                if (obj.hasOwnProperty(prop) && typeof obj[prop] === 'string') {
                     obj[prop] = build.makeAbsPath(obj[prop], absFilePath);
                 }
             }

@@ -177,16 +177,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * found.
          */
         jsFile: function (fileName, fileContents, outFileName, config, pluginCollector) {
-            var parts = (String(config.optimize)).split('.'),
-                optimizerName = parts[0],
-                keepLines = parts[1] === 'keepLines';
-
             if (!fileContents) {
                 fileContents = file.readFile(fileName);
             }
 
-            fileContents = optimize.js(fileName, fileContents, optimizerName,
-                                       keepLines, config, pluginCollector);
+            fileContents = optimize.js(fileName, fileContents, config, pluginCollector);
 
             file.saveUtf8File(outFileName, fileContents);
         },
@@ -199,16 +194,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * @param {String} fileName the name of the file that matches the
          * fileContents.
          * @param {String} fileContents the string of JS to optimize.
-         * @param {String} [optimizerName] optional name of the optimizer to
-         * use. 'uglify' is default.
-         * @param {Boolean} [keepLines] whether to keep line returns in the optimization.
          * @param {Object} [config] the build config object.
          * @param {Array} [pluginCollector] storage for any plugin resources
          * found.
          */
-        js: function (fileName, fileContents, optimizerName, keepLines, config, pluginCollector) {
-            var licenseContents = '',
-                optFunc, match, comment;
+        js: function (fileName, fileContents, config, pluginCollector) {
+            var parts = (String(config.optimize)).split('.'),
+                optimizerName = parts[0],
+                keepLines = parts[1] === 'keepLines',
+                licenseContents = '',
+                optFunc;
 
             config = config || {};
 
