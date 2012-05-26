@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Sat, 26 May 2012 06:33:37 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Sat, 26 May 2012 22:05:43 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Sat, 26 May 2012 06:33:37 GMT',
+        version = '2.0.0zdev Sat, 26 May 2012 22:05:43 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -16012,6 +16012,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     buildFileConfig.dir = (buildFileConfig.baseUrl || config.baseUrl) + "/build/";
                 }
 
+                //Mix in the config now so that items in mainConfigFile can
+                //be resolved relative to them if necessary, like if appDir
+                //is set here, but the baseUrl is in mainConfigFile. Will
+                //re-mix in the same build config later after mainConfigFile
+                //is processed, since build config should take priority.
+                mixConfig(config, buildFileConfig);
             } catch (e) {
                 throw new Error("Build file " + buildFile + " is malformed: " + e);
             }
@@ -16037,10 +16043,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (mainConfig) {
                 mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
 
+                //Add in some existing config, like appDir, since they can be
+                //used inside the mainConfigFile -- paths and baseUrl are
+                //relative to them.
+                if (config.appDir && !mainConfig.appDir) {
+                    mainConfig.appDir = config.appDir;
+                }
+
                 //If no baseUrl, then use the directory holding the main config.
                 if (!mainConfig.baseUrl) {
                     mainConfig.baseUrl = mainConfigPath;
                 }
+
                 build.makeAbsConfig(mainConfig, mainConfigPath);
                 mixConfig(config, mainConfig);
             }
@@ -16054,7 +16068,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Re-apply the override config values. Command line
         //args should take precedence over build file values.
         mixConfig(config, cfg);
-
 
         //Set final output dir
         if (config.hasOwnProperty("baseUrl")) {
