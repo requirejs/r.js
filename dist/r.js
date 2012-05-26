@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Fri, 25 May 2012 17:55:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Sat, 26 May 2012 03:24:26 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Fri, 25 May 2012 17:55:15 GMT',
+        version = '2.0.0zdev Sat, 26 May 2012 03:24:26 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13726,6 +13726,257 @@ define('parse', ['./esprima', './uglifyjs/index'], function (esprima, uglify) {
     return parse;
 });
 /**
+ * @license Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint */
+
+define('transform', ['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
+    'use strict';
+
+    return {
+        toTransport: function (namespace, moduleName, path, contents, onFound) {
+
+            var defineRanges = [],
+                contentInsertion = '',
+                depString = '',
+                tokens, info, deps;
+
+            try {
+                tokens = esprima.parse(contents, {
+                        tokens: true,
+                        range: true
+                    }).tokens;
+            } catch(e) {
+                logger.trace('toTransport skipping ' + path + ': ' +
+                             e.toString());
+                return;
+            }
+
+            //Find the define calls and their position in the files.
+            tokens.forEach(function (token, i) {
+                var namespaceExists = false,
+                    prev, prev2, next, next2, next3, next4,
+                    needsId, depAction, nameCommaRange, foundId;
+
+                if (token.type === 'Identifier' && token.value === 'define') {
+                    //Possible match. Do not want something.define calls
+                    //though, and only defines follow by a paren
+                    prev = tokens[i - 1];
+                    next = tokens[i + 1];
+
+                    if (prev && prev.type === 'Punctuator' &&
+                        prev.value === '.') {
+                        //a define on a sub-object, not a top level
+                        //define() call. If the sub object is the
+                        //namespace, then it is ok.
+                        prev2 = tokens[i - 2];
+                        if (!prev2) {
+                            return;
+                        }
+
+                        //If the prev2 does not match namespace, then bail.
+                        if (!namespace || prev2.type !== 'Identifier' ||
+                            prev2.value !== namespace) {
+                           return;
+                        } else if (namespace) {
+                            namespaceExists = true;
+                        }
+                    }
+
+                    if (!next || next.type !== 'Punctuator' ||
+                        next.value !== '(') {
+                       //Not a define() function call. Bail.
+                        return;
+                    }
+
+                    next2 = tokens[i + 2];
+                    if (!next2) {
+                        return;
+                    }
+
+                    //Figure out if this needs a named define call.
+                    if (next2.type === 'Punctuator' &&
+                        next2.value === '[') {
+                        //Dependency array
+                        needsId = true;
+                        depAction = 'skip';
+                    } else if (next2.type === 'Punctuator' &&
+                               next2.value === '{') {
+                        //Object literal
+                        needsId = true;
+                        depAction = 'skip';
+                    } else if (next2.type === 'Keyword' &&
+                               next2.value === 'function') {
+                        //function
+                        needsId = true;
+                        depAction = 'scan';
+                    } else if (next2.type === 'String') {
+                        //Named module
+                        needsId = false;
+
+                        //The value includes the quotes around the string,
+                        //so remove them.
+                        foundId = next2.value.substring(1,
+                                                        next2.value.length - 1);
+
+                        //assumed it does not need dependencies injected
+
+                        //If next argument is a function it means we need
+                        //dependency scanning.
+                        next3 = tokens[i + 3];
+                        next4 = tokens[i + 4];
+                        if (!next3 || !next4) {
+                            return;
+                        }
+
+                        if (next3.type === 'Punctuator' &&
+                            next3.value === ',' &&
+                            next4.type === 'Keyword' &&
+                            next4.value === 'function') {
+                            depAction = 'scan';
+                            nameCommaRange = next3.range;
+                        } else {
+                            depAction = 'skip';
+                        }
+                    } else if (next2.type === 'Identifier') {
+                        //May be the define(factory); type.
+                        next3 = tokens[i + 3];
+                        if (!next3) {
+                            return;
+                        }
+                        if (next3.type === 'Punctuator' &&
+                            next3.value === ')') {
+                            needsId = true;
+                            depAction = 'empty';
+                        } else {
+                            return;
+                        }
+                    } else if (next2.type === 'Numeric') {
+                        //May be the define(12345); type.
+                        next3 = tokens[i + 3];
+                        if (!next3) {
+                            return;
+                        }
+                        if (next3.type === 'Punctuator' &&
+                            next3.value === ')') {
+                            needsId = true;
+                            depAction = 'skip';
+                        } else {
+                            return;
+                        }
+                    } else if (next2.type === 'Punctuator' &&
+                               next2.value === '-') {
+                        //May be the define(-12345); type.
+                        next3 = tokens[i + 3];
+                        if (!next3) {
+                            return;
+                        }
+                        if (next3.type === 'Numeric') {
+                            next4 = tokens[i + 4];
+                            if (!next4) {
+                                return;
+                            }
+                            if (next4.type === 'Punctuator' &&
+                                next4.value === ')') {
+                                needsId = true;
+                                depAction = 'skip';
+                            } else {
+                                return;
+                            }
+                        } else {
+                            return;
+                        }
+                    } else {
+                        //Not a match, skip it.
+                        return;
+                    }
+
+                    defineRanges.push({
+                        foundId: foundId,
+                        needsId: needsId,
+                        depAction: depAction,
+                        namespaceExists: namespaceExists,
+                        defineRange: token.range,
+                        parenRange: next.range,
+                        nameCommaRange: nameCommaRange
+                    });
+                }
+            });
+
+            //Only do naming and dependency injection if there is one define
+            //call in the file.
+            if (defineRanges.length > 1) {
+                return contents;
+            }
+            if (!defineRanges.length) {
+                return contents;
+            }
+
+            info = defineRanges[0];
+
+            //Do the modifications "backwards", in other words, start with the
+            //one that is farthest down and work up, so that the ranges in the
+            //defineRanges still apply. So that means deps, id, then namespace.
+
+            if (info.needsId && moduleName) {
+                contentInsertion += "'" + moduleName + "',";
+            }
+
+            if (info.depAction === 'scan') {
+                deps = parse.getAnonDeps(path, contents);
+
+                if (deps.length) {
+                    depString = '[' + deps.map(function (dep) {
+                        return "'" + dep + "'";
+                    }) + ']';
+                } else {
+                    depString = '[]';
+                }
+                depString +=  ',';
+
+                if (info.nameCommaRange) {
+                    //Already have a named module, need to insert the
+                    //dependencies after the name.
+                    contents = contents.substring(0, info.nameCommaRange[1]) +
+                               depString +
+                               contents.substring(info.nameCommaRange[1],
+                                              contents.length);
+                } else {
+                    contentInsertion +=  depString;
+                }
+            } else if (info.depAction === 'empty') {
+                contentInsertion += '[],';
+            }
+
+            if (contentInsertion) {
+                contents = contents.substring(0, info.parenRange[1]) +
+                           contentInsertion +
+                           contents.substring(info.parenRange[1],
+                                              contents.length);
+            }
+
+            //Do namespace last so that ui does not mess upthe parenRange
+            //used above.
+            if (namespace && !info.namespaceExists) {
+                contents = contents.substring(0, info.defineRange[0]) +
+                           namespace + '.' +
+                           contents.substring(info.defineRange[0],
+                                              contents.length);
+            }
+
+
+            //Notify any listener for the found info
+            if (onFound) {
+                onFound(info);
+            }
+
+            return contents;
+        }
+    };
+});/**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
@@ -15040,9 +15291,9 @@ define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
 
 
 define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
-         'env!env/load', 'requirePatch', 'env!env/quit'],
+         'transform', 'env!env/load', 'requirePatch', 'env!env/quit'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
-          load,           requirePatch,   quit) {
+          transform,   load,           requirePatch,   quit) {
     'use strict';
 
     var build, buildBaseConfig,
@@ -15086,7 +15337,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
     //Method used by plugin writeFile calls, defined up here to avoid
     //jslint warning about "making a function in a loop".
-    function makeWriteFile(anonDefRegExp, namespaceWithDot, layer) {
+    function makeWriteFile(namespace, layer) {
         function writeFile(name, contents) {
             logger.trace('Saving plugin-optimized file: ' + name);
             file.saveUtf8File(name, contents);
@@ -15094,7 +15345,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         writeFile.asModule = function (moduleName, fileName, contents) {
             writeFile(fileName,
-                build.toTransport(anonDefRegExp, namespaceWithDot, moduleName, fileName, contents, layer));
+                build.toTransport(namespace, moduleName, fileName, contents, layer));
         };
 
         return writeFile;
@@ -15434,8 +15685,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //inserted (by passing null for moduleName) since the files are
                 //standalone, one module per file.
                 fileContents = file.readFile(fileName);
-                fileContents = build.toTransport(config.anonDefRegExp,
-                                                 config.namespaceWithDot,
+                fileContents = build.toTransport(config.namespace,
                                                  null,
                                                  fileName,
                                                  fileContents);
@@ -15486,8 +15736,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                     moduleMap.name,
                                     require,
                                     makeWriteFile(
-                                        config.anonDefRegExp,
-                                        config.namespaceWithDot
+                                        config.namespace
                                     ),
                                     context.config
                                 );
@@ -15909,12 +16158,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             'startFile/endFile: ' + wrapError.toString());
         }
 
-
-        //Set up proper info for namespaces and using namespaces in transport
-        //wrappings.
-        config.namespaceWithDot = config.namespace ? config.namespace + '.' : '';
-        config.anonDefRegExp = build.makeAnonDefRegExp(config.namespaceWithDot);
-
         //Do final input verification
         if (config.context) {
             throw new Error('The build argument "context" is not supported' +
@@ -16079,10 +16322,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.flattenModule = function (module, layer, config) {
         var buildFileContents = "",
-            namespace = config.namespace ? config.namespace + '.' : '',
+            namespace = config.namespace || '',
+            namespaceWithDot = namespace ? namespace + '.' : '',
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
             context = layer.context,
-            anonDefRegExp = config.anonDefRegExp,
             path, reqIndex, fileContents, currContents,
             i, moduleName, shim,
             parts, builder, writeApi;
@@ -16128,7 +16371,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
                                         addSemiColon(
-                                            build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer));
+                                            build.toTransport(namespace, moduleName, path, input, layer));
                         if (config.onBuildWrite) {
                             fileContents = config.onBuildWrite(moduleName, path, fileContents);
                         }
@@ -16155,11 +16398,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = config.onBuildRead(moduleName, path, currContents);
                 }
 
-                if (config.namespace) {
-                    currContents = pragma.namespace(currContents, config.namespace);
+                if (namespace) {
+                    currContents = pragma.namespace(currContents, namespace);
                 }
 
-                currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
+                currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
 
                 if (config.onBuildWrite) {
                     currContents = config.onBuildWrite(moduleName, path, currContents);
@@ -16178,13 +16421,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (moduleName && !layer.modulesWithNames[moduleName] && !config.skipModuleInsertion) {
                 shim = config.shim && config.shim[moduleName];
                 if (shim) {
-                    fileContents += '\n' + namespace + 'define("' + moduleName + '", ' +
+                    fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                      (shim.deps && shim.deps.length ?
                                             build.makeJsArrayString(shim.deps) + ', ' : '') +
                                      (shim.exports ? shim.exports() : 'function(){}') +
                                      ');\n';
                 } else {
-                    fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
+                    fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                 }
             }
         }
@@ -16193,7 +16436,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //was desired. Usually this is only specified when using small shim
         //loaders like almond.
         if (module.endRequire) {
-            fileContents += '\n' + namespace + 'require(["' + module.endRequire.join('", "') + '"]);\n';
+            fileContents += '\n' + namespaceWithDot + 'require(["' + module.endRequire.join('", "') + '"]);\n';
         }
 
         return {
@@ -16213,70 +16456,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }).join('","') + '"]';
     };
 
-    /**
-     * Creates the regexp to find anonymous defines.
-     * @param {String} namespace an optional namespace to use. The namespace
-     * should *include* a trailing dot. So a valid value would be 'foo.'
-     * @returns {RegExp}
-     */
-    build.makeAnonDefRegExp = function (namespace) {
-        //This regexp is not bullet-proof, and it has one optional part to
-        //avoid issues with some Dojo transition modules that use a
-        //define(\n//begin v1.x content
-        //for a comment.
-        return new RegExp('(^|[^\\.])(' + (namespace || '').replace(/\./g, '\\.') +
-                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|function|[\\w\\d_\\-\\$]+\\s*\\)|\\{|["\']([^"\']+)["\'])(\\s*,\\s*f)?');
-    };
-
-    build.leadingCommaRegExp = /^\s*,/;
-
-    build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
-
-        //If anonymous module, insert the module name.
-        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix, namedModule, namedFuncStart) {
-            //A named module with either listed dependencies or an object
-            //literal for a value. Skip it. If named module, only want ones
-            //whose next argument is a function literal to scan for
-            //require('') dependecies.
-            if (namedModule && !namedFuncStart) {
-                return match;
-            }
-
+    build.toTransport = function (namespace, moduleName, path, contents, layer) {
+        function onFound(info) {
             //Only mark this module as having a name if not a named module,
             //or if a named module and the name matches expectations.
-            if (layer && (!namedModule || namedModule === moduleName)) {
+            if (layer && (info.needsId || info.foundId === moduleName)) {
                 layer.modulesWithNames[moduleName] = true;
             }
+        }
 
-            var deps = null,
-                finalName;
-
-            //Look for CommonJS require calls inside the function if this is
-            //an anonymous define call that just has a function registered.
-            //Also look if a named define function but has a factory function
-            //as the second arg that should be scanned for dependencies.
-            if (suffix.indexOf('f') !== -1 || (namedModule)) {
-                deps = parse.getAnonDeps(path, contents);
-
-                if (deps.length) {
-                    deps = deps.map(function (dep) {
-                        return "'" + dep + "'";
-                    });
-                } else {
-                    deps = [];
-                }
-            }
-
-            finalName = namedModule || moduleName || '';
-            if (finalName) {
-                finalName = "'" + (namedModule || moduleName) + "',";
-            }
-
-            return start + namespace + "define(" + finalName +
-                   (deps ? ('[' + deps.toString() + '],') : '') +
-                   (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
-        });
-
+        return transform.toTransport(namespace, moduleName, path, contents, onFound);
     };
 
     return build;
