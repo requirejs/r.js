@@ -1,5 +1,5 @@
 
-define('tres',[],
+define("tres",
   function() {
     return {
       name: "tres"

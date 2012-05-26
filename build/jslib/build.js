@@ -9,9 +9,9 @@
 
 
 define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
-         'env!env/load', 'requirePatch', 'env!env/quit'],
+         'transform', 'env!env/load', 'requirePatch', 'env!env/quit'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
-          load,           requirePatch,   quit) {
+          transform,   load,           requirePatch,   quit) {
     'use strict';
 
     var build, buildBaseConfig,
@@ -55,7 +55,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
     //Method used by plugin writeFile calls, defined up here to avoid
     //jslint warning about "making a function in a loop".
-    function makeWriteFile(anonDefRegExp, namespaceWithDot, layer) {
+    function makeWriteFile(namespace, layer) {
         function writeFile(name, contents) {
             logger.trace('Saving plugin-optimized file: ' + name);
             file.saveUtf8File(name, contents);
@@ -63,7 +63,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         writeFile.asModule = function (moduleName, fileName, contents) {
             writeFile(fileName,
-                build.toTransport(anonDefRegExp, namespaceWithDot, moduleName, fileName, contents, layer));
+                build.toTransport(namespace, moduleName, fileName, contents, layer));
         };
 
         return writeFile;
@@ -403,8 +403,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //inserted (by passing null for moduleName) since the files are
                 //standalone, one module per file.
                 fileContents = file.readFile(fileName);
-                fileContents = build.toTransport(config.anonDefRegExp,
-                                                 config.namespaceWithDot,
+                fileContents = build.toTransport(config.namespace,
                                                  null,
                                                  fileName,
                                                  fileContents);
@@ -455,8 +454,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                     moduleMap.name,
                                     require,
                                     makeWriteFile(
-                                        config.anonDefRegExp,
-                                        config.namespaceWithDot
+                                        config.namespace
                                     ),
                                     context.config
                                 );
@@ -878,12 +876,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             'startFile/endFile: ' + wrapError.toString());
         }
 
-
-        //Set up proper info for namespaces and using namespaces in transport
-        //wrappings.
-        config.namespaceWithDot = config.namespace ? config.namespace + '.' : '';
-        config.anonDefRegExp = build.makeAnonDefRegExp(config.namespaceWithDot);
-
         //Do final input verification
         if (config.context) {
             throw new Error('The build argument "context" is not supported' +
@@ -1048,10 +1040,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.flattenModule = function (module, layer, config) {
         var buildFileContents = "",
-            namespace = config.namespace ? config.namespace + '.' : '',
+            namespace = config.namespace || '',
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
             context = layer.context,
-            anonDefRegExp = config.anonDefRegExp,
             path, reqIndex, fileContents, currContents,
             i, moduleName, shim,
             parts, builder, writeApi;
@@ -1097,7 +1088,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
                                         addSemiColon(
-                                            build.toTransport(anonDefRegExp, namespace, moduleName, path, input, layer));
+                                            build.toTransport(namespace, moduleName, path, input, layer));
                         if (config.onBuildWrite) {
                             fileContents = config.onBuildWrite(moduleName, path, fileContents);
                         }
@@ -1128,7 +1119,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = pragma.namespace(currContents, config.namespace);
                 }
 
-                currContents = build.toTransport(anonDefRegExp, namespace, moduleName, path, currContents, layer);
+                currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
 
                 if (config.onBuildWrite) {
                     currContents = config.onBuildWrite(moduleName, path, currContents);
@@ -1182,70 +1173,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }).join('","') + '"]';
     };
 
-    /**
-     * Creates the regexp to find anonymous defines.
-     * @param {String} namespace an optional namespace to use. The namespace
-     * should *include* a trailing dot. So a valid value would be 'foo.'
-     * @returns {RegExp}
-     */
-    build.makeAnonDefRegExp = function (namespace) {
-        //This regexp is not bullet-proof, and it has one optional part to
-        //avoid issues with some Dojo transition modules that use a
-        //define(\n//begin v1.x content
-        //for a comment.
-        return new RegExp('(^|[^\\.])(' + (namespace || '').replace(/\./g, '\\.') +
-                          'define|define)\\s*\\(\\s*(\\/\\/[^\\n\\r]*[\\r\\n])?(\\[|function|[\\w\\d_\\-\\$]+\\s*\\)|\\{|["\']([^"\']+)["\'])(\\s*,\\s*f)?');
-    };
-
-    build.leadingCommaRegExp = /^\s*,/;
-
-    build.toTransport = function (anonDefRegExp, namespace, moduleName, path, contents, layer) {
-
-        //If anonymous module, insert the module name.
-        return contents.replace(anonDefRegExp, function (match, start, callName, possibleComment, suffix, namedModule, namedFuncStart) {
-            //A named module with either listed dependencies or an object
-            //literal for a value. Skip it. If named module, only want ones
-            //whose next argument is a function literal to scan for
-            //require('') dependecies.
-            if (namedModule && !namedFuncStart) {
-                return match;
-            }
-
+    build.toTransport = function (namespace, moduleName, path, contents, layer) {
+        function onFound(info) {
             //Only mark this module as having a name if not a named module,
             //or if a named module and the name matches expectations.
-            if (layer && (!namedModule || namedModule === moduleName)) {
+            if (layer && (info.needsId || info.foundId === moduleName)) {
                 layer.modulesWithNames[moduleName] = true;
             }
+        }
 
-            var deps = null,
-                finalName;
-
-            //Look for CommonJS require calls inside the function if this is
-            //an anonymous define call that just has a function registered.
-            //Also look if a named define function but has a factory function
-            //as the second arg that should be scanned for dependencies.
-            if (suffix.indexOf('f') !== -1 || (namedModule)) {
-                deps = parse.getAnonDeps(path, contents);
-
-                if (deps.length) {
-                    deps = deps.map(function (dep) {
-                        return "'" + dep + "'";
-                    });
-                } else {
-                    deps = [];
-                }
-            }
-
-            finalName = namedModule || moduleName || '';
-            if (finalName) {
-                finalName = "'" + (namedModule || moduleName) + "',";
-            }
-
-            return start + namespace + "define(" + finalName +
-                   (deps ? ('[' + deps.toString() + '],') : '') +
-                   (namedModule ? namedFuncStart.replace(build.leadingCommaRegExp, '') : suffix);
-        });
-
+        return transform.toTransport(namespace, moduleName, path, contents, onFound);
     };
 
     return build;

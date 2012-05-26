@@ -20,11 +20,11 @@ define(['build'], function (build) {
                         modulesWithNames: {}
                     };
 
-                t.is(bad1, build.toTransport(build.makeAnonDefRegExp(), '', 'bad/1', 'bad1', bad1, layer));
-                t.is(bad2, build.toTransport(build.makeAnonDefRegExp(), '', 'bad/2', 'bad2', bad2, layer));
-                t.is(bad3, build.toTransport(build.makeAnonDefRegExp(), '', 'bad/3', 'bad3', bad3, layer));
-                t.is(bad4, build.toTransport(build.makeAnonDefRegExp(), '', 'bad/4', 'bad4', bad4, layer));
-                t.is(goodExpected1, build.toTransport(build.makeAnonDefRegExp(), '', 'good/1', 'good1', good1, layer));
+                t.is(bad1, build.toTransport('', 'bad/1', 'bad1', bad1, layer));
+                t.is(bad2, build.toTransport('', 'bad/2', 'bad2', bad2, layer));
+                t.is(bad3, build.toTransport('', 'bad/3', 'bad3', bad3, layer));
+                t.is(bad4, build.toTransport('', 'bad/4', 'bad4', bad4, layer));
+                t.is(goodExpected1, build.toTransport('', 'good/1', 'good1', good1, layer));
             }
         ]
     );
