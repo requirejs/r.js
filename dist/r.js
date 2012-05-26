@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Sat, 26 May 2012 23:21:11 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Sat, 26 May 2012 23:36:28 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Sat, 26 May 2012 23:21:11 GMT',
+        version = '2.0.0zdev Sat, 26 May 2012 23:36:28 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -167,8 +167,8 @@ var requirejs, require, define;
     }
 
     /**
-     * Helper function for iterating over an array. If the func returns
-     * a true value, it will break out of the loop.
+     * Helper function for iterating over an array backwards. If the func
+     * returns a true value, it will break out of the loop.
      */
     function eachReverse(ary, func) {
         if (ary) {
@@ -179,6 +179,10 @@ var requirejs, require, define;
                 }
             }
         }
+    }
+
+    function hasProp(obj, prop) {
+        return obj.hasOwnProperty(prop);
     }
 
     /**
@@ -207,7 +211,7 @@ var requirejs, require, define;
     function mixin(target, source, force) {
         if (source) {
             eachProp(source, function (value, prop) {
-                if (force || !target.hasOwnProperty(prop)) {
+                if (force || !hasProp(target, prop)) {
                     target[prop] = value;
                 }
             });
@@ -302,6 +306,7 @@ var requirejs, require, define;
             },
             registry = {},
             undefEvents = {},
+            defQueue = [],
             defined = {},
             urlMap = {},
             urlFetched = {},
@@ -577,7 +582,7 @@ var requirejs, require, define;
             var id = depMap.id,
                 mod = registry[id];
 
-            if (defined.hasOwnProperty(id) &&
+            if (hasProp(defined, id) &&
                 (!mod || mod.defineEmitComplete)) {
                 if (name === 'defined') {
                     fn(defined[id]);
@@ -622,8 +627,8 @@ var requirejs, require, define;
                 //Array splice in the values since the context code has a
                 //local var ref to defQueue, so cannot just reassign the one
                 //on context.
-                apsp.apply(context.defQueue,
-                           [context.defQueue.length - 1, 0].concat(globalDefQueue));
+                apsp.apply(defQueue,
+                           [defQueue.length - 1, 0].concat(globalDefQueue));
                 globalDefQueue = [];
             }
         }
@@ -1330,7 +1335,7 @@ var requirejs, require, define;
             urlMap: urlMap,
             urlFetched: urlFetched,
             waitCount: 0,
-            defQueue: [],
+            defQueue: defQueue,
             Module: Module,
             makeModuleMap: makeModuleMap,
 
@@ -1437,12 +1442,12 @@ var requirejs, require, define;
             },
 
             requireDefined: function (id, relMap) {
-                return defined.hasOwnProperty(makeModuleMap(id, relMap, false, true).id);
+                return hasProp(defined, makeModuleMap(id, relMap, false, true).id);
             },
 
             requireSpecified: function (id, relMap) {
                 id = makeModuleMap(id, relMap, false, true).id;
-                return defined.hasOwnProperty(id) || registry.hasOwnProperty(id);
+                return hasProp(defined, id) || hasProp(registry, id);
             },
 
             require: function (deps, callback, errback, relMap) {
@@ -1470,7 +1475,7 @@ var requirejs, require, define;
                     map = makeModuleMap(moduleName, relMap, false, true);
                     id = map.id;
 
-                    if (!defined.hasOwnProperty(id)) {
+                    if (!hasProp(defined, id)) {
                         return onError(makeError('notloaded', 'Module name "' +
                                     id +
                                     '" has not been loaded yet for context: ' +
@@ -1490,8 +1495,8 @@ var requirejs, require, define;
                 takeGlobalQueue();
 
                 //Make sure any remaining defQueue items get properly processed.
-                while (context.defQueue.length) {
-                    args = context.defQueue.shift();
+                while (defQueue.length) {
+                    args = defQueue.shift();
                     if (args[0] === null) {
                         return onError(makeError('mismatch', 'Mismatched anonymous define() module: ' + args[args.length - 1]));
                     } else {
@@ -1559,8 +1564,8 @@ var requirejs, require, define;
 
                 takeGlobalQueue();
 
-                while (context.defQueue.length) {
-                    args = context.defQueue.shift();
+                while (defQueue.length) {
+                    args = defQueue.shift();
                     if (args[0] === null) {
                         args[0] = moduleName;
                         //If already found an anonymous module and bound it
