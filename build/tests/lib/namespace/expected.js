@@ -1,6 +1,6 @@
 
 (function (define) {
-    foo.define('modules/one',[],function ( ){
+    foo.define('modules/one',[], function ( ){
        return { name: 'one' };
     });
 

@@ -1041,6 +1041,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build.flattenModule = function (module, layer, config) {
         var buildFileContents = "",
             namespace = config.namespace || '',
+            namespaceWithDot = namespace ? namespace + '.' : '',
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
             context = layer.context,
             path, reqIndex, fileContents, currContents,
@@ -1115,8 +1116,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = config.onBuildRead(moduleName, path, currContents);
                 }
 
-                if (config.namespace) {
-                    currContents = pragma.namespace(currContents, config.namespace);
+                if (namespace) {
+                    currContents = pragma.namespace(currContents, namespace);
                 }
 
                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
@@ -1138,13 +1139,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (moduleName && !layer.modulesWithNames[moduleName] && !config.skipModuleInsertion) {
                 shim = config.shim && config.shim[moduleName];
                 if (shim) {
-                    fileContents += '\n' + namespace + 'define("' + moduleName + '", ' +
+                    fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                      (shim.deps && shim.deps.length ?
                                             build.makeJsArrayString(shim.deps) + ', ' : '') +
                                      (shim.exports ? shim.exports() : 'function(){}') +
                                      ');\n';
                 } else {
-                    fileContents += '\n' + namespace + 'define("' + moduleName + '", function(){});\n';
+                    fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                 }
             }
         }
@@ -1153,7 +1154,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //was desired. Usually this is only specified when using small shim
         //loaders like almond.
         if (module.endRequire) {
-            fileContents += '\n' + namespace + 'require(["' + module.endRequire.join('", "') + '"]);\n';
+            fileContents += '\n' + namespaceWithDot + 'require(["' + module.endRequire.join('", "') + '"]);\n';
         }
 
         return {

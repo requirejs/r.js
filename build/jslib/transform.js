@@ -14,6 +14,7 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
 
             var defineRanges = [],
                 contentInsertion = '',
+                depString = '',
                 tokens, info, deps;
 
             try {
@@ -29,8 +30,9 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
 
             //Find the define calls and their position in the files.
             tokens.forEach(function (token, i) {
-                var prev, prev2, next, next2, next3, next4,
-                    needsId, depAction, foundId;
+                var namespaceExists = false,
+                    prev, prev2, next, next2, next3, next4,
+                    needsId, depAction, nameCommaRange, foundId;
 
                 if (token.type === 'Identifier' && token.value === 'define') {
                     //Possible match. Do not want something.define calls
@@ -52,6 +54,8 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
                         if (!namespace || prev2.type !== 'Identifier' ||
                             prev2.value !== namespace) {
                            return;
+                        } else if (namespace) {
+                            namespaceExists = true;
                         }
                     }
 
@@ -92,7 +96,24 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
                                                         next2.value.length - 1);
 
                         //assumed it does not need dependencies injected
-                        depAction = 'skip';
+
+                        //If next argument is a function it means we need
+                        //dependency scanning.
+                        next3 = tokens[i + 3];
+                        next4 = tokens[i + 4];
+                        if (!next3 || !next4) {
+                            return;
+                        }
+
+                        if (next3.type === 'Punctuator' &&
+                            next3.value === ',' &&
+                            next4.type === 'Keyword' &&
+                            next4.value === 'function') {
+                            depAction = 'scan';
+                            nameCommaRange = next3.range;
+                        } else {
+                            depAction = 'skip';
+                        }
                     } else if (next2.type === 'Identifier') {
                         //May be the define(factory); type.
                         next3 = tokens[i + 3];
@@ -150,8 +171,10 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
                         foundId: foundId,
                         needsId: needsId,
                         depAction: depAction,
+                        namespaceExists: namespaceExists,
                         defineRange: token.range,
-                        parenRange: next.range
+                        parenRange: next.range,
+                        nameCommaRange: nameCommaRange
                     });
                 }
             });
@@ -179,13 +202,24 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
                 deps = parse.getAnonDeps(path, contents);
 
                 if (deps.length) {
-                    contentInsertion += '[' + deps.map(function (dep) {
+                    depString = '[' + deps.map(function (dep) {
                         return "'" + dep + "'";
                     }) + ']';
                 } else {
-                    contentInsertion += '[]';
+                    depString = '[]';
                 }
-                contentInsertion += ',';
+                depString +=  ',';
+
+                if (info.nameCommaRange) {
+                    //Already have a named module, need to insert the
+                    //dependencies after the name.
+                    contents = contents.substring(0, info.nameCommaRange[1]) +
+                               depString +
+                               contents.substring(info.nameCommaRange[1],
+                                              contents.length);
+                } else {
+                    contentInsertion +=  depString;
+                }
             } else if (info.depAction === 'empty') {
                 contentInsertion += '[],';
             }
@@ -199,7 +233,7 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
 
             //Do namespace last so that ui does not mess upthe parenRange
             //used above.
-            if (namespace) {
+            if (namespace && !info.namespaceExists) {
                 contents = contents.substring(0, info.defineRange[0]) +
                            namespace + '.' +
                            contents.substring(info.defineRange[0],
