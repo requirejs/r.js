@@ -1092,4 +1092,23 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/155 no copy of paths
+    doh.register("pathsNoCopy",
+        [
+            function pathsNoCopy(t) {
+                file.deleteFile("lib/pathsNoCopy/js-built");
+
+                build(["lib/pathsNoCopy/build.js"]);
+
+                t.is(true, file.exists("lib/pathsNoCopy/js-built/vendor/sub.js"));
+                t.is(false, file.exists("lib/pathsNoCopy/js-built/sub.js"));
+                t.is(true, file.exists("lib/pathsNoCopy/js-built/outside.js"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

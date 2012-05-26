@@ -205,29 +205,34 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //If no appDir, then make sure to copy the other paths to this directory.
                 for (prop in paths) {
                     if (paths.hasOwnProperty(prop)) {
-                        //Set up build path for each path prefix.
-                        buildPaths[prop] = paths[prop] === 'empty:' ? 'empty:' : prop.replace(/\./g, "/");
+                        //Set up build path for each path prefix, but only do so
+                        //if the path falls out of the current baseUrl
+                        if (paths[prop].indexOf(config.baseUrl) === 0) {
+                            buildPaths[prop] = paths[prop].replace(config.baseUrl, config.dirBaseUrl);
+                        } else {
+                            buildPaths[prop] = paths[prop] === 'empty:' ? 'empty:' : prop.replace(/\./g, "/");
 
-                        //Make sure source path is fully formed with baseUrl,
-                        //if it is a relative URL.
-                        srcPath = paths[prop];
-                        if (srcPath.indexOf('/') !== 0 && srcPath.indexOf(':') === -1) {
-                            srcPath = config.baseUrl + srcPath;
-                        }
+                            //Make sure source path is fully formed with baseUrl,
+                            //if it is a relative URL.
+                            srcPath = paths[prop];
+                            if (srcPath.indexOf('/') !== 0 && srcPath.indexOf(':') === -1) {
+                                srcPath = config.baseUrl + srcPath;
+                            }
 
-                        destPath = config.dirBaseUrl + buildPaths[prop];
+                            destPath = config.dirBaseUrl + buildPaths[prop];
 
-                        //Skip empty: paths
-                        if (srcPath !== 'empty:') {
-                            //If the srcPath is a directory, copy the whole directory.
-                            if (file.exists(srcPath) && file.isDirectory(srcPath)) {
-                                //Copy files to build area. Copy all files (the /\w/ regexp)
-                                file.copyDir(srcPath, destPath, /\w/, true);
-                            } else {
-                                //Try a .js extension
-                                srcPath += '.js';
-                                destPath += '.js';
-                                file.copyFile(srcPath, destPath);
+                            //Skip empty: paths
+                            if (srcPath !== 'empty:') {
+                                //If the srcPath is a directory, copy the whole directory.
+                                if (file.exists(srcPath) && file.isDirectory(srcPath)) {
+                                    //Copy files to build area. Copy all files (the /\w/ regexp)
+                                    file.copyDir(srcPath, destPath, /\w/, true);
+                                } else {
+                                    //Try a .js extension
+                                    srcPath += '.js';
+                                    destPath += '.js';
+                                    file.copyFile(srcPath, destPath);
+                                }
                             }
                         }
                     }
