@@ -22,7 +22,18 @@ define(['build'], function (build) {
                             'define(\'good/2\',[\'foo\'], function () {});',
 
                     multi = 'define("foo", function (require) { var bar = require("bar"); });\n' +
-                            'define("bar", function (require) { var bar = require("foo"); });\n';
+                            'define("bar", function (require) { var bar = require("foo"); });\n',
+
+                    good3 = 'define(\n' +
+                            '    // a comment\n' +
+                            '    [\n' +
+                            '        "some/dep"\n' +
+                            '    ],\nfunction (dep) {});',
+                    goodExpected3 = 'define(\'good/3\',\n' +
+                            '    // a comment\n' +
+                            '    [\n' +
+                            '        "some/dep"\n' +
+                            '    ],\nfunction (dep) {});';
 
                 t.is(bad1, build.toTransport('', 'bad/1', 'bad1', bad1));
                 t.is(bad2, build.toTransport('', 'bad/2', 'bad2', bad2));
@@ -31,6 +42,7 @@ define(['build'], function (build) {
                 t.is(goodExpected1, build.toTransport('', 'good/1', 'good1', good1));
                 t.is(goodExpected2, build.toTransport('', 'good/2', 'good2', good2));
                 t.is(multi, build.toTransport('', 'multi', 'multi', multi));
+                t.is(goodExpected3, build.toTransport('', 'good/3', 'good3', good3));
             }
         ]
     );
