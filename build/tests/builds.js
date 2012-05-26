@@ -1130,4 +1130,25 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    //Tests https://github.com/jrburke/requirejs/issues/278, make sure that
+    //baseUrl inside a mainConfigFile is resolved relative to the appDir in
+    //a build file.
+    doh.register("mainConfigBaseUrl",
+        [
+            function mainConfigBaseUrl(t) {
+                file.deleteFile("lib/mainConfigBaseUrl/www-built");
+
+                build(["lib/mainConfigBaseUrl/build.js"]);
+
+                t.is(nol(c("lib/mainConfigBaseUrl/expected.js")),
+                     nol(c("lib/mainConfigBaseUrl/www-built/js/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
