@@ -25,7 +25,7 @@ define(['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
             } catch(e) {
                 logger.trace('toTransport skipping ' + path + ': ' +
                              e.toString());
-                return;
+                return contents;
             }
 
             //Find the define calls and their position in the files.
