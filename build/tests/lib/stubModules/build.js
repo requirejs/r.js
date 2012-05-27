@@ -1,7 +1,7 @@
 {
     baseUrl: '.',
     paths: {
-        text: '../../../../../requirejs/text'
+        text: '../../../../../../requirejs/text/text'
     },
     optimize: 'none',
     stubModules: ['a', 'text'],

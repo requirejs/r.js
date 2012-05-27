@@ -17,7 +17,7 @@ define(['build', 'env!env/file'], function (build, file) {
     }
 
     //Do a build of the text plugin to get any pragmas processed.
-    build(["name=text", "baseUrl=../../../requirejs", "out=builds/text.js", "optimize=none"]);
+    build(["name=text", "baseUrl=../../../text", "out=builds/text.js", "optimize=none"]);
 
     //Reset build state for next run.
     require._buildReset();
@@ -216,7 +216,7 @@ define(['build', 'env!env/file'], function (build, file) {
         [
             function buildTextPluginIncluded(t) {
                 build(["name=one", "include=text", "out=builds/oneText.js",
-                       "baseUrl=../../../requirejs/tests", "paths.text=../text", "optimize=none"]);
+                       "baseUrl=../../../requirejs/tests", "paths.text=../../text/text", "optimize=none"]);
 
                 t.is(nol(nol(c("../../../requirejs/tests/two.js") +
                          c("../../../requirejs/tests/one.js") + ";") +
@@ -234,7 +234,7 @@ define(['build', 'env!env/file'], function (build, file) {
                 build(["name=refine!a", "out=builds/refineATest.js",
                        "baseUrl=../../../requirejs/tests/plugins/fromText",
                        "exclude=text,refine",
-                       "paths.text=../../../text", "optimize=none"]);
+                       "paths.text=../../../../text/text", "optimize=none"]);
 
                 t.is(nol(nol((c("../../../requirejs/tests/plugins/fromText/a.refine"))
                              .replace(/refine/g, 'define')))
