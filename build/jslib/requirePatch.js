@@ -88,7 +88,7 @@ function (file,           pragma,   parse,   lang,   logger) {
                         result = function () {
                             return '(function (global) {\n' +
                             '    return function () {\n' +
-                            '        return global["' + exports + '"];\n' +
+                            '        return global.' + exports + ';\n' +
                             '    }\n' +
                             '}(this))';
                         };
