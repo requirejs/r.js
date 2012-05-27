@@ -7,7 +7,7 @@
     locale: "en-us-surfer",
     optimize: "none",
     paths: {
-        "i18n": "../../i18n"
+        "i18n": "../../../i18n/i18n"
     },
     modules: [
         {

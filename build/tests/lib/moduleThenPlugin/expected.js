@@ -9,7 +9,7 @@ define("main", function(){});
 /**
  * @license RequireJS text 2.0.0 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
+ * see: http://github.com/requirejs/text for details
  */
 /*jslint */
 /*global require: false, XMLHttpRequest: false, ActiveXObject: false,
