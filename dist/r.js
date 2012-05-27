@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0zdev Sat, 26 May 2012 23:36:28 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0zdev Sun, 27 May 2012 23:44:30 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0zdev Sat, 26 May 2012 23:36:28 GMT',
+        version = '2.0.0zdev Sun, 27 May 2012 23:44:30 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -228,6 +228,19 @@ var requirejs, require, define;
 
     function scripts() {
         return document.getElementsByTagName('script');
+    }
+
+    //Allow getting a global that expressed in
+    //dot notation, like 'a.b.c'.
+    function getGlobal(value) {
+        if (!value) {
+            return value;
+        }
+        var g = global;
+        each(value.split('.'), function (part) {
+            g = g[part];
+        });
+        return g;
     }
 
     function makeContextModuleFunc(func, relMap, enableBuildCallback) {
@@ -1429,7 +1442,7 @@ var requirejs, require, define;
                 var func;
                 if (typeof exports === 'string') {
                     func = function () {
-                        return global[exports];
+                        return getGlobal(exports);
                     };
                     //Save the exports for use in nodefine checking.
                     func.exports = exports;
@@ -1484,11 +1497,15 @@ var requirejs, require, define;
                     return defined[id];
                 }
 
-                //Callback require. Normalize args. if errback is not a function,
-                //it means it is a relMap.
+                //Callback require. Normalize args. if callback or errback is
+                //not a function, it means it is a relMap. Test errback first.
                 if (errback && !isFunction(errback)) {
                     relMap = errback;
                     errback = undefined;
+                }
+                if (callback && !isFunction(callback)) {
+                    relMap = callback;
+                    callback = undefined;
                 }
 
                 //Any defined modules in the global queue, intake them now.
@@ -1590,7 +1607,7 @@ var requirejs, require, define;
                 if (!found &&
                     !defined[moduleName] &&
                     mod && !mod.inited) {
-                    if (config.enforceDefine && (!shExports || !global[shExports])) {
+                    if (config.enforceDefine && (!shExports || !getGlobal(shExports))) {
                         if (hasPathFallback(moduleName)) {
                             return;
                         } else {
@@ -14814,7 +14831,7 @@ function (file,           pragma,   parse,   lang,   logger) {
                         result = function () {
                             return '(function (global) {\n' +
                             '    return function () {\n' +
-                            '        return global["' + exports + '"];\n' +
+                            '        return global.' + exports + ';\n' +
                             '    }\n' +
                             '}(this))';
                         };
