@@ -13,7 +13,7 @@ build/tests/lib/cssMediaQuery/main-built.css
 build/tests/lib/depsConfig/main-built.js
 build/tests/lib/dotpackage/built
 build/tests/lib/empty/built
-build/tests/lib/endRequire/main-built.js
+build/tests/lib/insertRequire/main-built.js
 build/tests/lib/intDefine/main-built.js
 build/tests/lib/jqueryConfig/main-built.js
 build/tests/lib/mainConfigFile/basic/main-built.js

@@ -990,16 +990,16 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-    //Tests https://github.com/jrburke/r.js/issues/165 endRequire
-    doh.register("endRequire",
+    //Tests https://github.com/jrburke/r.js/issues/165 insertRequire
+    doh.register("insertRequire",
         [
-            function endRequire(t) {
-                file.deleteFile("lib/endRequire/main-built.js");
+            function insertRequire(t) {
+                file.deleteFile("lib/insertRequire/main-built.js");
 
-                build(["lib/endRequire/build.js"]);
+                build(["lib/insertRequire/build.js"]);
 
-                t.is(nol(c("lib/endRequire/expected.js")),
-                     nol(c("lib/endRequire/main-built.js")));
+                t.is(nol(c("lib/insertRequire/expected.js")),
+                     nol(c("lib/insertRequire/main-built.js")));
 
                 require._buildReset();
             }

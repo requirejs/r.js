@@ -2,6 +2,6 @@
     baseUrl: '.',
     optimize: 'none',
     name: 'main',
-    endRequire: ['main'],
+    insertRequire: ['main'],
     out: 'main-built.js'
 })
