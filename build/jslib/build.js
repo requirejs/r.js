@@ -566,7 +566,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             needArray = {
                 "include": true,
                 "exclude": true,
-                "excludeShallow": true
+                "excludeShallow": true,
+                "insertRequire": true
             };
 
         for (i = 0; i < ary.length; i++) {
