@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0 Mon, 28 May 2012 19:47:45 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0+ Thu, 31 May 2012 01:23:03 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0 Mon, 28 May 2012 19:47:45 GMT',
+        version = '2.0.0+ Thu, 31 May 2012 01:23:03 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -105,7 +105,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.0.0 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.0.0+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -116,7 +116,7 @@ var requirejs, require, define;
 (function (global) {
     'use strict';
 
-    var version = '2.0.0',
+    var version = '2.0.0+',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -506,7 +506,8 @@ var requirejs, require, define;
                 parentName = parentModuleMap ? parentModuleMap.name : null,
                 originalName = name,
                 isDefine = true,
-                normalizedName, url, pluginModule, suffix;
+                normalizedName = '',
+                url, pluginModule, suffix;
 
             //If no name, then it means it is a require call, generate an
             //internal name.
@@ -522,12 +523,12 @@ var requirejs, require, define;
 
             if (prefix) {
                 prefix = normalize(prefix, parentName, applyMap);
+                pluginModule = defined[prefix];
             }
 
             //Account for relative paths if there is a base name.
             if (name) {
                 if (prefix) {
-                    pluginModule = defined[prefix];
                     if (pluginModule && pluginModule.normalize) {
                         //Plugin is loaded, use its normalize method.
                         normalizedName = pluginModule.normalize(name, function (name) {
@@ -575,7 +576,7 @@ var requirejs, require, define;
                 originalName: originalName,
                 isDefine: isDefine,
                 id: (prefix ?
-                    prefix + '!' + (normalizedName || '') :
+                    prefix + '!' + normalizedName :
                     normalizedName) + suffix
             };
         }
@@ -1165,7 +1166,7 @@ var requirejs, require, define;
                         if (plugin.normalize) {
                             name = plugin.normalize(name, function (name) {
                                 return normalize(name, parentName, true);
-                            });
+                            }) || '';
                         }
 
                         normalizedMap = makeModuleMap(map.prefix + '!' + name);
