@@ -1090,7 +1090,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
             context = layer.context,
             path, reqIndex, fileContents, currContents,
-            i, moduleName, shim,
+            i, moduleName, shim, packageConfig,
             parts, builder, writeApi;
 
         //Use override settings, particularly for pragmas
@@ -1118,6 +1118,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         for (i = 0; i < layer.buildFilePaths.length; i++) {
             path = layer.buildFilePaths[i];
             moduleName = layer.buildFileToModule[path];
+
+            //If the moduleName is for a package main, then update it to the
+            //real main value.
+            packageConfig = layer.context.config.pkgs &&
+                            layer.context.config.pkgs[moduleName];
+            if (packageConfig) {
+                moduleName += '/' + packageConfig.main;
+            }
 
             //Figure out if the module is a result of a build plugin, and if so,
             //then delegate to that plugin.
@@ -1166,6 +1174,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
+
+                if (packageConfig) {
+                    currContents = addSemiColon(currContents) + '\n';
+                    currContents += namespaceWithDot + "define('" +
+                                    packageConfig.name + "', ['" + moduleName +
+                                    "'], function (main) { return main; });\n";
+                }
 
                 if (config.onBuildWrite) {
                     currContents = config.onBuildWrite(moduleName, path, currContents);

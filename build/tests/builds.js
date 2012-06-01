@@ -1151,4 +1151,25 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Confirm package config builds correctly so that it works in both
+    //require.js and almond, which does not know about package config.
+    //https://github.com/jrburke/r.js/issues/136
+    doh.register("packages",
+        [
+            function packages(t) {
+                file.deleteFile("lib/packages/main-built.js");
+
+                build(["lib/packages/build.js"]);
+
+                t.is(nol(c("lib/packages/expected.js")),
+                     nol(c("lib/packages/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
 });

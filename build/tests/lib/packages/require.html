@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../../../../../requirejs/require.js"></script>
+    <script>
+        require(['main-built'], function () {
+            require(['foo'], function (foo) {
+                console.log('foo === ' + foo.name);
+                console.log('util === ' + foo.util.name);
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Hello World</h1>
+</body>
+</html>
