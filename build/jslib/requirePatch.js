@@ -194,7 +194,10 @@ function (file,           pragma,   parse,   lang,   logger) {
                                     pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
                                     if (pluginBuilderMatch) {
                                         //Load the plugin builder for the plugin contents.
-                                        builderName = context.normalize(pluginBuilderMatch[3], moduleName);
+                                        builderName = context.makeModuleMap(pluginBuilderMatch[3],
+                                                                            context.makeModuleMap(moduleName),
+                                                                            null,
+                                                                            true).id;
                                         contents = file.readFile(context.nameToUrl(builderName));
                                     }
                                 }

@@ -1171,5 +1171,23 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Make sure pluginBuilder works.
+    //https://github.com/jrburke/r.js/issues/175
+    doh.register("pluginBuilder",
+        [
+            function pluginBuilder(t) {
+                file.deleteFile("lib/pluginBuilder/main-built.js");
+
+                build(["lib/pluginBuilder/build.js"]);
+
+                t.is(nol(c("lib/pluginBuilder/expected.js")),
+                     nol(c("lib/pluginBuilder/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 
 });

@@ -34,6 +34,7 @@ build/tests/lib/onBuildRead/main-built.js
 build/tests/lib/onBuildWrite/main-built.js
 build/tests/lib/packages/main-built.js
 build/tests/lib/pathsNoCopy/js-built
+build/tests/lib/pluginBuilder/main-built.js
 build/tests/lib/plugins/main-built.js
 build/tests/lib/plugins/main-builtPluginFirst.js
 build/tests/lib/pristineSrc/built
