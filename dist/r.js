@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0+ Fri, 01 Jun 2012 19:04:39 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0+ Fri, 01 Jun 2012 19:30:38 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0+ Fri, 01 Jun 2012 19:04:39 GMT',
+        version = '2.0.0+ Fri, 01 Jun 2012 19:30:38 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14938,7 +14938,10 @@ function (file,           pragma,   parse,   lang,   logger) {
                                     pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
                                     if (pluginBuilderMatch) {
                                         //Load the plugin builder for the plugin contents.
-                                        builderName = context.normalize(pluginBuilderMatch[3], moduleName);
+                                        builderName = context.makeModuleMap(pluginBuilderMatch[3],
+                                                                            context.makeModuleMap(moduleName),
+                                                                            null,
+                                                                            true).id;
                                         contents = file.readFile(context.nameToUrl(builderName));
                                     }
                                 }
