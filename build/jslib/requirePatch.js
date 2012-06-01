@@ -7,14 +7,16 @@
  * This file patches require.js to communicate with the build system.
  */
 
-/*jslint nomen: true, plusplus: true, regexp: true */
+//Using sloppy since this uses eval for some code like plugins,
+//which may not be strict mode compliant. So if use strict is used
+//below they will have strict rules applied and may cause an error.
+/*jslint sloppy: true, nomen: true, plusplus: true, regexp: true */
 /*global require, define: true */
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
 define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger'],
 function (file,           pragma,   parse,   lang,   logger) {
-    'use strict';
 
     var allowRun = true;
 

@@ -1190,4 +1190,22 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Make sure a non-strict plugin does not blow up in the build
+    //https://github.com/jrburke/r.js/issues/181
+    doh.register("nonStrict",
+        [
+            function nonStrict(t) {
+                file.deleteFile("lib/nonStrict/main-built.js");
+
+                build(["lib/nonStrict/build.js"]);
+
+                t.is(nol(c("lib/nonStrict/expected.js")),
+                     nol(c("lib/nonStrict/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });
