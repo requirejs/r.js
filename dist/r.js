@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0+ Fri, 01 Jun 2012 06:39:06 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0+ Fri, 01 Jun 2012 19:04:39 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0+ Fri, 01 Jun 2012 06:39:06 GMT',
+        version = '2.0.0+ Fri, 01 Jun 2012 19:04:39 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -16390,7 +16390,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
             context = layer.context,
             path, reqIndex, fileContents, currContents,
-            i, moduleName, shim,
+            i, moduleName, shim, packageConfig,
             parts, builder, writeApi;
 
         //Use override settings, particularly for pragmas
@@ -16418,6 +16418,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         for (i = 0; i < layer.buildFilePaths.length; i++) {
             path = layer.buildFilePaths[i];
             moduleName = layer.buildFileToModule[path];
+
+            //If the moduleName is for a package main, then update it to the
+            //real main value.
+            packageConfig = layer.context.config.pkgs &&
+                            layer.context.config.pkgs[moduleName];
+            if (packageConfig) {
+                moduleName += '/' + packageConfig.main;
+            }
 
             //Figure out if the module is a result of a build plugin, and if so,
             //then delegate to that plugin.
@@ -16466,6 +16474,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
+
+                if (packageConfig) {
+                    currContents = addSemiColon(currContents) + '\n';
+                    currContents += namespaceWithDot + "define('" +
+                                    packageConfig.name + "', ['" + moduleName +
+                                    "'], function (main) { return main; });\n";
+                }
 
                 if (config.onBuildWrite) {
                     currContents = config.onBuildWrite(moduleName, path, currContents);
