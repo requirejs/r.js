@@ -88,7 +88,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build = function (args) {
         var stackRegExp = /( {4}at[^\n]+)\n/,
             standardIndent = '  ',
-            buildFile, cmdConfig, errorMsg, stackMatch, errorTree,
+            buildFile, cmdConfig, errorMsg, errorStack, stackMatch, errorTree,
             i, j, errorMod;
 
         try {
@@ -121,14 +121,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             stackMatch = stackRegExp.exec(errorMsg);
 
             if (stackMatch) {
-                errorMsg = errorMsg.substring(0, stackMatch.index + stackMatch[0].length + 1);
+                errorMsg += errorMsg.substring(0, stackMatch.index + stackMatch[0].length + 1);
             }
-            logger.error(errorMsg);
 
             //If a module tree that shows what module triggered the error,
             //print it out.
             if (errorTree && errorTree.length > 0) {
-                errorMsg = 'In module tree:\n';
+                errorMsg += '\nIn module tree:\n';
 
                 for (i = errorTree.length - 1; i > -1; i--) {
                     errorMod = errorTree[i];
@@ -143,21 +142,26 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 logger.error(errorMsg);
             }
 
-            errorMsg = e.stack;
+            errorStack = e.stack;
 
             if (typeof args === 'string' && args.indexOf('stacktrace=true') !== -1) {
-                logger.error(errorMsg);
+                errorMsg += '\n' + errorStack;
             } else {
-                if (!stackMatch && errorMsg) {
+                if (!stackMatch && errorStack) {
                     //Just trim out the first "at" in the stack.
-                    stackMatch = stackRegExp.exec(errorMsg);
+                    stackMatch = stackRegExp.exec(errorStack);
                     if (stackMatch) {
-                        logger.error(stackMatch[0] || '');
+                        errorMsg += '\n' + stackMatch[0] || '';
                     }
                 }
             }
 
-            quit(1);
+            if (logger.level > logger.ERROR) {
+                throw new Error(errorMsg);
+            } else {
+                logger.error(errorMsg);
+                quit(1);
+            }
         }
     };
 
@@ -841,6 +845,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             ' Use "out" if you are targeting a single file for' +
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
+        }
+
+        if (config.insertRequire && !lang.isArray(config.insertRequire)) {
+            throw new Error('insertRequire should be a list of module IDs' +
+                            ' to insert in to a require([]) call.');
         }
 
         if ((config.name || config.include) && !config.modules) {
