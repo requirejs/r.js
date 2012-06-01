@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.0+ Fri, 01 Jun 2012 19:30:38 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.0+ Fri, 01 Jun 2012 20:00:22 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.0+ Fri, 01 Jun 2012 19:30:38 GMT',
+        version = '2.0.0+ Fri, 01 Jun 2012 20:00:22 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14751,14 +14751,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
  * This file patches require.js to communicate with the build system.
  */
 
-/*jslint nomen: true, plusplus: true, regexp: true */
+//Using sloppy since this uses eval for some code like plugins,
+//which may not be strict mode compliant. So if use strict is used
+//below they will have strict rules applied and may cause an error.
+/*jslint sloppy: true, nomen: true, plusplus: true, regexp: true */
 /*global require, define: true */
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
 define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger'],
 function (file,           pragma,   parse,   lang,   logger) {
-    'use strict';
 
     var allowRun = true;
 
