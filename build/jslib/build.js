@@ -996,7 +996,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
-            errIds = [];
+            errIds = [],
+            errUrlMap = {},
+            errUrlConflicts = {},
+            hasErrUrl = false,
+            errUrl, prop;
 
         //Reset some state set up in requirePatch.js, and clean up require's
         //current context.
@@ -1042,6 +1046,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             if (registry.hasOwnProperty(id) && id.indexOf('_@r') !== 0) {
                 if (id.indexOf('_unnormalized') === -1) {
                     errIds.push(id);
+                    errUrl = registry[id].map.url;
+
+                    if (errUrlMap[errUrl]) {
+                        hasErrUrl = true;
+                        //This error module has the same URL as another
+                        //error module, could be misconfiguration.
+                        if (!errUrlConflicts[errUrl]) {
+                            errUrlConflicts[errUrl] = [];
+                            //Store the original module that had the same URL.
+                            errUrlConflicts[errUrl].push(errUrlMap[errUrl]);
+                        }
+                        errUrlConflicts[errUrl].push(id);
+                    } else {
+                        errUrlMap[errUrl] = id;
+                    }
                 }
 
                 //Look for plugins that did not call load()
@@ -1063,6 +1082,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 failedPluginIds.join(', ') + '\n';
             }
             errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
+
+            if (hasErrUrl) {
+                errMessage += '\nThe following modules share the same URL. This ' +
+                              'could be a misconfiguration if that URL only has ' +
+                              'one anonymous module in it:';
+                for (prop in errUrlConflicts) {
+                    if (errUrlConflicts.hasOwnProperty(prop)) {
+                        errMessage += '\n' + prop + ': ' +
+                                      errUrlConflicts[prop].join(', ');
+                    }
+                }
+            }
             throw new Error(errMessage);
         }
 
