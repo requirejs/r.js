@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Sat, 09 Jun 2012 05:20:58 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1',
+        version = '2.0.1+ Sat, 09 Jun 2012 05:20:58 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -105,7 +105,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.0.1 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.0.1+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -116,7 +116,7 @@ var requirejs, require, define;
 (function (global) {
     'use strict';
 
-    var version = '2.0.1',
+    var version = '2.0.1+',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -265,7 +265,16 @@ var requirejs, require, define;
             ['defined', 'requireDefined'],
             ['specified', 'requireSpecified']
         ], function (item) {
-            req[item[0]] = makeContextModuleFunc(context[item[1] || item[0]], relMap);
+            var prop = item[1] || item[0];
+            req[item[0]] = context ? makeContextModuleFunc(context[prop], relMap) :
+                //If no context, then use default context. Reference from
+                //contexts instead of early binding to default context, so
+                //that during builds, the latest instance of the default
+                //context with its config gets used.
+                function () {
+                    var ctx = contexts[defContextName];
+                    return ctx[prop].apply(ctx, arguments);
+                };
         });
     }
 
@@ -1840,7 +1849,7 @@ var requirejs, require, define;
 
     //Exports some context-sensitive methods on global require, using
     //default context if no context specified.
-    addRequireMethods(req, contexts[defContextName]);
+    addRequireMethods(req);
 
     if (isBrowser) {
         head = s.head = document.getElementsByTagName('head')[0];
@@ -14229,6 +14238,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                         for (i = 0; i < deps.length; i++) {
                             dep = deps[i];
                             if (dep.indexOf('!') !== -1) {
+                                moduleName = dep.split('!')[0];
                                 collectorMod = pluginCollector[moduleName];
                                 if (!collectorMod) {
                                  collectorMod = pluginCollector[moduleName] = [];
@@ -15771,7 +15781,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         //Only bother with plugin resources that can be handled
                         //processed by the plugin, via support of the writeFile
                         //method.
-                        if (!pluginProcessed[moduleMap.fullName]) {
+                        if (!pluginProcessed[moduleMap.id]) {
                             //Only do the work if the plugin was really loaded.
                             //Using an internal access because the file may
                             //not really be loaded.
@@ -15788,7 +15798,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                 );
                             }
 
-                            pluginProcessed[moduleMap.fullName] = true;
+                            pluginProcessed[moduleMap.id] = true;
                         }
                     }
 
