@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Sat, 09 Jun 2012 22:06:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Sat, 09 Jun 2012 22:36:11 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Sat, 09 Jun 2012 22:06:15 GMT',
+        version = '2.0.1+ Sat, 09 Jun 2012 22:36:11 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2747,7 +2747,7 @@ define('rhino/file', function () {
             if (typeof fileObj === "string") {
                 fileObj = new java.io.File(fileObj);
             }
-            return (fileObj.getAbsolutePath() + "").replace(file.backSlashRegExp, "/");
+            return (fileObj.getCanonicalPath() + "").replace(file.backSlashRegExp, "/");
         },
 
         getFilteredFileList: function (/*String*/startDir, /*RegExp*/regExpFilters, /*boolean?*/makeUnixPaths, /*boolean?*/startDirIsJavaObject) {
@@ -2846,7 +2846,7 @@ define('rhino/file', function () {
             parentDir = destFile.getParentFile();
             if (!parentDir.exists()) {
                 if (!parentDir.mkdirs()) {
-                    throw "Could not create directory: " + parentDir.getAbsolutePath();
+                    throw "Could not create directory: " + parentDir.getCanonicalPath();
                 }
             }
 
