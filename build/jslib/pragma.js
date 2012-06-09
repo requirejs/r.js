@@ -227,6 +227,7 @@ define(['parse', 'logger'], function (parse, logger) {
                         for (i = 0; i < deps.length; i++) {
                             dep = deps[i];
                             if (dep.indexOf('!') !== -1) {
+                                moduleName = dep.split('!')[0];
                                 collectorMod = pluginCollector[moduleName];
                                 if (!collectorMod) {
                                  collectorMod = pluginCollector[moduleName] = [];

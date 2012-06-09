@@ -1208,4 +1208,27 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/190,
+    //optimizeAllPluginResources
+    doh.register("optimizeAllPluginResources",
+        [
+            function optimizeAllPluginResources(t) {
+                file.deleteFile("lib/plugins/optimizeAllPluginResources/www-built");
+
+                build(["lib/plugins/optimizeAllPluginResources/build.js"]);
+
+                t.is(true, file.exists("lib/plugins/optimizeAllPluginResources/www-built/js/one.txt.js"));
+                t.is(true, file.exists("lib/plugins/optimizeAllPluginResources/www-built/js/two.txt.js"));
+                t.is(true, file.exists("lib/plugins/optimizeAllPluginResources/www-built/js/secondary.txt.js"));
+
+                t.is(nol(c("lib/plugins/optimizeAllPluginResources/expected-secondary.txt.js")),
+                     nol(c("lib/plugins/optimizeAllPluginResources/www-built/js/secondary.txt.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

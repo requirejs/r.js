@@ -465,7 +465,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         //Only bother with plugin resources that can be handled
                         //processed by the plugin, via support of the writeFile
                         //method.
-                        if (!pluginProcessed[moduleMap.fullName]) {
+                        if (!pluginProcessed[moduleMap.id]) {
                             //Only do the work if the plugin was really loaded.
                             //Using an internal access because the file may
                             //not really be loaded.
@@ -482,7 +482,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                 );
                             }
 
-                            pluginProcessed[moduleMap.fullName] = true;
+                            pluginProcessed[moduleMap.id] = true;
                         }
                     }
 
