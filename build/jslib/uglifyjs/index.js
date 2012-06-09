@@ -1,5 +1,4 @@
 define(["require", "exports", "module", "./parse-js", "./process", "./consolidator"], function(require, exports, module) {
-
 //convienence function(src, [options]);
 function uglify(orig_code, options){
   options || (options = {});
@@ -18,5 +17,4 @@ uglify.uglify = require("./process");
 uglify.consolidator = require("./consolidator");
 
 module.exports = uglify
-
 });

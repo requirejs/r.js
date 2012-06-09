@@ -1,5 +1,4 @@
 define(["require", "exports", "module", "./parse-js", "./squeeze-more"], function(require, exports, module) {
-
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -204,6 +203,9 @@ function ast_walker() {
                 },
                 "atom": function(name) {
                         return [ this[0], name ];
+                },
+                "directive": function(dir) {
+                        return [ this[0], dir ];
                 }
         };
 
@@ -276,6 +278,7 @@ function Scope(parent) {
         this.refs = {};         // names referenced from this scope
         this.uses_with = false; // will become TRUE if with() is detected in this or any subscopes
         this.uses_eval = false; // will become TRUE if eval() is detected in this or any subscopes
+        this.directives = [];   // directives activated from this scope
         this.parent = parent;   // parent scope
         this.children = [];     // sub-scopes
         if (parent) {
@@ -286,8 +289,15 @@ function Scope(parent) {
         }
 };
 
+function base54_digits() {
+        if (typeof DIGITS_OVERRIDE_FOR_TESTING != "undefined")
+                return DIGITS_OVERRIDE_FOR_TESTING;
+        else
+                return "etnrisouaflchpdvmgybwESxTNCkLAOM_DPHBjFIqRUzWXV$JKQGYZ0516372984";
+}
+
 var base54 = (function(){
-        var DIGITS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$_0123456789";
+        var DIGITS = base54_digits();
         return function(num) {
                 var ret = "", base = 54;
                 do {
@@ -378,6 +388,9 @@ Scope.prototype = {
                                 this.names[name] = type || "var";
                         return name;
                 }
+        },
+        active: function(dir) {
+                return member(dir, this.directives) || this.parent && this.parent.active(dir);
         }
 };
 
@@ -500,8 +513,12 @@ function ast_mangle(ast, options) {
         options = options || {};
 
         function get_mangled(name, newMangle) {
+                if (!options.mangle) return name;
                 if (!options.toplevel && !scope.parent) return name; // don't mangle toplevel
                 if (options.except && member(name, options.except))
+                        return name;
+                if (options.no_functions && HOP(scope.names, name) &&
+                    (scope.names[name] == 'defun' || scope.names[name] == 'lambda'))
                         return name;
                 return scope.get_mangled(name, newMangle);
         };
@@ -606,6 +623,9 @@ function ast_mangle(ast, options) {
                         return with_scope(self.scope, function(){
                                 return [ self[0], MAP(body, walk) ];
                         });
+                },
+                "directive": function() {
+                        return MAP.at_top(this);
                 }
         }, function() {
                 return walk(ast_add_scope(ast));
@@ -1000,10 +1020,11 @@ function ast_squeeze(ast, options) {
                 make_seqs   : true,
                 dead_code   : true,
                 no_warnings : false,
-                keep_comps  : true
+                keep_comps  : true,
+                unsafe      : false
         });
 
-        var w = ast_walker(), walk = w.walk;
+        var w = ast_walker(), walk = w.walk, scope;
 
         function negate(c) {
                 var not_c = [ "unary-prefix", "!", c ];
@@ -1066,7 +1087,17 @@ function ast_squeeze(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                return [ this[0], name, args, tighten(body, "lambda") ];
+                return [ this[0], name, args, with_scope(body.scope, function() {
+                        return tighten(body, "lambda");
+                }) ];
+        };
+
+        function with_scope(s, cont) {
+                var _scope = scope;
+                scope = s;
+                var ret = cont();
+                scope = _scope;
+                return ret;
         };
 
         // this function does a few things:
@@ -1285,7 +1316,9 @@ function ast_squeeze(ast, options) {
                 },
                 "if": make_if,
                 "toplevel": function(body) {
-                        return [ "toplevel", tighten(body) ];
+                        return with_scope(this.scope, function() {
+                            return [ "toplevel", tighten(body) ];
+                        });
                 },
                 "switch": function(expr, body) {
                         var last = body.length - 1;
@@ -1356,11 +1389,24 @@ function ast_squeeze(ast, options) {
                                 return [ this[0], rvalue[1], lvalue, rvalue[3] ]
                         }
                         return [ this[0], op, lvalue, rvalue ];
+                },
+                "directive": function(dir) {
+                        if (scope.active(dir))
+                            return [ "block" ];
+                        scope.directives.push(dir);
+                        return [ this[0], dir ];
+                },
+                "call": function(expr, args) {
+                        expr = walk(expr);
+                        if (options.unsafe && expr[0] == "dot" && expr[1][0] == "string" && expr[2] == "toString") {
+                                return expr[1];
+                        }
+                        return [ this[0], expr,  MAP(args, walk) ];
                 }
         }, function() {
                 for (var i = 0; i < 2; ++i) {
                         ast = prepare_ifs(ast);
-                        ast = walk(ast);
+                        ast = walk(ast_add_scope(ast));
                 }
                 return ast;
         });
@@ -1549,7 +1595,7 @@ function gen_code(ast, options) {
                 "string": encode_string,
                 "num": make_num,
                 "name": make_name,
-                "debugger": function(){ return "debugger" },
+                "debugger": function(){ return "debugger;" },
                 "toplevel": function(statements) {
                         return make_block_statements(statements)
                                 .join(newline + newline);
@@ -1631,7 +1677,7 @@ function gen_code(ast, options) {
                 "dot": function(expr) {
                         var out = make(expr), i = 1;
                         if (expr[0] == "num") {
-                                if (!/\./.test(expr[1]))
+                                if (!/[a-f.]/i.test(out))
                                         out += ".";
                         } else if (expr[0] != "function" && needs_parens(expr))
                                 out = "(" + out + ")";
@@ -1750,6 +1796,7 @@ function gen_code(ast, options) {
                         return obj_needs_parens ? "(" + out + ")" : out;
                 },
                 "regexp": function(rx, mods) {
+                        if (options.ascii_only) rx = to_ascii(rx);
                         return "/" + rx + "/" + mods;
                 },
                 "array": function(elements) {
@@ -1773,6 +1820,9 @@ function gen_code(ast, options) {
                 },
                 "atom": function(name) {
                         return make_name(name);
+                },
+                "directive": function(dir) {
+                        return make_string(dir) + ";";
                 }
         }, function(){ return make(ast) });
 
@@ -1822,10 +1872,10 @@ function gen_code(ast, options) {
                 switch (node[0]) {
                     case "with":
                     case "while":
-                        return empty(node[2]); // `with' or `while' with empty body?
+                        return empty(node[2]) || must_has_semicolon(node[2]);
                     case "for":
                     case "for-in":
-                        return empty(node[4]); // `for' with empty body?
+                        return empty(node[4]) || must_has_semicolon(node[4]);
                     case "if":
                         if (empty(node[2]) && !node[3]) return true; // `if' with empty `then' and no `else'
                         if (node[3]) {
@@ -1833,6 +1883,8 @@ function gen_code(ast, options) {
                                 return must_has_semicolon(node[3]); // dive into the `else' branch
                         }
                         return must_has_semicolon(node[2]); // dive into the `then' branch
+                    case "directive":
+                        return true;
                 }
         };
 
@@ -2011,5 +2063,4 @@ exports.MAP = MAP;
 
 // keep this last!
 exports.ast_squeeze_more = require("./squeeze-more").ast_squeeze_more;
-
 });
