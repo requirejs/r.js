@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Sat, 09 Jun 2012 18:38:26 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Sat, 09 Jun 2012 19:20:21 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Sat, 09 Jun 2012 18:38:26 GMT',
+        version = '2.0.1+ Sat, 09 Jun 2012 19:20:21 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -159,7 +159,7 @@ var requirejs, require, define;
         if (ary) {
             var i;
             for (i = 0; i < ary.length; i += 1) {
-                if (func(ary[i], i, ary)) {
+                if (ary[i] && func(ary[i], i, ary)) {
                     break;
                 }
             }
@@ -174,7 +174,7 @@ var requirejs, require, define;
         if (ary) {
             var i;
             for (i = ary.length - 1; i > -1; i -= 1) {
-                if (func(ary[i], i, ary)) {
+                if (ary[i] && func(ary[i], i, ary)) {
                     break;
                 }
             }
