@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Sat, 09 Jun 2012 21:37:13 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Sat, 09 Jun 2012 22:06:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Sat, 09 Jun 2012 21:37:13 GMT',
+        version = '2.0.1+ Sat, 09 Jun 2012 22:06:15 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -6778,8 +6778,7 @@ parseStatement: true, parseSourceElement: true */
 }(typeof exports === 'undefined' ? (esprima = {}) : exports));
 /* vim: set sw=4 ts=4 et tw=80 : */
 });
-define('uglifyjs/consolidator', ["require", "exports", "module", "env!env/assert", "./parse-js", "./process"], function(require, exports, module, assert) {
-
+define('uglifyjs/consolidator', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 /**
  * @preserve Copyright 2012 Robert Gust-Bardon <http://robert.gust-bardon.org/>.
  * All rights reserved.
@@ -7928,8 +7927,7 @@ exports['ast_consolidate'] = function(oAbstractSyntaxTree) {
      oScope = bIsGlobal ? oSyntacticCodeUnit.scope : oSourceElements.scope;
      // Skip a Directive Prologue.
      while (nAfterDirectivePrologue < oSourceElements.length &&
-            'stat' === oSourceElements[nAfterDirectivePrologue][0] &&
-            'string' === oSourceElements[nAfterDirectivePrologue][1][0]) {
+            'directive' === oSourceElements[nAfterDirectivePrologue][0]) {
        nAfterDirectivePrologue += 1;
        aSourceElementsData.push(null);
      }
@@ -7992,1384 +7990,6 @@ exports['ast_consolidate'] = function(oAbstractSyntaxTree) {
 };
 /*jshint sub:false */
 
-
-if (require.main === module) {
-  (function() {
-    'use strict';
-    /*jshint bitwise:true, curly:true, eqeqeq:true, forin:true, immed:true,
-         latedef:true, newcap:true, noarge:true, noempty:true, nonew:true,
-         onevar:true, plusplus:true, regexp:true, undef:true, strict:true,
-         sub:false, trailing:true */
-
-    var _,
-        /**
-         * NodeJS module for unit testing.
-         * @namespace
-         * @type {!TAssert}
-         * @see http://nodejs.org/docs/v0.6.10/api/all.html#assert
-         */
-        oAssert = (/** @type {!TAssert} */ require('env!env/assert')),
-        /**
-         * The parser of ECMA-262 found in UglifyJS.
-         * @namespace
-         * @type {!TParser}
-         */
-        oParser = (/** @type {!TParser} */ require('./parse-js')),
-        /**
-         * The processor of <abbr title="abstract syntax tree">AST</abbr>s
-         * found in UglifyJS.
-         * @namespace
-         * @type {!TProcessor}
-         */
-        oProcessor = (/** @type {!TProcessor} */ require('./process')),
-        /**
-         * An instance of an object that allows the traversal of an <abbr
-         * title="abstract syntax tree">AST</abbr>.
-         * @type {!TWalker}
-         */
-        oWalker,
-        /**
-         * A collection of functions for the removal of the scope information
-         * during the traversal of an <abbr title="abstract syntax tree"
-         * >AST</abbr>.
-         * @namespace
-         * @type {!Object.<string, function(...[*])>}
-         */
-        oWalkersPurifiers = {
-          /**#nocode+*/  // JsDoc Toolkit 2.4.0 hides some of the keys.
-          /**
-           * Deletes the scope information from the branch of the abstract
-           * syntax tree representing the encountered function declaration.
-           * @param {string} sIdentifier The identifier of the function.
-           * @param {!Array.<string>} aFormalParameterList Formal parameters.
-           * @param {!TSyntacticCodeUnit} oFunctionBody Function code.
-           */
-          'defun': function(
-              sIdentifier,
-              aFormalParameterList,
-              oFunctionBody) {
-            delete oFunctionBody.scope;
-          },
-          /**
-           * Deletes the scope information from the branch of the abstract
-           * syntax tree representing the encountered function expression.
-           * @param {?string} sIdentifier The optional identifier of the
-           *     function.
-           * @param {!Array.<string>} aFormalParameterList Formal parameters.
-           * @param {!TSyntacticCodeUnit} oFunctionBody Function code.
-           */
-          'function': function(
-              sIdentifier,
-              aFormalParameterList,
-              oFunctionBody) {
-            delete oFunctionBody.scope;
-          }
-          /**#nocode-*/  // JsDoc Toolkit 2.4.0 hides some of the keys.
-        },
-        /**
-         * Initiates the traversal of a source element.
-         * @param {!TWalker} oWalker An instance of an object that allows the
-         *     traversal of an abstract syntax tree.
-         * @param {!TSyntacticCodeUnit} oSourceElement A source element from
-         *     which the traversal should commence.
-         * @return {function(): !TSyntacticCodeUnit} A function that is able to
-         *     initiate the traversal from a given source element.
-         */
-        cContext = function(oWalker, oSourceElement) {
-          /**
-           * @return {!TSyntacticCodeUnit} A function that is able to
-           *     initiate the traversal from a given source element.
-           */
-          var fLambda = function() {
-            return oWalker.walk(oSourceElement);
-          };
-
-          return fLambda;
-        },
-        /**
-         * A record consisting of configuration for the code generation phase.
-         * @type {!Object}
-         */
-        oCodeGenerationOptions = {
-          beautify: true
-        },
-        /**
-         * Tests whether consolidation of an ECMAScript program yields expected
-         * results.
-         * @param {{
-         *       sTitle: string,
-         *       sInput: string,
-         *       sOutput: string
-         *     }} oUnitTest A record consisting of data about a unit test: its
-         *     name, an ECMAScript program, and, if consolidation is to take
-         *     place, the resulting ECMAScript program.
-         */
-        cAssert = function(oUnitTest) {
-          var _,
-              /**
-               * An array-like object representing the <abbr title=
-               * "abstract syntax tree">AST</abbr> obtained after consolidation.
-               * @type {!TSyntacticCodeUnit}
-               */
-              oSyntacticCodeUnitActual =
-                  exports.ast_consolidate(oParser.parse(oUnitTest.sInput)),
-              /**
-               * An array-like object representing the expected <abbr title=
-               * "abstract syntax tree">AST</abbr>.
-               * @type {!TSyntacticCodeUnit}
-               */
-              oSyntacticCodeUnitExpected = oParser.parse(
-                  oUnitTest.hasOwnProperty('sOutput') ?
-                  oUnitTest.sOutput : oUnitTest.sInput);
-
-          delete oSyntacticCodeUnitActual.scope;
-          oWalker = oProcessor.ast_walker();
-          oWalker.with_walkers(
-              oWalkersPurifiers,
-              cContext(oWalker, oSyntacticCodeUnitActual));
-          try {
-            oAssert.deepEqual(
-                oSyntacticCodeUnitActual,
-                oSyntacticCodeUnitExpected);
-          } catch (oException) {
-            console.error(
-                '########## A unit test has failed.\n' +
-                oUnitTest.sTitle + '\n' +
-                '#####  actual code  (' +
-                oProcessor.gen_code(oSyntacticCodeUnitActual).length +
-                ' bytes)\n' +
-                oProcessor.gen_code(
-                    oSyntacticCodeUnitActual,
-                    oCodeGenerationOptions) + '\n' +
-                '##### expected code (' +
-                oProcessor.gen_code(oSyntacticCodeUnitExpected).length +
-                ' bytes)\n' +
-                oProcessor.gen_code(
-                    oSyntacticCodeUnitExpected,
-                    oCodeGenerationOptions));
-          }
-        };
-
-    [
-      // 7.6.1 Reserved Words.
-      {
-        sTitle:
-            'Omission of keywords while choosing an identifier name.',
-        sInput:
-            '(function() {' +
-            '  var a, b, c, d, e, f, g, h, i, j, k, l, m,' +
-            '      n, o, p, q, r, s, t, u, v, w, x, y, z,' +
-            '      A, B, C, D, E, F, G, H, I, J, K, L, M,' +
-            '      N, O, P, Q, R, S, T, U, V, W, X, Y, Z,' +
-            '      $, _,' +
-            '      aa, ab, ac, ad, ae, af, ag, ah, ai, aj, ak, al, am,' +
-            '      an, ao, ap, aq, ar, as, at, au, av, aw, ax, ay, az,' +
-            '      aA, aB, aC, aD, aE, aF, aG, aH, aI, aJ, aK, aL, aM,' +
-            '      aN, aO, aP, aQ, aR, aS, aT, aU, aV, aW, aX, aY, aZ,' +
-            '      a$, a_,' +
-            '      ba, bb, bc, bd, be, bf, bg, bh, bi, bj, bk, bl, bm,' +
-            '      bn, bo, bp, bq, br, bs, bt, bu, bv, bw, bx, by, bz,' +
-            '      bA, bB, bC, bD, bE, bF, bG, bH, bI, bJ, bK, bL, bM,' +
-            '      bN, bO, bP, bQ, bR, bS, bT, bU, bV, bW, bX, bY, bZ,' +
-            '      b$, b_,' +
-            '      ca, cb, cc, cd, ce, cf, cg, ch, ci, cj, ck, cl, cm,' +
-            '      cn, co, cp, cq, cr, cs, ct, cu, cv, cw, cx, cy, cz,' +
-            '      cA, cB, cC, cD, cE, cF, cG, cH, cI, cJ, cK, cL, cM,' +
-            '      cN, cO, cP, cQ, cR, cS, cT, cU, cV, cW, cX, cY, cZ,' +
-            '      c$, c_,' +
-            '      da, db, dc, dd, de, df, dg, dh, di, dj, dk, dl, dm,' +
-            '      dn, dq, dr, ds, dt, du, dv, dw, dx, dy, dz,' +
-            '      dA, dB, dC, dD, dE, dF, dG, dH, dI, dJ, dK, dL, dM,' +
-            '      dN, dO, dP, dQ, dR, dS, dT, dU, dV, dW, dX, dY, dZ,' +
-            '      d$, d_;' +
-            '  void ["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",' +
-            '        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var dp =' +
-            '      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",' +
-            '      a, b, c, d, e, f, g, h, i, j, k, l, m,' +
-            '      n, o, p, q, r, s, t, u, v, w, x, y, z,' +
-            '      A, B, C, D, E, F, G, H, I, J, K, L, M,' +
-            '      N, O, P, Q, R, S, T, U, V, W, X, Y, Z,' +
-            '      $, _,' +
-            '      aa, ab, ac, ad, ae, af, ag, ah, ai, aj, ak, al, am,' +
-            '      an, ao, ap, aq, ar, as, at, au, av, aw, ax, ay, az,' +
-            '      aA, aB, aC, aD, aE, aF, aG, aH, aI, aJ, aK, aL, aM,' +
-            '      aN, aO, aP, aQ, aR, aS, aT, aU, aV, aW, aX, aY, aZ,' +
-            '      a$, a_,' +
-            '      ba, bb, bc, bd, be, bf, bg, bh, bi, bj, bk, bl, bm,' +
-            '      bn, bo, bp, bq, br, bs, bt, bu, bv, bw, bx, by, bz,' +
-            '      bA, bB, bC, bD, bE, bF, bG, bH, bI, bJ, bK, bL, bM,' +
-            '      bN, bO, bP, bQ, bR, bS, bT, bU, bV, bW, bX, bY, bZ,' +
-            '      b$, b_,' +
-            '      ca, cb, cc, cd, ce, cf, cg, ch, ci, cj, ck, cl, cm,' +
-            '      cn, co, cp, cq, cr, cs, ct, cu, cv, cw, cx, cy, cz,' +
-            '      cA, cB, cC, cD, cE, cF, cG, cH, cI, cJ, cK, cL, cM,' +
-            '      cN, cO, cP, cQ, cR, cS, cT, cU, cV, cW, cX, cY, cZ,' +
-            '      c$, c_,' +
-            '      da, db, dc, dd, de, df, dg, dh, di, dj, dk, dl, dm,' +
-            '      dn, dq, dr, ds, dt, du, dv, dw, dx, dy, dz,' +
-            '      dA, dB, dC, dD, dE, dF, dG, dH, dI, dJ, dK, dL, dM,' +
-            '      dN, dO, dP, dQ, dR, dS, dT, dU, dV, dW, dX, dY, dZ,' +
-            '      d$, d_;' +
-            '  void [dp, dp];' +
-            '}());'
-      },
-      // 7.8.1 Null Literals.
-      {
-        sTitle:
-            'Evaluation with regard to the null value.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [null, null, null];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [null, null];' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var a = null, foo;' +
-            '  void [a, a, a];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [null, null];' +
-            '}());'
-      },
-      // 7.8.2 Boolean Literals.
-      {
-        sTitle:
-            'Evaluation with regard to the false value.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [false, false, false];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [false, false];' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var a = false, foo;' +
-            '  void [a, a, a];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [false, false];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Evaluation with regard to the true value.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [true, true, true];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [true, true];' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var a = true, foo;' +
-            '  void [a, a, a];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var foo;' +
-            '  void [true, true];' +
-            '}());'
-      },
-      // 7.8.4 String Literals.
-      {
-        sTitle:
-            'Evaluation with regard to the String value of a string literal.',
-        sInput:
-            '(function() {' +
-            '  var foo;' +
-            '  void ["abcd", "abcd", "abc", "abc"];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var a = "abcd", foo;' +
-            '  void [a, a, "abc", "abc"];' +
-            '}());'
-      },
-      // 7.8.5 Regular Expression Literals.
-      {
-        sTitle:
-            'Preservation of the pattern of a regular expression literal.',
-        sInput:
-            'void [/abcdefghijklmnopqrstuvwxyz/, /abcdefghijklmnopqrstuvwxyz/];'
-      },
-      {
-        sTitle:
-            'Preservation of the flags of a regular expression literal.',
-        sInput:
-            'void [/(?:)/gim, /(?:)/gim, /(?:)/gim, /(?:)/gim, /(?:)/gim,' +
-            '      /(?:)/gim, /(?:)/gim, /(?:)/gim, /(?:)/gim, /(?:)/gim,' +
-            '      /(?:)/gim, /(?:)/gim, /(?:)/gim, /(?:)/gim, /(?:)/gim];'
-      },
-      // 10.2 Lexical Environments.
-      {
-        sTitle:
-            'Preservation of identifier names in the same scope.',
-        sInput:
-            '/*jshint shadow:true */' +
-            'var a;' +
-            'function b(i) {' +
-            '}' +
-            'for (var c; 0 === Math.random(););' +
-            'for (var d in {});' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];' +
-            'void [b(a), b(c), b(d)];' +
-            'void [typeof e];' +
-            'i: for (; 0 === Math.random();) {' +
-            '  if (42 === (new Date()).getMinutes()) {' +
-            '    continue i;' +
-            '  } else {' +
-            '    break i;' +
-            '  }' +
-            '}' +
-            'try {' +
-            '} catch (f) {' +
-            '} finally {' +
-            '}' +
-            '(function g(h) {' +
-            '}());' +
-            'void [{' +
-            '  i: 42,' +
-            '  "j": 42,' +
-            '  \'k\': 42' +
-            '}];' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];',
-        sOutput:
-            '/*jshint shadow:true */' +
-            'var a;' +
-            'function b(i) {' +
-            '}' +
-            'for (var c; 0 === Math.random(););' +
-            'for (var d in {});' +
-            '(function() {' +
-            '  var i = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [i];' +
-            '  void [b(a), b(c), b(d)];' +
-            '  void [typeof e];' +
-            '  i: for (; 0 === Math.random();) {' +
-            '    if (42 === (new Date()).getMinutes()) {' +
-            '      continue i;' +
-            '    } else {' +
-            '      break i;' +
-            '    }' +
-            '  }' +
-            '  try {' +
-            '  } catch (f) {' +
-            '  } finally {' +
-            '  }' +
-            '  (function g(h) {' +
-            '  }());' +
-            '  void [{' +
-            '    i: 42,' +
-            '    "j": 42,' +
-            '    \'k\': 42' +
-            '  }];' +
-            '  void [i];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Preservation of identifier names in nested function code.',
-        sInput:
-            '(function() {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '  (function() {' +
-            '    var a;' +
-            '    for (var b; 0 === Math.random(););' +
-            '    for (var c in {});' +
-            '    void [typeof d];' +
-            '    h: for (; 0 === Math.random();) {' +
-            '      if (42 === (new Date()).getMinutes()) {' +
-            '        continue h;' +
-            '      } else {' +
-            '        break h;' +
-            '      }' +
-            '    }' +
-            '    try {' +
-            '    } catch (e) {' +
-            '    } finally {' +
-            '    }' +
-            '    (function f(g) {' +
-            '    }());' +
-            '    void [{' +
-            '      h: 42,' +
-            '      "i": 42,' +
-            '      \'j\': 42' +
-            '    }];' +
-            '  }());' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var h = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [h];' +
-            '  (function() {' +
-            '    var a;' +
-            '    for (var b; 0 === Math.random(););' +
-            '    for (var c in {});' +
-            '    void [typeof d];' +
-            '    h: for (; 0 === Math.random();) {' +
-            '      if (42 === (new Date()).getMinutes()) {' +
-            '        continue h;' +
-            '      } else {' +
-            '        break h;' +
-            '      }' +
-            '    }' +
-            '    try {' +
-            '    } catch (e) {' +
-            '    } finally {' +
-            '    }' +
-            '    (function f(g) {' +
-            '    }());' +
-            '    void [{' +
-            '      h: 42,' +
-            '      "i": 42,' +
-            '      \'j\': 42' +
-            '    }];' +
-            '  }());' +
-            '  void [h];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Consolidation of a closure with other source elements.',
-        sInput:
-            '(function(foo) {' +
-            '}("abcdefghijklmnopqrstuvwxyz"));' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];',
-        sOutput:
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  (function(foo) {' +
-            '  })(a);' +
-            '  void [a];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Consolidation of function code instead of a sole closure.',
-        sInput:
-            '(function(foo, bar) {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}("abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz"));',
-        sOutput:
-            '(function(foo, bar) {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}("abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz"));'
-      },
-      // 11.1.5 Object Initialiser.
-      {
-        sTitle:
-            'Preservation of property names of an object initialiser.',
-        sInput:
-            'var foo = {' +
-            '  abcdefghijklmnopqrstuvwxyz: 42,' +
-            '  "zyxwvutsrqponmlkjihgfedcba": 42,' +
-            '  \'mlkjihgfedcbanopqrstuvwxyz\': 42' +
-            '};' +
-            'void [' +
-            '  foo.abcdefghijklmnopqrstuvwxyz,' +
-            '  "zyxwvutsrqponmlkjihgfedcba",' +
-            '  \'mlkjihgfedcbanopqrstuvwxyz\'' +
-            '];'
-      },
-      {
-        sTitle:
-            'Evaluation with regard to String values derived from identifier ' +
-            'names used as property accessors.',
-        sInput:
-            '(function() {' +
-            '  var foo;' +
-            '  void [' +
-            '    Math.abcdefghij,' +
-            '    Math.abcdefghij,' +
-            '    Math.abcdefghi,' +
-            '    Math.abcdefghi' +
-            '  ];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var a = "abcdefghij", foo;' +
-            '  void [' +
-            '    Math[a],' +
-            '    Math[a],' +
-            '    Math.abcdefghi,' +
-            '    Math.abcdefghi' +
-            '  ];' +
-            '}());'
-      },
-      // 11.2.1 Property Accessors.
-      {
-        sTitle:
-            'Preservation of identifiers in the nonterminal MemberExpression.',
-        sInput:
-            'void [' +
-            '  Math.E,' +
-            '  Math.LN10,' +
-            '  Math.LN2,' +
-            '  Math.LOG2E,' +
-            '  Math.LOG10E,' +
-            '  Math.PI,' +
-            '  Math.SQRT1_2,' +
-            '  Math.SQRT2,' +
-            '  Math.abs,' +
-            '  Math.acos' +
-            '];'
-      },
-      // 12.2 Variable Statement.
-      {
-        sTitle:
-            'Preservation of the identifier of a variable that is being ' +
-            'declared in a variable statement.',
-        sInput:
-            '(function() {' +
-            '  var abcdefghijklmnopqrstuvwxyz;' +
-            '  void [abcdefghijklmnopqrstuvwxyz];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Exclusion of a variable statement in global code.',
-        sInput:
-            'void ["abcdefghijklmnopqrstuvwxyz"];' +
-            'var foo = "abcdefghijklmnopqrstuvwxyz",' +
-            '    bar = "abcdefghijklmnopqrstuvwxyz";' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];'
-      },
-      {
-        sTitle:
-            'Exclusion of a variable statement in function code that ' +
-            'contains a with statement.',
-        sInput:
-            '(function() {' +
-            '  with ({});' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '  var foo;' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Exclusion of a variable statement in function code that ' +
-            'contains a direct call to the eval function.',
-        sInput:
-            '/*jshint evil:true */' +
-            'void [' +
-            '  function() {' +
-            '    eval("");' +
-            '    void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '    var foo;' +
-            '    void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '  }' +
-            '];'
-      },
-      {
-        sTitle:
-            'Consolidation within a variable statement in global code.',
-        sInput:
-            'var foo = function() {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '};',
-        sOutput:
-            'var foo = function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '};'
-      },
-      {
-        sTitle:
-            'Consolidation within a variable statement excluded in function ' +
-            'code due to the presence of a with statement.',
-        sInput:
-            '(function() {' +
-            '  with ({});' +
-            '  var foo = function() {' +
-            '    void ["abcdefghijklmnopqrstuvwxyz",' +
-            '          "abcdefghijklmnopqrstuvwxyz"];' +
-            '  };' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  with ({});' +
-            '  var foo = function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '    void [a, a];' +
-            '  };' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Consolidation within a variable statement excluded in function ' +
-            'code due to the presence of a direct call to the eval function.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  eval("");' +
-            '  var foo = function() {' +
-            '    void ["abcdefghijklmnopqrstuvwxyz",' +
-            '          "abcdefghijklmnopqrstuvwxyz"];' +
-            '  };' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  eval("");' +
-            '  var foo = function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '    void [a, a];' +
-            '  };' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Inclusion of a variable statement in function code that ' +
-            'contains no with statement and no direct call to the eval ' +
-            'function.',
-        sInput:
-            '(function() {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '  var foo;' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a];' +
-            '  var foo;' +
-            '  void [a];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Ignorance with regard to a variable statement in global code.',
-        sInput:
-            'var foo = "abcdefghijklmnopqrstuvwxyz";' +
-            'void ["abcdefghijklmnopqrstuvwxyz",' +
-            '      "abcdefghijklmnopqrstuvwxyz"];',
-        sOutput:
-            'var foo = "abcdefghijklmnopqrstuvwxyz";' +
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());'
-      },
-      // 12.4 Expression Statement.
-      {
-        sTitle:
-            'Preservation of identifiers in an expression statement.',
-        sInput:
-            'void [typeof abcdefghijklmnopqrstuvwxyz,' +
-            '      typeof abcdefghijklmnopqrstuvwxyz];'
-      },
-      // 12.6.3 The {@code for} Statement.
-      {
-        sTitle:
-            'Preservation of identifiers in the variable declaration list of ' +
-            'a for statement.',
-        sInput:
-            'for (var abcdefghijklmnopqrstuvwxyz; 0 === Math.random(););' +
-            'for (var abcdefghijklmnopqrstuvwxyz; 0 === Math.random(););'
-      },
-      // 12.6.4 The {@code for-in} Statement.
-      {
-        sTitle:
-            'Preservation of identifiers in the variable declaration list of ' +
-            'a for-in statement.',
-        sInput:
-            'for (var abcdefghijklmnopqrstuvwxyz in {});' +
-            'for (var abcdefghijklmnopqrstuvwxyz in {});'
-      },
-      // 12.7 The {@code continue} Statement.
-      {
-        sTitle:
-            'Preservation of the identifier in a continue statement.',
-        sInput:
-            'abcdefghijklmnopqrstuvwxyz: for (; 0 === Math.random();) {' +
-            '  continue abcdefghijklmnopqrstuvwxyz;' +
-            '}' +
-            'abcdefghijklmnopqrstuvwxyz: for (; 0 === Math.random();) {' +
-            '  continue abcdefghijklmnopqrstuvwxyz;' +
-            '}'
-      },
-      // 12.8 The {@code break} Statement.
-      {
-        sTitle:
-            'Preservation of the identifier in a break statement.',
-        sInput:
-            'abcdefghijklmnopqrstuvwxyz: for (; 0 === Math.random();) {' +
-            '  break abcdefghijklmnopqrstuvwxyz;' +
-            '}' +
-            'abcdefghijklmnopqrstuvwxyz: for (; 0 === Math.random();) {' +
-            '  break abcdefghijklmnopqrstuvwxyz;' +
-            '}'
-      },
-      // 12.9 The {@code return} Statement.
-      {
-        sTitle:
-            'Exclusion of a return statement in function code that contains ' +
-            'a with statement.',
-        sInput:
-            '(function() {' +
-            '  with ({});' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '  if (0 === Math.random()) {' +
-            '    return;' +
-            '  } else {' +
-            '  }' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Exclusion of a return statement in function code that contains ' +
-            'a direct call to the eval function.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  eval("");' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '  if (0 === Math.random()) {' +
-            '    return;' +
-            '  } else {' +
-            '  }' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Consolidation within a return statement excluded in function ' +
-            'code due to the presence of a with statement.',
-        sInput:
-            '(function() {' +
-            '  with ({});' +
-            '  return function() {' +
-            '    void ["abcdefghijklmnopqrstuvwxyz",' +
-            '          "abcdefghijklmnopqrstuvwxyz"];' +
-            '  };' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  with ({});' +
-            '  return function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '    void [a, a];' +
-            '  };' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Consolidation within a return statement excluded in function ' +
-            'code due to the presence of a direct call to the eval function.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  eval("");' +
-            '  return function() {' +
-            '    void ["abcdefghijklmnopqrstuvwxyz",' +
-            '          "abcdefghijklmnopqrstuvwxyz"];' +
-            '  };' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  eval("");' +
-            '  return function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '    void [a, a];' +
-            '  };' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Inclusion of a return statement in function code that contains ' +
-            'no with statement and no direct call to the eval function.',
-        sInput:
-            '(function() {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '  if (0 === Math.random()) {' +
-            '    return;' +
-            '  } else {' +
-            '  }' +
-            '  void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a];' +
-            '  if (0 === Math.random()) {' +
-            '    return;' +
-            '  } else {' +
-            '  }' +
-            '  void [a];' +
-            '}());'
-      },
-      // 12.10 The {@code with} Statement.
-      {
-        sTitle:
-            'Preservation of the statement in a with statement.',
-        sInput:
-            'with ({}) {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}'
-      },
-      {
-        sTitle:
-            'Exclusion of a with statement in the same syntactic code unit.',
-        sInput:
-            'void ["abcdefghijklmnopqrstuvwxyz"];' +
-            'with ({' +
-            '  foo: "abcdefghijklmnopqrstuvwxyz",' +
-            '  bar: "abcdefghijklmnopqrstuvwxyz"' +
-            '}) {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];'
-      },
-      {
-        sTitle:
-            'Exclusion of a with statement in nested function code.',
-        sInput:
-            'void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '(function() {' +
-            '  with ({' +
-            '    foo: "abcdefghijklmnopqrstuvwxyz",' +
-            '    bar: "abcdefghijklmnopqrstuvwxyz"' +
-            '  }) {' +
-            '    void ["abcdefghijklmnopqrstuvwxyz",' +
-            '          "abcdefghijklmnopqrstuvwxyz"];' +
-            '  }' +
-            '}());' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];'
-      },
-      // 12.12 Labelled Statements.
-      {
-        sTitle:
-            'Preservation of the label of a labelled statement.',
-        sInput:
-            'abcdefghijklmnopqrstuvwxyz: for (; 0 === Math.random(););' +
-            'abcdefghijklmnopqrstuvwxyz: for (; 0 === Math.random(););'
-      },
-      // 12.14 The {@code try} Statement.
-      {
-        sTitle:
-            'Preservation of the identifier in the catch clause of a try' +
-            'statement.',
-        sInput:
-            'try {' +
-            '} catch (abcdefghijklmnopqrstuvwxyz) {' +
-            '} finally {' +
-            '}' +
-            'try {' +
-            '} catch (abcdefghijklmnopqrstuvwxyz) {' +
-            '} finally {' +
-            '}'
-      },
-      // 13 Function Definition.
-      {
-        sTitle:
-            'Preservation of the identifier of a function declaration.',
-        sInput:
-            'function abcdefghijklmnopqrstuvwxyz() {' +
-            '}' +
-            'void [abcdefghijklmnopqrstuvwxyz];'
-      },
-      {
-        sTitle:
-            'Preservation of the identifier of a function expression.',
-        sInput:
-            'void [' +
-            '  function abcdefghijklmnopqrstuvwxyz() {' +
-            '  },' +
-            '  function abcdefghijklmnopqrstuvwxyz() {' +
-            '  }' +
-            '];'
-      },
-      {
-        sTitle:
-            'Preservation of a formal parameter of a function declaration.',
-        sInput:
-            'function foo(abcdefghijklmnopqrstuvwxyz) {' +
-            '}' +
-            'function bar(abcdefghijklmnopqrstuvwxyz) {' +
-            '}'
-      },
-      {
-        sTitle:
-            'Preservation of a formal parameter in a function expression.',
-        sInput:
-            'void [' +
-            '  function(abcdefghijklmnopqrstuvwxyz) {' +
-            '  },' +
-            '  function(abcdefghijklmnopqrstuvwxyz) {' +
-            '  }' +
-            '];'
-      },
-      {
-        sTitle:
-            'Exclusion of a function declaration.',
-        sInput:
-            'void ["abcdefghijklmnopqrstuvwxyz"];' +
-            'function foo() {' +
-            '}' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];'
-      },
-      {
-        sTitle:
-            'Consolidation within a function declaration.',
-        sInput:
-            'function foo() {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}',
-        sOutput:
-            'function foo() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}'
-      },
-      // 14 Program.
-      {
-        sTitle:
-            'Preservation of a program without source elements.',
-        sInput:
-            ''
-      },
-      // 14.1 Directive Prologues and the Use Strict Directive.
-      {
-        sTitle:
-            'Preservation of a Directive Prologue in global code.',
-        sInput:
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            '\'zyxwvutsrqponmlkjihgfedcba\';'
-      },
-      {
-        sTitle:
-            'Preservation of a Directive Prologue in a function declaration.',
-        sInput:
-            'function foo() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  \'zyxwvutsrqponmlkjihgfedcba\';' +
-            '}'
-      },
-      {
-        sTitle:
-            'Preservation of a Directive Prologue in a function expression.',
-        sInput:
-            'void [' +
-            '  function() {' +
-            '    "abcdefghijklmnopqrstuvwxyz";' +
-            '    \'zyxwvutsrqponmlkjihgfedcba\';' +
-            '  }' +
-            '];'
-      },
-      {
-        sTitle:
-            'Ignorance with regard to a Directive Prologue in global code.',
-        sInput:
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            'void ["abcdefghijklmnopqrstuvwxyz",' +
-            '      "abcdefghijklmnopqrstuvwxyz"];',
-        sOutput:
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Ignorance with regard to a Directive Prologue in a function' +
-            'declaration.',
-        sInput:
-            'function foo() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}',
-        sOutput:
-            'function foo() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}'
-      },
-      {
-        sTitle:
-            'Ignorance with regard to a Directive Prologue in a function' +
-            'expression.',
-        sInput:
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());'
-      },
-      // 15.1 The Global Object.
-      {
-        sTitle:
-            'Preservation of a property of the global object.',
-        sInput:
-            'void [undefined, undefined, undefined, undefined, undefined];'
-      },
-      // 15.1.2.1.1 Direct Call to Eval.
-      {
-        sTitle:
-            'Exclusion of a direct call to the eval function in the same ' +
-            'syntactic code unit.',
-        sInput:
-            '/*jshint evil:true */' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];' +
-            'eval("");' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];'
-      },
-      {
-        sTitle:
-            'Exclusion of a direct call to the eval function in nested ' +
-            'function code.',
-        sInput:
-            '/*jshint evil:true */' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];' +
-            '(function() {' +
-            '  eval("");' +
-            '}());' +
-            'void ["abcdefghijklmnopqrstuvwxyz"];'
-      },
-      {
-        sTitle:
-            'Consolidation within a direct call to the eval function.',
-        sInput:
-            '/*jshint evil:true */' +
-            'eval(function() {' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            'eval(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());'
-      },
-      // Consolidation proper.
-      {
-        sTitle:
-            'No consolidation if it does not result in a reduction of the ' +
-            'number of source characters.',
-        sInput:
-            '(function() {' +
-            '  var foo;' +
-            '  void ["ab", "ab", "abc", "abc"];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Identification of a range of source elements at the beginning ' +
-            'of global code.',
-        sInput:
-            '/*jshint evil:true */' +
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            'void ["abcdefghijklmnopqrstuvwxyz",' +
-            '      "abcdefghijklmnopqrstuvwxyz"];' +
-            'eval("");',
-        sOutput:
-            '/*jshint evil:true */' +
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());' +
-            'eval("");'
-      },
-      {
-        sTitle:
-            'Identification of a range of source elements in the middle of ' +
-            'global code.',
-        sInput:
-            '/*jshint evil:true */' +
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            'eval("");' +
-            'void ["abcdefghijklmnopqrstuvwxyz",' +
-            '      "abcdefghijklmnopqrstuvwxyz"];' +
-            'eval("");',
-        sOutput:
-            '/*jshint evil:true */' +
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            'eval("");' +
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());' +
-            'eval("");'
-      },
-      {
-        sTitle:
-            'Identification of a range of source elements at the end of ' +
-            'global code.',
-        sInput:
-            '/*jshint evil:true */' +
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            'eval("");' +
-            'void ["abcdefghijklmnopqrstuvwxyz",' +
-            '      "abcdefghijklmnopqrstuvwxyz"];',
-        sOutput:
-            '/*jshint evil:true */' +
-            '"abcdefghijklmnopqrstuvwxyz";' +
-            'eval("");' +
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Identification of a range of source elements at the beginning ' +
-            'of function code.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '  eval("");' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  (function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '    void [a, a];' +
-            '  }());' +
-            '  eval("");' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Identification of a range of source elements in the middle of ' +
-            'function code.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  eval("");' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '  eval("");' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  eval("");' +
-            '  (function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '    void [a, a];' +
-            '  }());' +
-            '  eval("");' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Identification of a range of source elements at the end of ' +
-            'function code.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  eval("");' +
-            '  void ["abcdefghijklmnopqrstuvwxyz",' +
-            '        "abcdefghijklmnopqrstuvwxyz"];' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  "abcdefghijklmnopqrstuvwxyz";' +
-            '  eval("");' +
-            '  (function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '    void [a, a];' +
-            '  }());' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Evaluation with regard to String values of String literals and ' +
-            'String values derived from identifier names used as property' +
-            'accessors.',
-        sInput:
-            '(function() {' +
-            '  var foo;' +
-            '  void ["abcdefg", Math.abcdefg, "abcdef", Math.abcdef];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var a = "abcdefg", foo;' +
-            '  void [a, Math[a], "abcdef", Math.abcdef];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Evaluation with regard to the necessity of adding a variable ' +
-            'statement.',
-        sInput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  void ["abcdefgh", "abcdefgh"];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  void ["abcdefg", "abcdefg"];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var foo;' +
-            '  void ["abcd", "abcd"];' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var a = "abcdefgh";' +
-            '  void [a, a];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  void ["abcdefg", "abcdefg"];' +
-            '}());' +
-            'eval("");' +
-            '(function() {' +
-            '  var a = "abcd", foo;' +
-            '  void [a, a];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Evaluation with regard to the necessity of enclosing source ' +
-            'elements.',
-        sInput:
-            '/*jshint evil:true */' +
-            'void ["abcdefghijklmnopqrstuvwxy", "abcdefghijklmnopqrstuvwxy"];' +
-            'eval("");' +
-            'void ["abcdefghijklmnopqrstuvwx", "abcdefghijklmnopqrstuvwx"];' +
-            'eval("");' +
-            '(function() {' +
-            '  void ["abcdefgh", "abcdefgh"];' +
-            '}());' +
-            '(function() {' +
-            '  void ["abcdefghijklmnopqrstuvwxy",' +
-            '        "abcdefghijklmnopqrstuvwxy"];' +
-            '  eval("");' +
-            '  void ["abcdefghijklmnopqrstuvwx",' +
-            '        "abcdefghijklmnopqrstuvwx"];' +
-            '  eval("");' +
-            '  (function() {' +
-            '    void ["abcdefgh", "abcdefgh"];' +
-            '  }());' +
-            '}());',
-        sOutput:
-            '/*jshint evil:true */' +
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxy";' +
-            '  void [a, a];' +
-            '}());' +
-            'eval("");' +
-            'void ["abcdefghijklmnopqrstuvwx", "abcdefghijklmnopqrstuvwx"];' +
-            'eval("");' +
-            '(function() {' +
-            '  var a = "abcdefgh";' +
-            '  void [a, a];' +
-            '}());' +
-            '(function() {' +
-            '  (function() {' +
-            '    var a = "abcdefghijklmnopqrstuvwxy";' +
-            '    void [a, a];' +
-            '  }());' +
-            '  eval("");' +
-            '  void ["abcdefghijklmnopqrstuvwx", "abcdefghijklmnopqrstuvwx"];' +
-            '  eval("");' +
-            '  (function() {' +
-            '    var a = "abcdefgh";' +
-            '    void [a, a];' +
-            '  }());' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Employment of a closure while consolidating in global code.',
-        sInput:
-            'void ["abcdefghijklmnopqrstuvwxyz",' +
-            '      "abcdefghijklmnopqrstuvwxyz"];',
-        sOutput:
-            '(function() {' +
-            '  var a = "abcdefghijklmnopqrstuvwxyz";' +
-            '  void [a, a];' +
-            '}());'
-      },
-      {
-        sTitle:
-            'Assignment of a shorter identifier to a value whose ' +
-            'consolidation results in a greater reduction of the number of ' +
-            'source characters.',
-        sInput:
-            '(function() {' +
-            '  var b, c, d, e, f, g, h, i, j, k, l, m,' +
-            '      n, o, p, q, r, s, t, u, v, w, x, y, z,' +
-            '      A, B, C, D, E, F, G, H, I, J, K, L, M,' +
-            '      N, O, P, Q, R, S, T, U, V, W, X, Y, Z,' +
-            '      $, _;' +
-            '  void ["abcde", "abcde", "edcba", "edcba", "edcba"];' +
-            '}());',
-        sOutput:
-            '(function() {' +
-            '  var a = "edcba",' +
-            '      b, c, d, e, f, g, h, i, j, k, l, m,' +
-            '      n, o, p, q, r, s, t, u, v, w, x, y, z,' +
-            '      A, B, C, D, E, F, G, H, I, J, K, L, M,' +
-            '      N, O, P, Q, R, S, T, U, V, W, X, Y, Z,' +
-            '      $, _;' +
-            '  void ["abcde", "abcde", a, a, a];' +
-            '}());'
-      }
-    ].forEach(cAssert);
-  }());
-}
-
 /* Local Variables:      */
 /* mode: js              */
 /* coding: utf-8         */
@@ -9378,10 +7998,7 @@ if (require.main === module) {
 /* End:                  */
 /* vim: set ft=javascript fenc=utf-8 et ts=2 sts=2 sw=2: */
 /* :mode=javascript:noTabs=true:tabSize=2:indentSize=2:deepIndent=true: */
-
-});
-define('uglifyjs/parse-js', ["exports"], function(exports) {
-
+});define('uglifyjs/parse-js', ["exports"], function(exports) {
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -9583,12 +8200,11 @@ var REGEXP_MODIFIERS = array_to_hash(characters("gmsiy"));
 
 /* -----[ Tokenizer ]----- */
 
-// regexps adapted from http://xregexp.com/plugins/#unicode
-var UNICODE = {
-        letter: new RegExp("[\\u0041-\\u005A\\u0061-\\u007A\\u00AA\\u00B5\\u00BA\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02C1\\u02C6-\\u02D1\\u02E0-\\u02E4\\u02EC\\u02EE\\u0370-\\u0374\\u0376\\u0377\\u037A-\\u037D\\u0386\\u0388-\\u038A\\u038C\\u038E-\\u03A1\\u03A3-\\u03F5\\u03F7-\\u0481\\u048A-\\u0523\\u0531-\\u0556\\u0559\\u0561-\\u0587\\u05D0-\\u05EA\\u05F0-\\u05F2\\u0621-\\u064A\\u066E\\u066F\\u0671-\\u06D3\\u06D5\\u06E5\\u06E6\\u06EE\\u06EF\\u06FA-\\u06FC\\u06FF\\u0710\\u0712-\\u072F\\u074D-\\u07A5\\u07B1\\u07CA-\\u07EA\\u07F4\\u07F5\\u07FA\\u0904-\\u0939\\u093D\\u0950\\u0958-\\u0961\\u0971\\u0972\\u097B-\\u097F\\u0985-\\u098C\\u098F\\u0990\\u0993-\\u09A8\\u09AA-\\u09B0\\u09B2\\u09B6-\\u09B9\\u09BD\\u09CE\\u09DC\\u09DD\\u09DF-\\u09E1\\u09F0\\u09F1\\u0A05-\\u0A0A\\u0A0F\\u0A10\\u0A13-\\u0A28\\u0A2A-\\u0A30\\u0A32\\u0A33\\u0A35\\u0A36\\u0A38\\u0A39\\u0A59-\\u0A5C\\u0A5E\\u0A72-\\u0A74\\u0A85-\\u0A8D\\u0A8F-\\u0A91\\u0A93-\\u0AA8\\u0AAA-\\u0AB0\\u0AB2\\u0AB3\\u0AB5-\\u0AB9\\u0ABD\\u0AD0\\u0AE0\\u0AE1\\u0B05-\\u0B0C\\u0B0F\\u0B10\\u0B13-\\u0B28\\u0B2A-\\u0B30\\u0B32\\u0B33\\u0B35-\\u0B39\\u0B3D\\u0B5C\\u0B5D\\u0B5F-\\u0B61\\u0B71\\u0B83\\u0B85-\\u0B8A\\u0B8E-\\u0B90\\u0B92-\\u0B95\\u0B99\\u0B9A\\u0B9C\\u0B9E\\u0B9F\\u0BA3\\u0BA4\\u0BA8-\\u0BAA\\u0BAE-\\u0BB9\\u0BD0\\u0C05-\\u0C0C\\u0C0E-\\u0C10\\u0C12-\\u0C28\\u0C2A-\\u0C33\\u0C35-\\u0C39\\u0C3D\\u0C58\\u0C59\\u0C60\\u0C61\\u0C85-\\u0C8C\\u0C8E-\\u0C90\\u0C92-\\u0CA8\\u0CAA-\\u0CB3\\u0CB5-\\u0CB9\\u0CBD\\u0CDE\\u0CE0\\u0CE1\\u0D05-\\u0D0C\\u0D0E-\\u0D10\\u0D12-\\u0D28\\u0D2A-\\u0D39\\u0D3D\\u0D60\\u0D61\\u0D7A-\\u0D7F\\u0D85-\\u0D96\\u0D9A-\\u0DB1\\u0DB3-\\u0DBB\\u0DBD\\u0DC0-\\u0DC6\\u0E01-\\u0E30\\u0E32\\u0E33\\u0E40-\\u0E46\\u0E81\\u0E82\\u0E84\\u0E87\\u0E88\\u0E8A\\u0E8D\\u0E94-\\u0E97\\u0E99-\\u0E9F\\u0EA1-\\u0EA3\\u0EA5\\u0EA7\\u0EAA\\u0EAB\\u0EAD-\\u0EB0\\u0EB2\\u0EB3\\u0EBD\\u0EC0-\\u0EC4\\u0EC6\\u0EDC\\u0EDD\\u0F00\\u0F40-\\u0F47\\u0F49-\\u0F6C\\u0F88-\\u0F8B\\u1000-\\u102A\\u103F\\u1050-\\u1055\\u105A-\\u105D\\u1061\\u1065\\u1066\\u106E-\\u1070\\u1075-\\u1081\\u108E\\u10A0-\\u10C5\\u10D0-\\u10FA\\u10FC\\u1100-\\u1159\\u115F-\\u11A2\\u11A8-\\u11F9\\u1200-\\u1248\\u124A-\\u124D\\u1250-\\u1256\\u1258\\u125A-\\u125D\\u1260-\\u1288\\u128A-\\u128D\\u1290-\\u12B0\\u12B2-\\u12B5\\u12B8-\\u12BE\\u12C0\\u12C2-\\u12C5\\u12C8-\\u12D6\\u12D8-\\u1310\\u1312-\\u1315\\u1318-\\u135A\\u1380-\\u138F\\u13A0-\\u13F4\\u1401-\\u166C\\u166F-\\u1676\\u1681-\\u169A\\u16A0-\\u16EA\\u1700-\\u170C\\u170E-\\u1711\\u1720-\\u1731\\u1740-\\u1751\\u1760-\\u176C\\u176E-\\u1770\\u1780-\\u17B3\\u17D7\\u17DC\\u1820-\\u1877\\u1880-\\u18A8\\u18AA\\u1900-\\u191C\\u1950-\\u196D\\u1970-\\u1974\\u1980-\\u19A9\\u19C1-\\u19C7\\u1A00-\\u1A16\\u1B05-\\u1B33\\u1B45-\\u1B4B\\u1B83-\\u1BA0\\u1BAE\\u1BAF\\u1C00-\\u1C23\\u1C4D-\\u1C4F\\u1C5A-\\u1C7D\\u1D00-\\u1DBF\\u1E00-\\u1F15\\u1F18-\\u1F1D\\u1F20-\\u1F45\\u1F48-\\u1F4D\\u1F50-\\u1F57\\u1F59\\u1F5B\\u1F5D\\u1F5F-\\u1F7D\\u1F80-\\u1FB4\\u1FB6-\\u1FBC\\u1FBE\\u1FC2-\\u1FC4\\u1FC6-\\u1FCC\\u1FD0-\\u1FD3\\u1FD6-\\u1FDB\\u1FE0-\\u1FEC\\u1FF2-\\u1FF4\\u1FF6-\\u1FFC\\u2071\\u207F\\u2090-\\u2094\\u2102\\u2107\\u210A-\\u2113\\u2115\\u2119-\\u211D\\u2124\\u2126\\u2128\\u212A-\\u212D\\u212F-\\u2139\\u213C-\\u213F\\u2145-\\u2149\\u214E\\u2183\\u2184\\u2C00-\\u2C2E\\u2C30-\\u2C5E\\u2C60-\\u2C6F\\u2C71-\\u2C7D\\u2C80-\\u2CE4\\u2D00-\\u2D25\\u2D30-\\u2D65\\u2D6F\\u2D80-\\u2D96\\u2DA0-\\u2DA6\\u2DA8-\\u2DAE\\u2DB0-\\u2DB6\\u2DB8-\\u2DBE\\u2DC0-\\u2DC6\\u2DC8-\\u2DCE\\u2DD0-\\u2DD6\\u2DD8-\\u2DDE\\u2E2F\\u3005\\u3006\\u3031-\\u3035\\u303B\\u303C\\u3041-\\u3096\\u309D-\\u309F\\u30A1-\\u30FA\\u30FC-\\u30FF\\u3105-\\u312D\\u3131-\\u318E\\u31A0-\\u31B7\\u31F0-\\u31FF\\u3400\\u4DB5\\u4E00\\u9FC3\\uA000-\\uA48C\\uA500-\\uA60C\\uA610-\\uA61F\\uA62A\\uA62B\\uA640-\\uA65F\\uA662-\\uA66E\\uA67F-\\uA697\\uA717-\\uA71F\\uA722-\\uA788\\uA78B\\uA78C\\uA7FB-\\uA801\\uA803-\\uA805\\uA807-\\uA80A\\uA80C-\\uA822\\uA840-\\uA873\\uA882-\\uA8B3\\uA90A-\\uA925\\uA930-\\uA946\\uAA00-\\uAA28\\uAA40-\\uAA42\\uAA44-\\uAA4B\\uAC00\\uD7A3\\uF900-\\uFA2D\\uFA30-\\uFA6A\\uFA70-\\uFAD9\\uFB00-\\uFB06\\uFB13-\\uFB17\\uFB1D\\uFB1F-\\uFB28\\uFB2A-\\uFB36\\uFB38-\\uFB3C\\uFB3E\\uFB40\\uFB41\\uFB43\\uFB44\\uFB46-\\uFBB1\\uFBD3-\\uFD3D\\uFD50-\\uFD8F\\uFD92-\\uFDC7\\uFDF0-\\uFDFB\\uFE70-\\uFE74\\uFE76-\\uFEFC\\uFF21-\\uFF3A\\uFF41-\\uFF5A\\uFF66-\\uFFBE\\uFFC2-\\uFFC7\\uFFCA-\\uFFCF\\uFFD2-\\uFFD7\\uFFDA-\\uFFDC]"),
-        non_spacing_mark: new RegExp("[\\u0300-\\u036F\\u0483-\\u0487\\u0591-\\u05BD\\u05BF\\u05C1\\u05C2\\u05C4\\u05C5\\u05C7\\u0610-\\u061A\\u064B-\\u065E\\u0670\\u06D6-\\u06DC\\u06DF-\\u06E4\\u06E7\\u06E8\\u06EA-\\u06ED\\u0711\\u0730-\\u074A\\u07A6-\\u07B0\\u07EB-\\u07F3\\u0816-\\u0819\\u081B-\\u0823\\u0825-\\u0827\\u0829-\\u082D\\u0900-\\u0902\\u093C\\u0941-\\u0948\\u094D\\u0951-\\u0955\\u0962\\u0963\\u0981\\u09BC\\u09C1-\\u09C4\\u09CD\\u09E2\\u09E3\\u0A01\\u0A02\\u0A3C\\u0A41\\u0A42\\u0A47\\u0A48\\u0A4B-\\u0A4D\\u0A51\\u0A70\\u0A71\\u0A75\\u0A81\\u0A82\\u0ABC\\u0AC1-\\u0AC5\\u0AC7\\u0AC8\\u0ACD\\u0AE2\\u0AE3\\u0B01\\u0B3C\\u0B3F\\u0B41-\\u0B44\\u0B4D\\u0B56\\u0B62\\u0B63\\u0B82\\u0BC0\\u0BCD\\u0C3E-\\u0C40\\u0C46-\\u0C48\\u0C4A-\\u0C4D\\u0C55\\u0C56\\u0C62\\u0C63\\u0CBC\\u0CBF\\u0CC6\\u0CCC\\u0CCD\\u0CE2\\u0CE3\\u0D41-\\u0D44\\u0D4D\\u0D62\\u0D63\\u0DCA\\u0DD2-\\u0DD4\\u0DD6\\u0E31\\u0E34-\\u0E3A\\u0E47-\\u0E4E\\u0EB1\\u0EB4-\\u0EB9\\u0EBB\\u0EBC\\u0EC8-\\u0ECD\\u0F18\\u0F19\\u0F35\\u0F37\\u0F39\\u0F71-\\u0F7E\\u0F80-\\u0F84\\u0F86\\u0F87\\u0F90-\\u0F97\\u0F99-\\u0FBC\\u0FC6\\u102D-\\u1030\\u1032-\\u1037\\u1039\\u103A\\u103D\\u103E\\u1058\\u1059\\u105E-\\u1060\\u1071-\\u1074\\u1082\\u1085\\u1086\\u108D\\u109D\\u135F\\u1712-\\u1714\\u1732-\\u1734\\u1752\\u1753\\u1772\\u1773\\u17B7-\\u17BD\\u17C6\\u17C9-\\u17D3\\u17DD\\u180B-\\u180D\\u18A9\\u1920-\\u1922\\u1927\\u1928\\u1932\\u1939-\\u193B\\u1A17\\u1A18\\u1A56\\u1A58-\\u1A5E\\u1A60\\u1A62\\u1A65-\\u1A6C\\u1A73-\\u1A7C\\u1A7F\\u1B00-\\u1B03\\u1B34\\u1B36-\\u1B3A\\u1B3C\\u1B42\\u1B6B-\\u1B73\\u1B80\\u1B81\\u1BA2-\\u1BA5\\u1BA8\\u1BA9\\u1C2C-\\u1C33\\u1C36\\u1C37\\u1CD0-\\u1CD2\\u1CD4-\\u1CE0\\u1CE2-\\u1CE8\\u1CED\\u1DC0-\\u1DE6\\u1DFD-\\u1DFF\\u20D0-\\u20DC\\u20E1\\u20E5-\\u20F0\\u2CEF-\\u2CF1\\u2DE0-\\u2DFF\\u302A-\\u302F\\u3099\\u309A\\uA66F\\uA67C\\uA67D\\uA6F0\\uA6F1\\uA802\\uA806\\uA80B\\uA825\\uA826\\uA8C4\\uA8E0-\\uA8F1\\uA926-\\uA92D\\uA947-\\uA951\\uA980-\\uA982\\uA9B3\\uA9B6-\\uA9B9\\uA9BC\\uAA29-\\uAA2E\\uAA31\\uAA32\\uAA35\\uAA36\\uAA43\\uAA4C\\uAAB0\\uAAB2-\\uAAB4\\uAAB7\\uAAB8\\uAABE\\uAABF\\uAAC1\\uABE5\\uABE8\\uABED\\uFB1E\\uFE00-\\uFE0F\\uFE20-\\uFE26]"),
-        space_combining_mark: new RegExp("[\\u0903\\u093E-\\u0940\\u0949-\\u094C\\u094E\\u0982\\u0983\\u09BE-\\u09C0\\u09C7\\u09C8\\u09CB\\u09CC\\u09D7\\u0A03\\u0A3E-\\u0A40\\u0A83\\u0ABE-\\u0AC0\\u0AC9\\u0ACB\\u0ACC\\u0B02\\u0B03\\u0B3E\\u0B40\\u0B47\\u0B48\\u0B4B\\u0B4C\\u0B57\\u0BBE\\u0BBF\\u0BC1\\u0BC2\\u0BC6-\\u0BC8\\u0BCA-\\u0BCC\\u0BD7\\u0C01-\\u0C03\\u0C41-\\u0C44\\u0C82\\u0C83\\u0CBE\\u0CC0-\\u0CC4\\u0CC7\\u0CC8\\u0CCA\\u0CCB\\u0CD5\\u0CD6\\u0D02\\u0D03\\u0D3E-\\u0D40\\u0D46-\\u0D48\\u0D4A-\\u0D4C\\u0D57\\u0D82\\u0D83\\u0DCF-\\u0DD1\\u0DD8-\\u0DDF\\u0DF2\\u0DF3\\u0F3E\\u0F3F\\u0F7F\\u102B\\u102C\\u1031\\u1038\\u103B\\u103C\\u1056\\u1057\\u1062-\\u1064\\u1067-\\u106D\\u1083\\u1084\\u1087-\\u108C\\u108F\\u109A-\\u109C\\u17B6\\u17BE-\\u17C5\\u17C7\\u17C8\\u1923-\\u1926\\u1929-\\u192B\\u1930\\u1931\\u1933-\\u1938\\u19B0-\\u19C0\\u19C8\\u19C9\\u1A19-\\u1A1B\\u1A55\\u1A57\\u1A61\\u1A63\\u1A64\\u1A6D-\\u1A72\\u1B04\\u1B35\\u1B3B\\u1B3D-\\u1B41\\u1B43\\u1B44\\u1B82\\u1BA1\\u1BA6\\u1BA7\\u1BAA\\u1C24-\\u1C2B\\u1C34\\u1C35\\u1CE1\\u1CF2\\uA823\\uA824\\uA827\\uA880\\uA881\\uA8B4-\\uA8C3\\uA952\\uA953\\uA983\\uA9B4\\uA9B5\\uA9BA\\uA9BB\\uA9BD-\\uA9C0\\uAA2F\\uAA30\\uAA33\\uAA34\\uAA4D\\uAA7B\\uABE3\\uABE4\\uABE6\\uABE7\\uABE9\\uABEA\\uABEC]"),
-        connector_punctuation: new RegExp("[\\u005F\\u203F\\u2040\\u2054\\uFE33\\uFE34\\uFE4D-\\uFE4F\\uFF3F]")
+var UNICODE = {  // Unicode 6.1
+        letter: new RegExp("[\\u0041-\\u005A\\u0061-\\u007A\\u00AA\\u00B5\\u00BA\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02C1\\u02C6-\\u02D1\\u02E0-\\u02E4\\u02EC\\u02EE\\u0370-\\u0374\\u0376\\u0377\\u037A-\\u037D\\u0386\\u0388-\\u038A\\u038C\\u038E-\\u03A1\\u03A3-\\u03F5\\u03F7-\\u0481\\u048A-\\u0527\\u0531-\\u0556\\u0559\\u0561-\\u0587\\u05D0-\\u05EA\\u05F0-\\u05F2\\u0620-\\u064A\\u066E\\u066F\\u0671-\\u06D3\\u06D5\\u06E5\\u06E6\\u06EE\\u06EF\\u06FA-\\u06FC\\u06FF\\u0710\\u0712-\\u072F\\u074D-\\u07A5\\u07B1\\u07CA-\\u07EA\\u07F4\\u07F5\\u07FA\\u0800-\\u0815\\u081A\\u0824\\u0828\\u0840-\\u0858\\u08A0\\u08A2-\\u08AC\\u0904-\\u0939\\u093D\\u0950\\u0958-\\u0961\\u0971-\\u0977\\u0979-\\u097F\\u0985-\\u098C\\u098F\\u0990\\u0993-\\u09A8\\u09AA-\\u09B0\\u09B2\\u09B6-\\u09B9\\u09BD\\u09CE\\u09DC\\u09DD\\u09DF-\\u09E1\\u09F0\\u09F1\\u0A05-\\u0A0A\\u0A0F\\u0A10\\u0A13-\\u0A28\\u0A2A-\\u0A30\\u0A32\\u0A33\\u0A35\\u0A36\\u0A38\\u0A39\\u0A59-\\u0A5C\\u0A5E\\u0A72-\\u0A74\\u0A85-\\u0A8D\\u0A8F-\\u0A91\\u0A93-\\u0AA8\\u0AAA-\\u0AB0\\u0AB2\\u0AB3\\u0AB5-\\u0AB9\\u0ABD\\u0AD0\\u0AE0\\u0AE1\\u0B05-\\u0B0C\\u0B0F\\u0B10\\u0B13-\\u0B28\\u0B2A-\\u0B30\\u0B32\\u0B33\\u0B35-\\u0B39\\u0B3D\\u0B5C\\u0B5D\\u0B5F-\\u0B61\\u0B71\\u0B83\\u0B85-\\u0B8A\\u0B8E-\\u0B90\\u0B92-\\u0B95\\u0B99\\u0B9A\\u0B9C\\u0B9E\\u0B9F\\u0BA3\\u0BA4\\u0BA8-\\u0BAA\\u0BAE-\\u0BB9\\u0BD0\\u0C05-\\u0C0C\\u0C0E-\\u0C10\\u0C12-\\u0C28\\u0C2A-\\u0C33\\u0C35-\\u0C39\\u0C3D\\u0C58\\u0C59\\u0C60\\u0C61\\u0C85-\\u0C8C\\u0C8E-\\u0C90\\u0C92-\\u0CA8\\u0CAA-\\u0CB3\\u0CB5-\\u0CB9\\u0CBD\\u0CDE\\u0CE0\\u0CE1\\u0CF1\\u0CF2\\u0D05-\\u0D0C\\u0D0E-\\u0D10\\u0D12-\\u0D3A\\u0D3D\\u0D4E\\u0D60\\u0D61\\u0D7A-\\u0D7F\\u0D85-\\u0D96\\u0D9A-\\u0DB1\\u0DB3-\\u0DBB\\u0DBD\\u0DC0-\\u0DC6\\u0E01-\\u0E30\\u0E32\\u0E33\\u0E40-\\u0E46\\u0E81\\u0E82\\u0E84\\u0E87\\u0E88\\u0E8A\\u0E8D\\u0E94-\\u0E97\\u0E99-\\u0E9F\\u0EA1-\\u0EA3\\u0EA5\\u0EA7\\u0EAA\\u0EAB\\u0EAD-\\u0EB0\\u0EB2\\u0EB3\\u0EBD\\u0EC0-\\u0EC4\\u0EC6\\u0EDC-\\u0EDF\\u0F00\\u0F40-\\u0F47\\u0F49-\\u0F6C\\u0F88-\\u0F8C\\u1000-\\u102A\\u103F\\u1050-\\u1055\\u105A-\\u105D\\u1061\\u1065\\u1066\\u106E-\\u1070\\u1075-\\u1081\\u108E\\u10A0-\\u10C5\\u10C7\\u10CD\\u10D0-\\u10FA\\u10FC-\\u1248\\u124A-\\u124D\\u1250-\\u1256\\u1258\\u125A-\\u125D\\u1260-\\u1288\\u128A-\\u128D\\u1290-\\u12B0\\u12B2-\\u12B5\\u12B8-\\u12BE\\u12C0\\u12C2-\\u12C5\\u12C8-\\u12D6\\u12D8-\\u1310\\u1312-\\u1315\\u1318-\\u135A\\u1380-\\u138F\\u13A0-\\u13F4\\u1401-\\u166C\\u166F-\\u167F\\u1681-\\u169A\\u16A0-\\u16EA\\u16EE-\\u16F0\\u1700-\\u170C\\u170E-\\u1711\\u1720-\\u1731\\u1740-\\u1751\\u1760-\\u176C\\u176E-\\u1770\\u1780-\\u17B3\\u17D7\\u17DC\\u1820-\\u1877\\u1880-\\u18A8\\u18AA\\u18B0-\\u18F5\\u1900-\\u191C\\u1950-\\u196D\\u1970-\\u1974\\u1980-\\u19AB\\u19C1-\\u19C7\\u1A00-\\u1A16\\u1A20-\\u1A54\\u1AA7\\u1B05-\\u1B33\\u1B45-\\u1B4B\\u1B83-\\u1BA0\\u1BAE\\u1BAF\\u1BBA-\\u1BE5\\u1C00-\\u1C23\\u1C4D-\\u1C4F\\u1C5A-\\u1C7D\\u1CE9-\\u1CEC\\u1CEE-\\u1CF1\\u1CF5\\u1CF6\\u1D00-\\u1DBF\\u1E00-\\u1F15\\u1F18-\\u1F1D\\u1F20-\\u1F45\\u1F48-\\u1F4D\\u1F50-\\u1F57\\u1F59\\u1F5B\\u1F5D\\u1F5F-\\u1F7D\\u1F80-\\u1FB4\\u1FB6-\\u1FBC\\u1FBE\\u1FC2-\\u1FC4\\u1FC6-\\u1FCC\\u1FD0-\\u1FD3\\u1FD6-\\u1FDB\\u1FE0-\\u1FEC\\u1FF2-\\u1FF4\\u1FF6-\\u1FFC\\u2071\\u207F\\u2090-\\u209C\\u2102\\u2107\\u210A-\\u2113\\u2115\\u2119-\\u211D\\u2124\\u2126\\u2128\\u212A-\\u212D\\u212F-\\u2139\\u213C-\\u213F\\u2145-\\u2149\\u214E\\u2160-\\u2188\\u2C00-\\u2C2E\\u2C30-\\u2C5E\\u2C60-\\u2CE4\\u2CEB-\\u2CEE\\u2CF2\\u2CF3\\u2D00-\\u2D25\\u2D27\\u2D2D\\u2D30-\\u2D67\\u2D6F\\u2D80-\\u2D96\\u2DA0-\\u2DA6\\u2DA8-\\u2DAE\\u2DB0-\\u2DB6\\u2DB8-\\u2DBE\\u2DC0-\\u2DC6\\u2DC8-\\u2DCE\\u2DD0-\\u2DD6\\u2DD8-\\u2DDE\\u2E2F\\u3005-\\u3007\\u3021-\\u3029\\u3031-\\u3035\\u3038-\\u303C\\u3041-\\u3096\\u309D-\\u309F\\u30A1-\\u30FA\\u30FC-\\u30FF\\u3105-\\u312D\\u3131-\\u318E\\u31A0-\\u31BA\\u31F0-\\u31FF\\u3400-\\u4DB5\\u4E00-\\u9FCC\\uA000-\\uA48C\\uA4D0-\\uA4FD\\uA500-\\uA60C\\uA610-\\uA61F\\uA62A\\uA62B\\uA640-\\uA66E\\uA67F-\\uA697\\uA6A0-\\uA6EF\\uA717-\\uA71F\\uA722-\\uA788\\uA78B-\\uA78E\\uA790-\\uA793\\uA7A0-\\uA7AA\\uA7F8-\\uA801\\uA803-\\uA805\\uA807-\\uA80A\\uA80C-\\uA822\\uA840-\\uA873\\uA882-\\uA8B3\\uA8F2-\\uA8F7\\uA8FB\\uA90A-\\uA925\\uA930-\\uA946\\uA960-\\uA97C\\uA984-\\uA9B2\\uA9CF\\uAA00-\\uAA28\\uAA40-\\uAA42\\uAA44-\\uAA4B\\uAA60-\\uAA76\\uAA7A\\uAA80-\\uAAAF\\uAAB1\\uAAB5\\uAAB6\\uAAB9-\\uAABD\\uAAC0\\uAAC2\\uAADB-\\uAADD\\uAAE0-\\uAAEA\\uAAF2-\\uAAF4\\uAB01-\\uAB06\\uAB09-\\uAB0E\\uAB11-\\uAB16\\uAB20-\\uAB26\\uAB28-\\uAB2E\\uABC0-\\uABE2\\uAC00-\\uD7A3\\uD7B0-\\uD7C6\\uD7CB-\\uD7FB\\uF900-\\uFA6D\\uFA70-\\uFAD9\\uFB00-\\uFB06\\uFB13-\\uFB17\\uFB1D\\uFB1F-\\uFB28\\uFB2A-\\uFB36\\uFB38-\\uFB3C\\uFB3E\\uFB40\\uFB41\\uFB43\\uFB44\\uFB46-\\uFBB1\\uFBD3-\\uFD3D\\uFD50-\\uFD8F\\uFD92-\\uFDC7\\uFDF0-\\uFDFB\\uFE70-\\uFE74\\uFE76-\\uFEFC\\uFF21-\\uFF3A\\uFF41-\\uFF5A\\uFF66-\\uFFBE\\uFFC2-\\uFFC7\\uFFCA-\\uFFCF\\uFFD2-\\uFFD7\\uFFDA-\\uFFDC]"),
+        combining_mark: new RegExp("[\\u0300-\\u036F\\u0483-\\u0487\\u0591-\\u05BD\\u05BF\\u05C1\\u05C2\\u05C4\\u05C5\\u05C7\\u0610-\\u061A\\u064B-\\u065F\\u0670\\u06D6-\\u06DC\\u06DF-\\u06E4\\u06E7\\u06E8\\u06EA-\\u06ED\\u0711\\u0730-\\u074A\\u07A6-\\u07B0\\u07EB-\\u07F3\\u0816-\\u0819\\u081B-\\u0823\\u0825-\\u0827\\u0829-\\u082D\\u0859-\\u085B\\u08E4-\\u08FE\\u0900-\\u0903\\u093A-\\u093C\\u093E-\\u094F\\u0951-\\u0957\\u0962\\u0963\\u0981-\\u0983\\u09BC\\u09BE-\\u09C4\\u09C7\\u09C8\\u09CB-\\u09CD\\u09D7\\u09E2\\u09E3\\u0A01-\\u0A03\\u0A3C\\u0A3E-\\u0A42\\u0A47\\u0A48\\u0A4B-\\u0A4D\\u0A51\\u0A70\\u0A71\\u0A75\\u0A81-\\u0A83\\u0ABC\\u0ABE-\\u0AC5\\u0AC7-\\u0AC9\\u0ACB-\\u0ACD\\u0AE2\\u0AE3\\u0B01-\\u0B03\\u0B3C\\u0B3E-\\u0B44\\u0B47\\u0B48\\u0B4B-\\u0B4D\\u0B56\\u0B57\\u0B62\\u0B63\\u0B82\\u0BBE-\\u0BC2\\u0BC6-\\u0BC8\\u0BCA-\\u0BCD\\u0BD7\\u0C01-\\u0C03\\u0C3E-\\u0C44\\u0C46-\\u0C48\\u0C4A-\\u0C4D\\u0C55\\u0C56\\u0C62\\u0C63\\u0C82\\u0C83\\u0CBC\\u0CBE-\\u0CC4\\u0CC6-\\u0CC8\\u0CCA-\\u0CCD\\u0CD5\\u0CD6\\u0CE2\\u0CE3\\u0D02\\u0D03\\u0D3E-\\u0D44\\u0D46-\\u0D48\\u0D4A-\\u0D4D\\u0D57\\u0D62\\u0D63\\u0D82\\u0D83\\u0DCA\\u0DCF-\\u0DD4\\u0DD6\\u0DD8-\\u0DDF\\u0DF2\\u0DF3\\u0E31\\u0E34-\\u0E3A\\u0E47-\\u0E4E\\u0EB1\\u0EB4-\\u0EB9\\u0EBB\\u0EBC\\u0EC8-\\u0ECD\\u0F18\\u0F19\\u0F35\\u0F37\\u0F39\\u0F3E\\u0F3F\\u0F71-\\u0F84\\u0F86\\u0F87\\u0F8D-\\u0F97\\u0F99-\\u0FBC\\u0FC6\\u102B-\\u103E\\u1056-\\u1059\\u105E-\\u1060\\u1062-\\u1064\\u1067-\\u106D\\u1071-\\u1074\\u1082-\\u108D\\u108F\\u109A-\\u109D\\u135D-\\u135F\\u1712-\\u1714\\u1732-\\u1734\\u1752\\u1753\\u1772\\u1773\\u17B4-\\u17D3\\u17DD\\u180B-\\u180D\\u18A9\\u1920-\\u192B\\u1930-\\u193B\\u19B0-\\u19C0\\u19C8\\u19C9\\u1A17-\\u1A1B\\u1A55-\\u1A5E\\u1A60-\\u1A7C\\u1A7F\\u1B00-\\u1B04\\u1B34-\\u1B44\\u1B6B-\\u1B73\\u1B80-\\u1B82\\u1BA1-\\u1BAD\\u1BE6-\\u1BF3\\u1C24-\\u1C37\\u1CD0-\\u1CD2\\u1CD4-\\u1CE8\\u1CED\\u1CF2-\\u1CF4\\u1DC0-\\u1DE6\\u1DFC-\\u1DFF\\u20D0-\\u20DC\\u20E1\\u20E5-\\u20F0\\u2CEF-\\u2CF1\\u2D7F\\u2DE0-\\u2DFF\\u302A-\\u302F\\u3099\\u309A\\uA66F\\uA674-\\uA67D\\uA69F\\uA6F0\\uA6F1\\uA802\\uA806\\uA80B\\uA823-\\uA827\\uA880\\uA881\\uA8B4-\\uA8C4\\uA8E0-\\uA8F1\\uA926-\\uA92D\\uA947-\\uA953\\uA980-\\uA983\\uA9B3-\\uA9C0\\uAA29-\\uAA36\\uAA43\\uAA4C\\uAA4D\\uAA7B\\uAAB0\\uAAB2-\\uAAB4\\uAAB7\\uAAB8\\uAABE\\uAABF\\uAAC1\\uAAEB-\\uAAEF\\uAAF5\\uAAF6\\uABE3-\\uABEA\\uABEC\\uABED\\uFB1E\\uFE00-\\uFE0F\\uFE20-\\uFE26]"),
+        connector_punctuation: new RegExp("[\\u005F\\u203F\\u2040\\u2054\\uFE33\\uFE34\\uFE4D-\\uFE4F\\uFF3F]"),
+        digit: new RegExp("[\\u0030-\\u0039\\u0660-\\u0669\\u06F0-\\u06F9\\u07C0-\\u07C9\\u0966-\\u096F\\u09E6-\\u09EF\\u0A66-\\u0A6F\\u0AE6-\\u0AEF\\u0B66-\\u0B6F\\u0BE6-\\u0BEF\\u0C66-\\u0C6F\\u0CE6-\\u0CEF\\u0D66-\\u0D6F\\u0E50-\\u0E59\\u0ED0-\\u0ED9\\u0F20-\\u0F29\\u1040-\\u1049\\u1090-\\u1099\\u17E0-\\u17E9\\u1810-\\u1819\\u1946-\\u194F\\u19D0-\\u19D9\\u1A80-\\u1A89\\u1A90-\\u1A99\\u1B50-\\u1B59\\u1BB0-\\u1BB9\\u1C40-\\u1C49\\u1C50-\\u1C59\\uA620-\\uA629\\uA8D0-\\uA8D9\\uA900-\\uA909\\uA9D0-\\uA9D9\\uAA50-\\uAA59\\uABF0-\\uABF9\\uFF10-\\uFF19]")
 };
 
 function is_letter(ch) {
@@ -9597,15 +8213,19 @@ function is_letter(ch) {
 
 function is_digit(ch) {
         ch = ch.charCodeAt(0);
-        return ch >= 48 && ch <= 57; //XXX: find out if "UnicodeDigit" means something else than 0..9
+        return ch >= 48 && ch <= 57;
 };
+
+function is_unicode_digit(ch) {
+        return UNICODE.digit.test(ch);
+}
 
 function is_alphanumeric_char(ch) {
         return is_digit(ch) || is_letter(ch);
 };
 
 function is_unicode_combining_mark(ch) {
-        return UNICODE.non_spacing_mark.test(ch) || UNICODE.space_combining_mark.test(ch);
+        return UNICODE.combining_mark.test(ch);
 };
 
 function is_unicode_connector_punctuation(ch) {
@@ -9619,7 +8239,7 @@ function is_identifier_start(ch) {
 function is_identifier_char(ch) {
         return is_identifier_start(ch)
                 || is_unicode_combining_mark(ch)
-                || is_digit(ch)
+                || is_unicode_digit(ch)
                 || is_unicode_connector_punctuation(ch)
                 || ch == "\u200c" // zero-width non-joiner <ZWNJ>
                 || ch == "\u200d" // zero-width joiner <ZWJ> (in my ECMA-262 PDF, this is also 200c)
@@ -9721,6 +8341,10 @@ function tokenizer($TEXT) {
                 if (!is_comment) {
                         ret.comments_before = S.comments_before;
                         S.comments_before = [];
+                        // make note of any newlines in the comments that came before
+                        for (var i = 0, len = ret.comments_before.length; i < len; i++) {
+                                ret.nlb = ret.nlb || ret.comments_before[i].nlb;
+                        }
                 }
                 S.newline_before = false;
                 return ret;
@@ -9762,7 +8386,7 @@ function tokenizer($TEXT) {
                         if (ch == "+") return after_e;
                         after_e = false;
                         if (ch == ".") {
-                                if (!has_dot && !has_x)
+                                if (!has_dot && !has_x && !has_e)
                                         return has_dot = true;
                                 return false;
                         }
@@ -9856,7 +8480,7 @@ function tokenizer($TEXT) {
                             text = S.text.substring(S.pos, i);
                         S.pos = i + 2;
                         S.line += text.split("\n").length - 1;
-                        S.newline_before = text.indexOf("\n") >= 0;
+                        S.newline_before = S.newline_before || text.indexOf("\n") >= 0;
 
                         // https://github.com/mishoo/UglifyJS/issues/#issue/100
                         if (/^@cc_on/i.test(text)) {
@@ -10068,13 +8692,14 @@ NodeWithToken.prototype.toString = function() { return this.name; };
 function parse($TEXT, exigent_mode, embed_tokens) {
 
         var S = {
-                input       : typeof $TEXT == "string" ? tokenizer($TEXT, true) : $TEXT,
-                token       : null,
-                prev        : null,
-                peeked      : null,
-                in_function : 0,
-                in_loop     : 0,
-                labels      : []
+                input         : typeof $TEXT == "string" ? tokenizer($TEXT, true) : $TEXT,
+                token         : null,
+                prev          : null,
+                peeked        : null,
+                in_function   : 0,
+                in_directives : true,
+                in_loop       : 0,
+                labels        : []
         };
 
         S.token = next();
@@ -10093,6 +8718,9 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                 } else {
                         S.token = S.input();
                 }
+                S.in_directives = S.in_directives && (
+                        S.token.type == "string" || is("punc", ";")
+                );
                 return S.token;
         };
 
@@ -10169,8 +8797,12 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                         S.token = S.input(S.token.value.substr(1)); // force regexp
                 }
                 switch (S.token.type) {
-                    case "num":
                     case "string":
+                        var dir = S.in_directives, stat = simple_statement();
+                        if (dir && stat[1][0] == "string" && !is("punc", ","))
+                            return as("directive", stat[1][1]);
+                        return stat;
+                    case "num":
                     case "regexp":
                     case "operator":
                     case "atom":
@@ -10345,6 +8977,7 @@ function parse($TEXT, exigent_mode, embed_tokens) {
                           (function(){
                                   ++S.in_function;
                                   var loop = S.in_loop;
+                                  S.in_directives = true;
                                   S.in_loop = 0;
                                   var a = block_();
                                   --S.in_function;
@@ -10728,9 +9361,7 @@ exports.is_alphanumeric_char = is_alphanumeric_char;
 exports.set_logger = function(logger) {
         warn = logger;
 };
-
-});
-define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
+});define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 
 var jsp = require("./parse-js"),
     pro = require("./process"),
@@ -10785,6 +9416,7 @@ function ast_squeeze_more(ast) {
                         }
                         if (expr[0] == "dot" && expr[2] == "toString" && args.length == 0) {
                                 // foo.toString()  ==>  foo+""
+                                if (expr[1][0] == "string") return expr[1];
                                 return [ "binary", "+", expr[1], [ "string", "" ]];
                         }
                         if (expr[0] == "name") {
@@ -10805,9 +9437,7 @@ function ast_squeeze_more(ast) {
 };
 
 exports.ast_squeeze_more = ast_squeeze_more;
-
 });define('uglifyjs/process', ["require", "exports", "module", "./parse-js", "./squeeze-more"], function(require, exports, module) {
-
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -11012,6 +9642,9 @@ function ast_walker() {
                 },
                 "atom": function(name) {
                         return [ this[0], name ];
+                },
+                "directive": function(dir) {
+                        return [ this[0], dir ];
                 }
         };
 
@@ -11084,6 +9717,7 @@ function Scope(parent) {
         this.refs = {};         // names referenced from this scope
         this.uses_with = false; // will become TRUE if with() is detected in this or any subscopes
         this.uses_eval = false; // will become TRUE if eval() is detected in this or any subscopes
+        this.directives = [];   // directives activated from this scope
         this.parent = parent;   // parent scope
         this.children = [];     // sub-scopes
         if (parent) {
@@ -11094,8 +9728,15 @@ function Scope(parent) {
         }
 };
 
+function base54_digits() {
+        if (typeof DIGITS_OVERRIDE_FOR_TESTING != "undefined")
+                return DIGITS_OVERRIDE_FOR_TESTING;
+        else
+                return "etnrisouaflchpdvmgybwESxTNCkLAOM_DPHBjFIqRUzWXV$JKQGYZ0516372984";
+}
+
 var base54 = (function(){
-        var DIGITS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$_0123456789";
+        var DIGITS = base54_digits();
         return function(num) {
                 var ret = "", base = 54;
                 do {
@@ -11186,6 +9827,9 @@ Scope.prototype = {
                                 this.names[name] = type || "var";
                         return name;
                 }
+        },
+        active: function(dir) {
+                return member(dir, this.directives) || this.parent && this.parent.active(dir);
         }
 };
 
@@ -11308,8 +9952,12 @@ function ast_mangle(ast, options) {
         options = options || {};
 
         function get_mangled(name, newMangle) {
+                if (!options.mangle) return name;
                 if (!options.toplevel && !scope.parent) return name; // don't mangle toplevel
                 if (options.except && member(name, options.except))
+                        return name;
+                if (options.no_functions && HOP(scope.names, name) &&
+                    (scope.names[name] == 'defun' || scope.names[name] == 'lambda'))
                         return name;
                 return scope.get_mangled(name, newMangle);
         };
@@ -11414,6 +10062,9 @@ function ast_mangle(ast, options) {
                         return with_scope(self.scope, function(){
                                 return [ self[0], MAP(body, walk) ];
                         });
+                },
+                "directive": function() {
+                        return MAP.at_top(this);
                 }
         }, function() {
                 return walk(ast_add_scope(ast));
@@ -11808,10 +10459,11 @@ function ast_squeeze(ast, options) {
                 make_seqs   : true,
                 dead_code   : true,
                 no_warnings : false,
-                keep_comps  : true
+                keep_comps  : true,
+                unsafe      : false
         });
 
-        var w = ast_walker(), walk = w.walk;
+        var w = ast_walker(), walk = w.walk, scope;
 
         function negate(c) {
                 var not_c = [ "unary-prefix", "!", c ];
@@ -11874,7 +10526,17 @@ function ast_squeeze(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                return [ this[0], name, args, tighten(body, "lambda") ];
+                return [ this[0], name, args, with_scope(body.scope, function() {
+                        return tighten(body, "lambda");
+                }) ];
+        };
+
+        function with_scope(s, cont) {
+                var _scope = scope;
+                scope = s;
+                var ret = cont();
+                scope = _scope;
+                return ret;
         };
 
         // this function does a few things:
@@ -12093,7 +10755,9 @@ function ast_squeeze(ast, options) {
                 },
                 "if": make_if,
                 "toplevel": function(body) {
-                        return [ "toplevel", tighten(body) ];
+                        return with_scope(this.scope, function() {
+                            return [ "toplevel", tighten(body) ];
+                        });
                 },
                 "switch": function(expr, body) {
                         var last = body.length - 1;
@@ -12164,11 +10828,24 @@ function ast_squeeze(ast, options) {
                                 return [ this[0], rvalue[1], lvalue, rvalue[3] ]
                         }
                         return [ this[0], op, lvalue, rvalue ];
+                },
+                "directive": function(dir) {
+                        if (scope.active(dir))
+                            return [ "block" ];
+                        scope.directives.push(dir);
+                        return [ this[0], dir ];
+                },
+                "call": function(expr, args) {
+                        expr = walk(expr);
+                        if (options.unsafe && expr[0] == "dot" && expr[1][0] == "string" && expr[2] == "toString") {
+                                return expr[1];
+                        }
+                        return [ this[0], expr,  MAP(args, walk) ];
                 }
         }, function() {
                 for (var i = 0; i < 2; ++i) {
                         ast = prepare_ifs(ast);
-                        ast = walk(ast);
+                        ast = walk(ast_add_scope(ast));
                 }
                 return ast;
         });
@@ -12357,7 +11034,7 @@ function gen_code(ast, options) {
                 "string": encode_string,
                 "num": make_num,
                 "name": make_name,
-                "debugger": function(){ return "debugger" },
+                "debugger": function(){ return "debugger;" },
                 "toplevel": function(statements) {
                         return make_block_statements(statements)
                                 .join(newline + newline);
@@ -12439,7 +11116,7 @@ function gen_code(ast, options) {
                 "dot": function(expr) {
                         var out = make(expr), i = 1;
                         if (expr[0] == "num") {
-                                if (!/\./.test(expr[1]))
+                                if (!/[a-f.]/i.test(out))
                                         out += ".";
                         } else if (expr[0] != "function" && needs_parens(expr))
                                 out = "(" + out + ")";
@@ -12558,6 +11235,7 @@ function gen_code(ast, options) {
                         return obj_needs_parens ? "(" + out + ")" : out;
                 },
                 "regexp": function(rx, mods) {
+                        if (options.ascii_only) rx = to_ascii(rx);
                         return "/" + rx + "/" + mods;
                 },
                 "array": function(elements) {
@@ -12581,6 +11259,9 @@ function gen_code(ast, options) {
                 },
                 "atom": function(name) {
                         return make_name(name);
+                },
+                "directive": function(dir) {
+                        return make_string(dir) + ";";
                 }
         }, function(){ return make(ast) });
 
@@ -12630,10 +11311,10 @@ function gen_code(ast, options) {
                 switch (node[0]) {
                     case "with":
                     case "while":
-                        return empty(node[2]); // `with' or `while' with empty body?
+                        return empty(node[2]) || must_has_semicolon(node[2]);
                     case "for":
                     case "for-in":
-                        return empty(node[4]); // `for' with empty body?
+                        return empty(node[4]) || must_has_semicolon(node[4]);
                     case "if":
                         if (empty(node[2]) && !node[3]) return true; // `if' with empty `then' and no `else'
                         if (node[3]) {
@@ -12641,6 +11322,8 @@ function gen_code(ast, options) {
                                 return must_has_semicolon(node[3]); // dive into the `else' branch
                         }
                         return must_has_semicolon(node[2]); // dive into the `then' branch
+                    case "directive":
+                        return true;
                 }
         };
 
@@ -12819,9 +11502,7 @@ exports.MAP = MAP;
 
 // keep this last!
 exports.ast_squeeze_more = require("./squeeze-more").ast_squeeze_more;
-
 });define('uglifyjs/index', ["require", "exports", "module", "./parse-js", "./process", "./consolidator"], function(require, exports, module) {
-
 //convienence function(src, [options]);
 function uglify(orig_code, options){
   options || (options = {});
@@ -12840,7 +11521,6 @@ uglify.uglify = require("./process");
 uglify.consolidator = require("./consolidator");
 
 module.exports = uglify
-
 });/**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
