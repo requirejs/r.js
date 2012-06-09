@@ -188,6 +188,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             logger.logLevel(config.logLevel);
         }
 
+        //Remove the previous build dir, in case it contains source transforms,
+        //like the ones done with onBuildRead and onBuildWrite.
+        if (config.dir && !config.keepBuildDir && file.exists(config.dir)) {
+            file.deleteFile(config.dir);
+        }
+
         if (!config.out && !config.cssIn) {
             //This is not just a one-off file build but a full build profile, with
             //lots of files to process.

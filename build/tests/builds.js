@@ -287,8 +287,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("useDotPackage",
         [
             function useDotPackage(t) {
-                file.deleteFile("lib/dotpackage/built");
-
                 build(["lib/dotpackage/scripts/app.build.js"]);
 
                 t.is(nol(c("lib/dotpackage/scripts/main-expected.js")),
@@ -304,7 +302,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("multipleEmpty",
         [
             function multipleEmpty(t) {
-                file.deleteFile("lib/empty/built");
 
                 build(["lib/empty/build.js"]);
 
@@ -709,7 +706,6 @@ define(['build', 'env!env/file'], function (build, file) {
             //normalization of paths to be absolute, when an appDir is
             //in play.
             function pristineSrc(t) {
-                file.deleteFile("lib/pristineSrc/built");
 
                 build(["lib/pristineSrc/build.js"]);
 
@@ -833,7 +829,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("appDirSrcOverwrite",
         [
             function appDirSrcOverwrite(t) {
-                file.deleteFile("lib/appDirSrcOverwrite/www-built");
 
                 build(["lib/appDirSrcOverwrite/build.js"]);
 
@@ -875,7 +870,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("transportBeforeMinify",
         [
             function transportBeforeMinify(t) {
-                file.deleteFile("lib/transportBeforeMinify/www-built");
 
                 build(["lib/transportBeforeMinify/build.js"]);
 
@@ -1012,7 +1006,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("removeCombinedApp",
         [
             function removeCombinedApp(t) {
-                file.deleteFile("lib/removeCombined/app-built");
 
                 build(["lib/removeCombined/build.js"]);
 
@@ -1036,7 +1029,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("removeCombinedBaseUrl",
         [
             function removeCombinedBaseUrl(t) {
-                file.deleteFile("lib/removeCombined/baseUrl-built");
 
                 build(["lib/removeCombined/build-baseUrl.js"]);
 
@@ -1137,8 +1129,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("mainConfigBaseUrl",
         [
             function mainConfigBaseUrl(t) {
-                file.deleteFile("lib/mainConfigBaseUrl/www-built");
-
                 build(["lib/mainConfigBaseUrl/build.js"]);
 
                 t.is(nol(c("lib/mainConfigBaseUrl/expected.js")),
@@ -1214,7 +1204,6 @@ define(['build', 'env!env/file'], function (build, file) {
     doh.register("optimizeAllPluginResources",
         [
             function optimizeAllPluginResources(t) {
-                file.deleteFile("lib/plugins/optimizeAllPluginResources/www-built");
 
                 build(["lib/plugins/optimizeAllPluginResources/build.js"]);
 
