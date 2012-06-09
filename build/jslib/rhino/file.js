@@ -49,7 +49,7 @@ define(function () {
             if (typeof fileObj === "string") {
                 fileObj = new java.io.File(fileObj);
             }
-            return (fileObj.getAbsolutePath() + "").replace(file.backSlashRegExp, "/");
+            return (fileObj.getCanonicalPath() + "").replace(file.backSlashRegExp, "/");
         },
 
         getFilteredFileList: function (/*String*/startDir, /*RegExp*/regExpFilters, /*boolean?*/makeUnixPaths, /*boolean?*/startDirIsJavaObject) {
@@ -148,7 +148,7 @@ define(function () {
             parentDir = destFile.getParentFile();
             if (!parentDir.exists()) {
                 if (!parentDir.mkdirs()) {
-                    throw "Could not create directory: " + parentDir.getAbsolutePath();
+                    throw "Could not create directory: " + parentDir.getCanonicalPath();
                 }
             }
 

@@ -16,6 +16,15 @@ define(['build', 'env!env/file'], function (build, file) {
         return contents.replace(/[\r\n]/g, "");
     }
 
+    //Remove \n and \r string literals, since rhino and node
+    //do not always agree on what was read from disk, if a
+    //trailing \n should be in there. After an optimization,
+    //the text file can write out modules with these \r or \n
+    //strings.
+    function noSlashRn(contents) {
+        return contents.replace(/\\n|\\r/g, '');
+    }
+
     //Do a build of the text plugin to get any pragmas processed.
     build(["name=text", "baseUrl=../../../text", "out=builds/text.js", "optimize=none"]);
 
@@ -1075,8 +1084,8 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 build(["lib/stubModules/build.js"]);
 
-                t.is(nol(c("lib/stubModules/expected.js")),
-                     nol(c("lib/stubModules/main-built.js")));
+                t.is(noSlashRn(nol(c("lib/stubModules/expected.js"))),
+                     noSlashRn(nol(c("lib/stubModules/main-built.js"))));
 
                 require._buildReset();
             }
@@ -1211,8 +1220,8 @@ define(['build', 'env!env/file'], function (build, file) {
                 t.is(true, file.exists("lib/plugins/optimizeAllPluginResources/www-built/js/two.txt.js"));
                 t.is(true, file.exists("lib/plugins/optimizeAllPluginResources/www-built/js/secondary.txt.js"));
 
-                t.is(nol(c("lib/plugins/optimizeAllPluginResources/expected-secondary.txt.js")),
-                     nol(c("lib/plugins/optimizeAllPluginResources/www-built/js/secondary.txt.js")));
+                t.is(noSlashRn(nol(c("lib/plugins/optimizeAllPluginResources/expected-secondary.txt.js"))),
+                     noSlashRn(nol(c("lib/plugins/optimizeAllPluginResources/www-built/js/secondary.txt.js"))));
 
                 require._buildReset();
             }
@@ -1220,4 +1229,22 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Tests that under rhino paths are normalized to not have . or .. in them.
+    //https://github.com/jrburke/r.js/issues/186
+    doh.register("rhino186",
+        [
+            function rhino186(t) {
+                build(["lib/rhino-186/app.build.js"]);
+
+                t.is(noSlashRn(nol(c("lib/rhino-186/expected.js"))),
+                     noSlashRn(nol(c("lib/rhino-186/built/main.js"))));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

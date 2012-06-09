@@ -42,6 +42,7 @@ build/tests/lib/plugins/optimizeAllPluginResources/www-built
 build/tests/lib/pristineSrc/built
 build/tests/lib/removeCombined/app-built
 build/tests/lib/removeCombined/baseUrl-built
+build/tests/lib/rhino-186/built
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/transportBeforeMinify/www-built
 build/tests/lib/urlToEmpty/main-built.js
