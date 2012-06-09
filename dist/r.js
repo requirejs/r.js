@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Sat, 09 Jun 2012 19:20:21 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Sat, 09 Jun 2012 21:37:13 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Sat, 09 Jun 2012 19:20:21 GMT',
+        version = '2.0.1+ Sat, 09 Jun 2012 21:37:13 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15502,6 +15502,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         if (config.logLevel) {
             logger.logLevel(config.logLevel);
+        }
+
+        //Remove the previous build dir, in case it contains source transforms,
+        //like the ones done with onBuildRead and onBuildWrite.
+        if (config.dir && !config.keepBuildDir && file.exists(config.dir)) {
+            file.deleteFile(config.dir);
         }
 
         if (!config.out && !config.cssIn) {
