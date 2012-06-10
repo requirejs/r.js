@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Sat, 09 Jun 2012 22:36:11 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Sun, 10 Jun 2012 04:47:24 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Sat, 09 Jun 2012 22:36:11 GMT',
+        version = '2.0.1+ Sun, 10 Jun 2012 04:47:24 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -330,7 +330,6 @@ var requirejs, require, define;
             undefEvents = {},
             defQueue = [],
             defined = {},
-            urlMap = {},
             urlFetched = {},
             requireCounter = 1,
             unnormalizedCounter = 1,
@@ -550,22 +549,16 @@ var requirejs, require, define;
                     //A regular module.
                     normalizedName = normalize(name, parentName, applyMap);
 
-                    url = urlMap[normalizedName];
-                    if (!url) {
-                        //Calculate url for the module, if it has a name.
-                        //Use name here since nameToUrl also calls normalize,
-                        //and for relative names that are outside the baseUrl
-                        //this causes havoc. Was thinking of just removing
-                        //parentModuleMap to avoid extra normalization, but
-                        //normalize() still does a dot removal because of
-                        //issue #142, so just pass in name here and redo
-                        //the normalization. Paths outside baseUrl are just
-                        //messy to support.
-                        url = context.nameToUrl(name, null, parentModuleMap);
-
-                        //Store the URL mapping for later.
-                        urlMap[normalizedName] = url;
-                    }
+                    //Calculate url for the module, if it has a name.
+                    //Use name here since nameToUrl also calls normalize,
+                    //and for relative names that are outside the baseUrl
+                    //this causes havoc. Was thinking of just removing
+                    //parentModuleMap to avoid extra normalization, but
+                    //normalize() still does a dot removal because of
+                    //issue #142, so just pass in name here and redo
+                    //the normalization. Paths outside baseUrl are just
+                    //messy to support.
+                    url = context.nameToUrl(name, null, parentModuleMap);
                 }
             }
 
@@ -1356,7 +1349,6 @@ var requirejs, require, define;
             contextName: contextName,
             registry: registry,
             defined: defined,
-            urlMap: urlMap,
             urlFetched: urlFetched,
             waitCount: 0,
             defQueue: defQueue,
@@ -1440,6 +1432,13 @@ var requirejs, require, define;
                     //Done with modifications, assing packages back to context config
                     config.pkgs = pkgs;
                 }
+
+                //If there are any "waiting to execute" modules in the registry,
+                //update the maps for them, since their info, like URLs to load,
+                //may have changed.
+                eachProp(registry, function (mod, id) {
+                    mod.map = makeModuleMap(id);
+                });
 
                 //If a deps array or a config callback is specified, then call
                 //require with those args. This is useful when require is defined as a
@@ -1551,7 +1550,6 @@ var requirejs, require, define;
                     mod = registry[id];
 
                 delete defined[id];
-                delete urlMap[id];
                 delete urlFetched[map.url];
                 delete undefEvents[id];
 
