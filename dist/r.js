@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Sun, 10 Jun 2012 04:47:24 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Mon, 11 Jun 2012 05:23:21 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Sun, 10 Jun 2012 04:47:24 GMT',
+        version = '2.0.1+ Mon, 11 Jun 2012 05:23:21 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -216,6 +216,7 @@ var requirejs, require, define;
                 }
             });
         }
+        return target;
     }
 
     //Similar to Function.prototype.bind, but the 'this' object is specified
@@ -739,7 +740,14 @@ var requirejs, require, define;
                     return true;
                 }
 
-                return (foundModule = findCycle(depMod, traced));
+                //mixin traced to a new object for each dependency, so that
+                //sibling dependencies in this object to not generate a
+                //false positive match on a cycle. Ideally an Object.create
+                //type of prototype delegation would be used here, but
+                //optimizing for file size vs. execution speed since hopefully
+                //the trees are small for circular dependency scans relative
+                //to the full app perf.
+                return (foundModule = findCycle(depMod, mixin({}, traced)));
             });
 
             return foundModule;
@@ -1369,23 +1377,19 @@ var requirejs, require, define;
 
                 //Save off the paths and packages since they require special processing,
                 //they are additive.
-                var paths = config.paths,
-                    pkgs = config.pkgs,
-                    shim = config.shim,
-                    map = config.map || {};
+                var pkgs = config.pkgs,
+                    shim = config.shim;
 
                 //Mix in the config values, favoring the new values over
                 //existing ones in context.config.
                 mixin(config, cfg, true);
 
                 //Merge paths.
-                mixin(paths, cfg.paths, true);
-                config.paths = paths;
+                config.paths = mixin(config.paths, cfg.paths, true);
 
                 //Merge map
                 if (cfg.map) {
-                    mixin(map, cfg.map, true);
-                    config.map = map;
+                    config.map = mixin(config.map || {}, cfg.map, true);
                 }
 
                 //Merge shim
