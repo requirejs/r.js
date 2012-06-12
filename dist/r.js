@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Mon, 11 Jun 2012 05:23:21 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Tue, 12 Jun 2012 04:07:18 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Mon, 11 Jun 2012 05:23:21 GMT',
+        version = '2.0.1+ Tue, 12 Jun 2012 04:07:18 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -208,11 +208,18 @@ var requirejs, require, define;
      * Object.prototype names, but the uses of mixin here seem unlikely to
      * trigger a problem related to that.
      */
-    function mixin(target, source, force) {
+    function mixin(target, source, force, deepStringMixin) {
         if (source) {
             eachProp(source, function (value, prop) {
                 if (force || !hasProp(target, prop)) {
-                    target[prop] = value;
+                    if (deepStringMixin && typeof value !== 'string') {
+                        if (!target[prop]) {
+                            target[prop] = {};
+                        }
+                        mixin(target[prop], value, force, deepStringMixin);
+                    } else {
+                        target[prop] = value;
+                    }
                 }
             });
         }
@@ -950,33 +957,14 @@ var requirejs, require, define;
                     });
                 }
 
-                each(depMaps, bind(this, function (depMap, i) {
-                    if (typeof depMap === 'string') {
-                        depMap = makeModuleMap(depMap,
-                                               (this.map.isDefine ? this.map : this.map.parentMap),
-                                               false,
-                                               true);
-                        this.depMaps.push(depMap);
-                    }
+                //Do a copy of the dependency array, so that
+                //source inputs are not modified. For example
+                //"shim" deps are passed in here directly, and
+                //doing a direct modification of the depMaps array
+                //would affect that config.
+                this.depMaps = depMaps && depMaps.slice(0);
 
-                    var handler = handlers[depMap.id];
-
-                    if (handler) {
-                        this.depExports[i] = handler(this);
-                        return;
-                    }
-
-                    this.depCount += 1;
-
-                    on(depMap, 'defined', bind(this, function (depExports) {
-                        this.defineDep(i, depExports);
-                        this.check();
-                    }));
-
-                    if (errback) {
-                        on(depMap, 'error', errback);
-                    }
-                }));
+                this.errback = errback;
 
                 //Indicate this module has be initialized
                 this.inited = true;
@@ -1061,7 +1049,7 @@ var requirejs, require, define;
              * check of all loaded modules. That is useful for cycle breaking.
              */
             check: function (silent) {
-                if (!this.enabled) {
+                if (!this.enabled || this.enabling) {
                     return;
                 }
 
@@ -1235,6 +1223,10 @@ var requirejs, require, define;
                             useInteractive = false;
                         }
 
+                        //Prime the system by creating a module instance for
+                        //it.
+                        getModule(makeModuleMap(moduleName));
+
                         req.exec(text);
 
                         if (hasInteractive) {
@@ -1266,15 +1258,52 @@ var requirejs, require, define;
                     this.waitPushed = true;
                 }
 
+                //Set flag mentioning that the module is enabling,
+                //so that immediate calls to the defined callbacks
+                //for dependencies do not trigger inadvertent load
+                //with the depCount still being zero.
+                this.enabling = true;
+
                 //Enable each dependency
-                each(this.depMaps, bind(this, function (map) {
-                    var id = map.id,
-                        mod = registry[id];
+                each(this.depMaps, bind(this, function (depMap, i) {
+                    var id, mod, handler;
+
+                    if (typeof depMap === 'string') {
+                        //Dependency needs to be converted to a depMap
+                        //and wired up to this module.
+                        depMap = makeModuleMap(depMap,
+                                               (this.map.isDefine ? this.map : this.map.parentMap),
+                                               false,
+                                               true);
+                        this.depMaps[i] = depMap;
+
+                        handler = handlers[depMap.id];
+
+                        if (handler) {
+                            this.depExports[i] = handler(this);
+                            return;
+                        }
+
+                        this.depCount += 1;
+
+                        on(depMap, 'defined', bind(this, function (depExports) {
+                            this.defineDep(i, depExports);
+                            this.check();
+                        }));
+
+                        if (this.errback) {
+                            on(depMap, 'error', this.errback);
+                        }
+                    }
+
+                    id = depMap.id;
+                    mod = registry[id];
+
                     //Skip special modules like 'require', 'exports', 'module'
                     //Also, don't call enable if it is already enabled,
                     //important in circular dependency cases.
                     if (!handlers[id] && mod && !mod.enabled) {
-                        context.enable(map, this);
+                        context.enable(depMap, this);
                     }
                 }));
 
@@ -1286,6 +1315,8 @@ var requirejs, require, define;
                         context.enable(pluginMap, this);
                     }
                 }));
+
+                this.enabling = false;
 
                 this.check();
             },
@@ -1378,18 +1409,20 @@ var requirejs, require, define;
                 //Save off the paths and packages since they require special processing,
                 //they are additive.
                 var pkgs = config.pkgs,
-                    shim = config.shim;
+                    shim = config.shim,
+                    paths = config.paths,
+                    map = config.map;
 
                 //Mix in the config values, favoring the new values over
                 //existing ones in context.config.
                 mixin(config, cfg, true);
 
                 //Merge paths.
-                config.paths = mixin(config.paths, cfg.paths, true);
+                config.paths = mixin(paths, cfg.paths, true);
 
                 //Merge map
                 if (cfg.map) {
-                    config.map = mixin(config.map || {}, cfg.map, true);
+                    config.map = mixin(map || {}, cfg.map, true, true);
                 }
 
                 //Merge shim
