@@ -32,13 +32,14 @@ require({
 }, [
     '../../tests/doh/runner.js',
     'env!../../tests/doh/_{env}Runner.js',
-    'tests/convert',
-    'tests/parse',
+    /*'tests/convert',
+    'tests/parse', */
+    'tests/transform'/*,
     'tests/buildUtils',
 
     //Build tests should be last in case they alter the environment
     //in a weird way.
-    'tests/builds'
+    'tests/builds' */
 ]);
 
 //Show final report. Do this outside the require call, not

@@ -419,5 +419,8 @@
     //ID-to-file path logic, all the modules still have to be found using the
     //requirejs-style configuration, it does not use node's node_modules nested
     //path lookups.
-    cjsTranslate: true
+    cjsTranslate: true,
+
+    //useSourceUrl, optimize: none is best, since otherwise do not get benefit
+    //of minification. Only define() calls.
 })

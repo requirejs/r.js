@@ -1189,7 +1189,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
                                         addSemiColon(
-                                            build.toTransport(namespace, moduleName, path, input, layer));
+                                            build.toTransport(namespace, moduleName, path, input, layer, {
+                                                useSourceUrl: layer.context.config.useSourceUrl
+                                            }));
                         if (config.onBuildWrite) {
                             fileContents = config.onBuildWrite(moduleName, path, fileContents);
                         }
@@ -1224,7 +1226,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = pragma.namespace(currContents, namespace);
                 }
 
-                currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
+                currContents = build.toTransport(namespace, moduleName, path, currContents, layer, {
+                                    useSourceUrl: layer.context.config.useSourceUrl
+                                });
 
                 if (packageConfig) {
                     currContents = addSemiColon(currContents) + '\n';
@@ -1285,7 +1289,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }).join('","') + '"]';
     };
 
-    build.toTransport = function (namespace, moduleName, path, contents, layer) {
+    build.toTransport = function (namespace, moduleName, path, contents, layer, options) {
+
         function onFound(info) {
             //Only mark this module as having a name if not a named module,
             //or if a named module and the name matches expectations.
@@ -1294,7 +1299,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
-        return transform.toTransport(namespace, moduleName, path, contents, onFound);
+        contents = transform.toTransport(namespace, moduleName, path, contents, onFound, options);
     };
 
     return build;
