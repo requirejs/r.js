@@ -303,6 +303,10 @@
         //have a require([]) call placed at the end of the file to trigger the
         //execution of modules. More detail at
         //https://github.com/jrburke/almond
+        //Note that insertRequire does not affect or add to the modules
+        //that are built into the build layer. It just adds a require([])
+        //call to the end of the built file for use during the runtime
+        //execution of the built code.
         {
             name: "foo/baz",
             insertRequire: ["foo/baz"]
