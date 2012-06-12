@@ -1290,6 +1290,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     };
 
     build.toTransport = function (namespace, moduleName, path, contents, layer, options) {
+        var baseUrl = layer && layer.context.config.baseUrl;
 
         function onFound(info) {
             //Only mark this module as having a name if not a named module,
@@ -1299,7 +1300,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
-        contents = transform.toTransport(namespace, moduleName, path, contents, onFound, options);
+        //Convert path to be a local one to the baseUrl, useful for
+        //useSourceUrl.
+        if (baseUrl) {
+            path = path.replace(baseUrl, '');
+        }
+
+        return transform.toTransport(namespace, moduleName, path, contents, onFound, options);
     };
 
     return build;

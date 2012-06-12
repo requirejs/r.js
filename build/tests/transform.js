@@ -8,7 +8,7 @@ define(['transform'], function (transform) {
         [
             function transformTests(t) {
                 var source1 = 'define(["a", "b"], function(a, b) {\nreturn a + "hello" + b;\n});',
-                    expected1 = 'define(\'source1\',["a", "b"], Function(["a","b"], "\\nreturn a + \\"hello\\" + b;\\n\\r\\n//@ sourceURL=source1.js"));';
+                    expected1 = 'define(\'source1\',["a", "b"], Function(["a","b"], "\\nreturn a + \\"hello\\" + b;\\n\\r\\n//@ sourceURL=/source1.js"));';
 
 
 //test no args function

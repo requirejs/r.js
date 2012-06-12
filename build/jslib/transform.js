@@ -221,7 +221,7 @@ function (esprima,     parse,     logger,   lang) {
                 //First, convert the function to a Function string, if
                 //useSourceUrl is in play.
                 functionBody = lang.jsEscape(contents.substring(urlData.bodyStart[1], urlData.bodyEnd[0]) +
-                                             '\r\n//@ sourceURL=' + path);
+                                             '\r\n//@ sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') + path);
 
                 functionContent = 'Function([' +
                                    (urlData.args.length ? '"' + urlData.args.join('","') + '"' : '') +
