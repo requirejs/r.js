@@ -407,5 +407,17 @@
         //Always return a value.
         //This is just a contrived example.
         return contents.replace(/bar/g, 'foo');
-    }
+    },
+
+    //Introduced in 2.0.2: if set to true, then the optimizer will add a
+    //define(require, exports, module) {}); wrapper around any file that seems
+    //to use commonjs/node module syntax (require, exports) without already
+    //calling define(). This is useful to reuse modules that came from
+    //or are loadable in an AMD loader that can load commonjs style modules
+    //in development as well as AMD modules, but need to have a built form
+    //that is only AMD. Note that this does *not* enable different module
+    //ID-to-file path logic, all the modules still have to be found using the
+    //requirejs-style configuration, it does not use node's node_modules nested
+    //path lookups.
+    cjsTranslate: true
 })

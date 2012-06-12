@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+        .section {
+            float: left;
+        }
+        </style>
+        <script src="../cajon.js"></script>
+        <script>
+        cajon.config({
+            baseUrl: 'js'
+        });
+
+        cajon(['jquery', 'lib'], function ($, lib) {
+            $(function () {
+                var actual = '';
+
+                function addItem(message) {
+                    actual += '<li>' + message + '</li>';
+                }
+
+                addItem('lib.controller: ' + lib.controller.control());
+                addItem('lib.model: ' + lib.model.create());
+                addItem('lib.template: ' + lib.template.compile());
+                addItem('lib.view: ' + lib.view.render());
+                addItem('lib.view.$ version: ' + lib.view.$().jquery);
+                addItem('lib.view.helper(): ' + lib.view.helper());
+
+                $('#actual').html(actual);
+            });
+        });
+        </script>
+    </head>
+    <body>
+        <h1>Hello World</h1>
+
+        <div class="section">
+            <h2>Expected output:</h2>
+            <ul>
+                <li>lib.controller: controller is ready</li>
+                <li>lib.model: module.create() works</li>
+                <li>lib.template: template.compile() works</li>
+                <li>lib.view: view.render() works</li>
+                <li>lib.view.$ version: 1.7.1</li>
+                <li>lib.view.helper(): helper is ready</li>
+            </ul>
+        </div>
+        <div class="section">
+            <h2>Actual output:</h2>
+            <ul id="actual">
+
+            </ul>
+        </div>
+    </body>
+</html>

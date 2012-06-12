@@ -4,19 +4,12 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, regexp: false, strict: false */
+/*jslint */
 /*global define: false, console: false */
 
-define(['env!env/file', 'uglifyjs/index'], function (file, uglify) {
+define(['env!env/file', 'parse'], function (file, parse) {
+    'use strict';
     var commonJs = {
-        depRegExp: /require\s*\(\s*["']([\w-_\.\/]+)["']\s*\)/g,
-
-        //Set this to false in non-rhino environments. If rhino, then it uses
-        //rhino's decompiler to remove comments before looking for require() calls,
-        //otherwise, it will use a crude regexp approach to remove comments. The
-        //rhino way is more robust, but he regexp is more portable across environments.
-        useRhino: true,
-
         //Set to false if you do not want this file to log. Useful in environments
         //like node where you want the work to happen without noise.
         useLog: true,
@@ -50,7 +43,8 @@ define(['env!env/file', 'uglifyjs/index'], function (file, uglify) {
                     }
                 }
             } else {
-                for (i = 0; (fileName = fileList[i]); i++) {
+                for (i = 0; i < fileList.length; i++) {
+                    fileName = fileList[i];
                     convertedFileName = fileName.replace(commonJsPath, savePath);
 
                     //Handle JS files.
@@ -67,80 +61,38 @@ define(['env!env/file', 'uglifyjs/index'], function (file, uglify) {
         },
 
         /**
-         * Removes the comments from a string.
-         *
-         * @param {String} fileContents
-         * @param {String} fileName mostly used for informative reasons if an error.
-         *
-         * @returns {String} a string of JS with comments removed.
-         */
-        removeComments: function (fileContents, fileName) {
-            //Uglify's ast generation removes comments, so just convert to ast,
-            //then back to source code to get rid of comments.
-            return uglify.uglify.gen_code(uglify.parser.parse(fileContents), true);
-        },
-
-        /**
-         * Regexp for testing if there is already a require.def call in the file,
-         * in which case do not try to convert it.
-         */
-        defRegExp: /define\s*\(\s*("|'|\[|function)/,
-
-        /**
-         * Regexp for testing if there is a require([]) or require(function(){})
-         * call, indicating the file is already in requirejs syntax.
-         */
-        rjsRegExp: /require\s*\(\s*(\[|function)/,
-
-        /**
          * Does the actual file conversion.
          *
          * @param {String} fileName the name of the file.
          *
          * @param {String} fileContents the contents of a file :)
          *
-         * @param {Boolean} skipDeps if true, require("") dependencies
-         * will not be searched, but the contents will just be wrapped in the
-         * standard require, exports, module dependencies. Only usable in sync
-         * environments like Node where the require("") calls can be resolved on
-         * the fly.
-         *
          * @returns {String} the converted contents
          */
-        convert: function (fileName, fileContents, skipDeps) {
+        convert: function (fileName, fileContents) {
             //Strip out comments.
             try {
-                var deps = [], depName, match,
-                    //Remove comments
-                    tempContents = commonJs.removeComments(fileContents, fileName);
+                var preamble = '',
+                    commonJsProps = parse.usesCommonJs(fileName, fileContents);
 
                 //First see if the module is not already RequireJS-formatted.
-                if (commonJs.defRegExp.test(tempContents) || commonJs.rjsRegExp.test(tempContents)) {
+                if (parse.usesAmdOrRequireJs(fileName, fileContents) || !commonJsProps) {
                     return fileContents;
                 }
 
-                //Reset the regexp to start at beginning of file. Do this
-                //since the regexp is reused across files.
-                commonJs.depRegExp.lastIndex = 0;
-
-                if (!skipDeps) {
-                    //Find dependencies in the code that was not in comments.
-                    while ((match = commonJs.depRegExp.exec(tempContents))) {
-                        depName = match[1];
-                        if (depName) {
-                            deps.push('"' + depName + '"');
-                        }
-                    }
+                if (commonJsProps.dirname || commonJsProps.filename) {
+                    preamble = 'var __filename = module.uri || "", ' +
+                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n';
                 }
 
                 //Construct the wrapper boilerplate.
-                fileContents = 'define(["require", "exports", "module"' +
-                       (deps.length ? ', ' + deps.join(",") : '') + '], ' +
-                       'function(require, exports, module) {\n' +
-                       fileContents +
-                       '\n});\n';
+                fileContents = 'define(function (require, exports, module) {\n' +
+                    preamble +
+                    fileContents +
+                    '\n});\n';
+
             } catch (e) {
-                console.log("COULD NOT CONVERT: " + fileName + ", so skipping it. Error was: " + e);
+                console.log("commonJs.convert: COULD NOT CONVERT: " + fileName + ", so skipping it. Error was: " + e);
                 return fileContents;
             }
 

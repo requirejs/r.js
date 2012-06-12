@@ -15,8 +15,8 @@
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
-define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger'],
-function (file,           pragma,   parse,   lang,   logger) {
+define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs'],
+function (file,           pragma,   parse,   lang,   logger,   commonJs) {
 
     var allowRun = true;
 
@@ -168,6 +168,10 @@ function (file,           pragma,   parse,   lang,   logger) {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
                                 contents = file.readFile(url);
+
+                                if (context.config.cjsTranslate) {
+                                    contents = commonJs.convert(url, contents);
+                                }
 
                                 //If there is a read filter, run it now.
                                 if (context.config.onBuildRead) {

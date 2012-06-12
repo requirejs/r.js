@@ -1247,4 +1247,23 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests cjsTranslate https://github.com/jrburke/r.js/issues/189
+    doh.register("cjsTranslate",
+        [
+            function cjsTranslate(t) {
+
+                build(["lib/cjsTranslate/www/app.build.js"]);
+
+                var expected = nol(c("lib/cjsTranslate/expected.js")),
+                    contents = nol(c("lib/cjsTranslate/www-built/js/lib.js"));
+
+                t.is(expected, contents);
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

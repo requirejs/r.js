@@ -9,9 +9,11 @@
 
 
 define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
-         'transform', 'env!env/load', 'requirePatch', 'env!env/quit'],
+         'transform', 'env!env/load', 'requirePatch', 'env!env/quit',
+         'commonJs'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
-          transform,   load,           requirePatch,   quit) {
+          transform,   load,           requirePatch,   quit,
+          commonJs) {
     'use strict';
 
     var build, buildBaseConfig,
@@ -431,6 +433,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //inserted (by passing null for moduleName) since the files are
                 //standalone, one module per file.
                 fileContents = file.readFile(fileName);
+
+                //For builds, if wanting cjs translation, do it now, so that
+                //the individual modules can be loaded cross domain via
+                //plain script tags.
+                if (config.cjsTranslate) {
+                    fileContents = commonJs.convert(fileName, fileContents);
+                }
+
                 fileContents = build.toTransport(config.namespace,
                                                  null,
                                                  fileName,
@@ -1200,6 +1210,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     }
                 } else {
                     currContents = file.readFile(path);
+                }
+
+                if (config.cjsTranslate) {
+                    currContents = commonJs.convert(path, currContents);
                 }
 
                 if (config.onBuildRead) {
