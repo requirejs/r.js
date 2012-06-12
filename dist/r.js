@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Tue, 12 Jun 2012 06:10:01 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Tue, 12 Jun 2012 17:34:47 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Tue, 12 Jun 2012 06:10:01 GMT',
+        version = '2.0.1+ Tue, 12 Jun 2012 17:34:47 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -963,6 +963,7 @@ var requirejs, require, define;
                 //doing a direct modification of the depMaps array
                 //would affect that config.
                 this.depMaps = depMaps && depMaps.slice(0);
+                this.depMaps.rjsSkipMap = depMaps.rjsSkipMap;
 
                 this.errback = errback;
 
@@ -1166,7 +1167,10 @@ var requirejs, require, define;
                             }) || '';
                         }
 
-                        normalizedMap = makeModuleMap(map.prefix + '!' + name);
+                        normalizedMap = makeModuleMap(map.prefix + '!' + name,
+                                                      this.map.parentMap,
+                                                      false,
+                                                      true);
                         on(normalizedMap,
                            'defined', bind(this, function (value) {
                             this.init([], function () { return value; }, null, {
@@ -1239,6 +1243,7 @@ var requirejs, require, define;
                     //could be some weird string with no path that actually wants to
                     //reference the parentName's path.
                     plugin.load(map.name, makeRequire(map.parentMap, true, function (deps, cb) {
+                        deps.rjsSkipMap = true;
                         return context.require(deps, cb);
                     }), load, config);
                 }));
@@ -1272,7 +1277,7 @@ var requirejs, require, define;
                         depMap = makeModuleMap(depMap,
                                                (this.map.isDefine ? this.map : this.map.parentMap),
                                                false,
-                                               true);
+                                               !this.depMaps.rjsSkipMap);
                         this.depMaps[i] = depMap;
 
                         handler = handlers[depMap.id];
