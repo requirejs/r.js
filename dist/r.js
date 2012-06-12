@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Tue, 12 Jun 2012 04:07:18 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Tue, 12 Jun 2012 05:20:00 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Tue, 12 Jun 2012 04:07:18 GMT',
+        version = '2.0.1+ Tue, 12 Jun 2012 05:20:00 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1020,15 +1020,13 @@ var requirejs, require, define;
 
                 //If the manager is for a plugin managed resource,
                 //ask the plugin to load it now.
-                if (map.prefix) {
-                    this.callPlugin();
-                } else if (this.shim) {
+                if (this.shim) {
                     makeRequire(this, true)(this.shim.deps || [], bind(this, function () {
-                        this.load();
+                        return map.prefix ? this.callPlugin() : this.load();
                     }));
                 } else {
                     //Regular dependency.
-                    this.load();
+                    return map.prefix ? this.callPlugin() : this.load();
                 }
             },
 
