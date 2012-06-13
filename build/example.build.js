@@ -421,6 +421,16 @@
     //path lookups.
     cjsTranslate: true,
 
-    //useSourceUrl, optimize: none is best, since otherwise do not get benefit
-    //of minification. Only define() calls.
+    //Introduced in 2.0.2: a bit experimental.
+    //Each script in the build layer will be turned into
+    //a JavaScript string with a //@ sourceURL comment, and then wrapped in an
+    //eval call. This allows some browsers to see each evaled script as a
+    //separate script in the script debugger even though they are all combined
+    //in the same file. Some important limitations:
+    //1) Do not use in IE if conditional comments are turned on, it will cause
+    //errors:
+    //http://en.wikipedia.org/wiki/Conditional_comment#Conditional_comments_in_JScript
+    //2) It is only useful in optimize: 'none' scenarios. The goal is to allow
+    //easier built layer debugging, which goes against minification desires.
+    useSourceUrl: true
 })

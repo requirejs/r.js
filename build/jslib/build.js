@@ -1227,7 +1227,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer, {
-                                    useSourceUrl: layer.context.config.useSourceUrl
+                                    useSourceUrl: config.useSourceUrl
                                 });
 
                 if (packageConfig) {

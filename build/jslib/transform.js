@@ -19,9 +19,7 @@ function (esprima,     parse,     logger,   lang) {
             var defineRanges = [],
                 contentInsertion = '',
                 depString = '',
-                useSourceUrl = options.useSourceUrl,
-                tokens, info, deps, urlData,
-                functionContent, functionBody;
+                tokens, info, deps;
 
             try {
                 tokens = esprima.parse(contents, {
@@ -83,10 +81,6 @@ function (esprima,     parse,     logger,   lang) {
                         //Dependency array
                         needsId = true;
                         depAction = 'skip';
-
-                        if (useSourceUrl) {
-                            sourceUrlData = transform.getSourceUrlData(tokens, i + 2);
-                        }
                     } else if (next2.type === 'Punctuator' &&
                                next2.value === '{') {
                         //Object literal
@@ -97,10 +91,6 @@ function (esprima,     parse,     logger,   lang) {
                         //function
                         needsId = true;
                         depAction = 'scan';
-
-                        if (useSourceUrl) {
-                            sourceUrlData = transform.getSourceUrlData(tokens, i + 2);
-                        }
                     } else if (next2.type === 'String') {
                         //Named module
                         needsId = false;
@@ -126,12 +116,6 @@ function (esprima,     parse,     logger,   lang) {
                             next4.value === 'function') {
                             depAction = 'scan';
                             nameCommaRange = next3.range;
-
-                            if (next4.type === 'Keyword' &&
-                                next4.value === 'function'
-                                && useSourceUrl) {
-                                sourceUrlData = transform.getSourceUrlData(tokens, i + 4);
-                            }
                         } else {
                             depAction = 'skip';
                         }
@@ -211,28 +195,10 @@ function (esprima,     parse,     logger,   lang) {
             }
 
             info = defineRanges[0];
-            urlData = info.sourceUrlData;
 
             //Do the modifications "backwards", in other words, start with the
             //one that is farthest down and work up, so that the ranges in the
             //defineRanges still apply. So that means deps, id, then namespace.
-
-            if (useSourceUrl && urlData) {
-                //First, convert the function to a Function string, if
-                //useSourceUrl is in play.
-                functionBody = lang.jsEscape(contents.substring(urlData.bodyStart[1], urlData.bodyEnd[0]) +
-                                             '\r\n//@ sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') + path);
-
-                functionContent = 'Function([' +
-                                   (urlData.args.length ? '"' + urlData.args.join('","') + '"' : '') +
-                                  '], "' + functionBody + '")';
-
-                contents = contents.substring(0, urlData.functionStart[0]) +
-                               functionContent +
-                               contents.substring(urlData.bodyEnd[1],
-                                              contents.length);
-            }
-
 
             if (info.needsId && moduleName) {
                 contentInsertion += "'" + moduleName + "',";
@@ -286,61 +252,13 @@ function (esprima,     parse,     logger,   lang) {
                 onFound(info);
             }
 
-            return contents;
-        },
-
-        getSourceUrlData: function (tokens, i) {
-            var data = {},
-                foundIt = false,
-                curlyCount = 1,
-                //This strange line for jslint
-                init = i,
-                token;
-
-            for (i = init; i < tokens.length && !foundIt; i += 1) {
-                token = tokens[i];
-
-                //Look for starting function if it was not already found.
-                if (!data.args && token.type === 'Keyword' && token.value === 'function') {
-                    data.functionStart = token.range;
-
-                    //Bingo. Now start finding the args.
-                    data.args = [];
-                    for (i += 1; i < tokens.length; i += 1) {
-                        token = tokens[i];
-                        if (token.type === 'Punctuator' && token.value === ')') {
-                            //Found the end of the args
-                            break;
-                        }
-
-                        if (token.type === 'Identifier') {
-                            data.args.push(token.value);
-                        }
-                    }
-                }
-
-                if (data.args && token.type === 'Punctuator' && token.value === '{') {
-                    //Found the start position
-                    data.bodyStart = token.range;
-                    for (i += 1; i < tokens.length; i += 1) {
-                        token = tokens[i];
-                        if (token.type === 'Punctuator') {
-                            if (token.value === '{') {
-                                curlyCount += 1;
-                            } else if (token.value === '}') {
-                                curlyCount -= 1;
-                                if (curlyCount === 0) {
-                                    data.bodyEnd = token.range;
-                                    foundIt = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
+            if (options.useSourceUrl) {
+                contents = 'eval("' + lang.jsEscape(contents) +
+                '\\n//@ sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') + path +
+                '");\n';
             }
 
-            return foundIt ? data : undefined;
+            return contents;
         }
     });
 });
