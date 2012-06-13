@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.1+ Tue, 12 Jun 2012 17:34:47 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.1+ Wed, 13 Jun 2012 02:27:12 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.1+ Tue, 12 Jun 2012 17:34:47 GMT',
+        version = '2.0.1+ Wed, 13 Jun 2012 02:27:12 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -12486,11 +12486,15 @@ define('parse', ['./esprima', './uglifyjs/index'], function (esprima, uglify) {
 
 /*jslint */
 
-define('transform', ['./esprima', './parse', 'logger'], function (esprima, parse, logger) {
-    'use strict';
+define('transform', [ './esprima', './parse', 'logger', 'lang'],
+function (esprima,     parse,     logger,   lang) {
 
-    return {
-        toTransport: function (namespace, moduleName, path, contents, onFound) {
+    'use strict';
+    var transform;
+
+    return (transform = {
+        toTransport: function (namespace, moduleName, path, contents, onFound, options) {
+            options = options || {};
 
             var defineRanges = [],
                 contentInsertion = '',
@@ -12512,7 +12516,8 @@ define('transform', ['./esprima', './parse', 'logger'], function (esprima, parse
             tokens.forEach(function (token, i) {
                 var namespaceExists = false,
                     prev, prev2, next, next2, next3, next4,
-                    needsId, depAction, nameCommaRange, foundId;
+                    needsId, depAction, nameCommaRange, foundId,
+                    sourceUrlData;
 
                 if (token.type === 'Identifier' && token.value === 'define') {
                     //Possible match. Do not want something.define calls
@@ -12654,7 +12659,8 @@ define('transform', ['./esprima', './parse', 'logger'], function (esprima, parse
                         namespaceExists: namespaceExists,
                         defineRange: token.range,
                         parenRange: next.range,
-                        nameCommaRange: nameCommaRange
+                        nameCommaRange: nameCommaRange,
+                        sourceUrlData: sourceUrlData
                     });
                 }
             });
@@ -12726,9 +12732,15 @@ define('transform', ['./esprima', './parse', 'logger'], function (esprima, parse
                 onFound(info);
             }
 
+            if (options.useSourceUrl) {
+                contents = 'eval("' + lang.jsEscape(contents) +
+                '\\n//@ sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') + path +
+                '");\n';
+            }
+
             return contents;
         }
-    };
+    });
 });/**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
@@ -13490,8 +13502,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
-define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger'],
-function (file,           pragma,   parse,   lang,   logger) {
+define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs'],
+function (file,           pragma,   parse,   lang,   logger,   commonJs) {
 
     var allowRun = true;
 
@@ -13643,6 +13655,10 @@ function (file,           pragma,   parse,   lang,   logger) {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
                                 contents = file.readFile(url);
+
+                                if (context.config.cjsTranslate) {
+                                    contents = commonJs.convert(url, contents);
+                                }
 
                                 //If there is a read filter, run it now.
                                 if (context.config.onBuildRead) {
@@ -13888,19 +13904,12 @@ function (file,           pragma,   parse,   lang,   logger) {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint plusplus: false, regexp: false, strict: false */
+/*jslint */
 /*global define: false, console: false */
 
-define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
+define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
+    'use strict';
     var commonJs = {
-        depRegExp: /require\s*\(\s*["']([\w-_\.\/]+)["']\s*\)/g,
-
-        //Set this to false in non-rhino environments. If rhino, then it uses
-        //rhino's decompiler to remove comments before looking for require() calls,
-        //otherwise, it will use a crude regexp approach to remove comments. The
-        //rhino way is more robust, but he regexp is more portable across environments.
-        useRhino: true,
-
         //Set to false if you do not want this file to log. Useful in environments
         //like node where you want the work to happen without noise.
         useLog: true,
@@ -13934,7 +13943,8 @@ define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
                     }
                 }
             } else {
-                for (i = 0; (fileName = fileList[i]); i++) {
+                for (i = 0; i < fileList.length; i++) {
+                    fileName = fileList[i];
                     convertedFileName = fileName.replace(commonJsPath, savePath);
 
                     //Handle JS files.
@@ -13951,80 +13961,38 @@ define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
         },
 
         /**
-         * Removes the comments from a string.
-         *
-         * @param {String} fileContents
-         * @param {String} fileName mostly used for informative reasons if an error.
-         *
-         * @returns {String} a string of JS with comments removed.
-         */
-        removeComments: function (fileContents, fileName) {
-            //Uglify's ast generation removes comments, so just convert to ast,
-            //then back to source code to get rid of comments.
-            return uglify.uglify.gen_code(uglify.parser.parse(fileContents), true);
-        },
-
-        /**
-         * Regexp for testing if there is already a require.def call in the file,
-         * in which case do not try to convert it.
-         */
-        defRegExp: /define\s*\(\s*("|'|\[|function)/,
-
-        /**
-         * Regexp for testing if there is a require([]) or require(function(){})
-         * call, indicating the file is already in requirejs syntax.
-         */
-        rjsRegExp: /require\s*\(\s*(\[|function)/,
-
-        /**
          * Does the actual file conversion.
          *
          * @param {String} fileName the name of the file.
          *
          * @param {String} fileContents the contents of a file :)
          *
-         * @param {Boolean} skipDeps if true, require("") dependencies
-         * will not be searched, but the contents will just be wrapped in the
-         * standard require, exports, module dependencies. Only usable in sync
-         * environments like Node where the require("") calls can be resolved on
-         * the fly.
-         *
          * @returns {String} the converted contents
          */
-        convert: function (fileName, fileContents, skipDeps) {
+        convert: function (fileName, fileContents) {
             //Strip out comments.
             try {
-                var deps = [], depName, match,
-                    //Remove comments
-                    tempContents = commonJs.removeComments(fileContents, fileName);
+                var preamble = '',
+                    commonJsProps = parse.usesCommonJs(fileName, fileContents);
 
                 //First see if the module is not already RequireJS-formatted.
-                if (commonJs.defRegExp.test(tempContents) || commonJs.rjsRegExp.test(tempContents)) {
+                if (parse.usesAmdOrRequireJs(fileName, fileContents) || !commonJsProps) {
                     return fileContents;
                 }
 
-                //Reset the regexp to start at beginning of file. Do this
-                //since the regexp is reused across files.
-                commonJs.depRegExp.lastIndex = 0;
-
-                if (!skipDeps) {
-                    //Find dependencies in the code that was not in comments.
-                    while ((match = commonJs.depRegExp.exec(tempContents))) {
-                        depName = match[1];
-                        if (depName) {
-                            deps.push('"' + depName + '"');
-                        }
-                    }
+                if (commonJsProps.dirname || commonJsProps.filename) {
+                    preamble = 'var __filename = module.uri || "", ' +
+                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n';
                 }
 
                 //Construct the wrapper boilerplate.
-                fileContents = 'define(["require", "exports", "module"' +
-                       (deps.length ? ', ' + deps.join(",") : '') + '], ' +
-                       'function(require, exports, module) {\n' +
-                       fileContents +
-                       '\n});\n';
+                fileContents = 'define(function (require, exports, module) {\n' +
+                    preamble +
+                    fileContents +
+                    '\n});\n';
+
             } catch (e) {
-                console.log("COULD NOT CONVERT: " + fileName + ", so skipping it. Error was: " + e);
+                console.log("commonJs.convert: COULD NOT CONVERT: " + fileName + ", so skipping it. Error was: " + e);
                 return fileContents;
             }
 
@@ -14045,9 +14013,11 @@ define('commonJs', ['env!env/file', 'uglifyjs/index'], function (file, uglify) {
 
 
 define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
-         'transform', 'env!env/load', 'requirePatch', 'env!env/quit'],
+         'transform', 'env!env/load', 'requirePatch', 'env!env/quit',
+         'commonJs'],
 function (lang,   logger,   file,          parse,    optimize,   pragma,
-          transform,   load,           requirePatch,   quit) {
+          transform,   load,           requirePatch,   quit,
+          commonJs) {
     'use strict';
 
     var build, buildBaseConfig,
@@ -14467,6 +14437,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //inserted (by passing null for moduleName) since the files are
                 //standalone, one module per file.
                 fileContents = file.readFile(fileName);
+
+                //For builds, if wanting cjs translation, do it now, so that
+                //the individual modules can be loaded cross domain via
+                //plain script tags.
+                if (config.cjsTranslate) {
+                    fileContents = commonJs.convert(fileName, fileContents);
+                }
+
                 fileContents = build.toTransport(config.namespace,
                                                  null,
                                                  fileName,
@@ -15215,7 +15193,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
                                         addSemiColon(
-                                            build.toTransport(namespace, moduleName, path, input, layer));
+                                            build.toTransport(namespace, moduleName, path, input, layer, {
+                                                useSourceUrl: layer.context.config.useSourceUrl
+                                            }));
                         if (config.onBuildWrite) {
                             fileContents = config.onBuildWrite(moduleName, path, fileContents);
                         }
@@ -15238,6 +15218,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = file.readFile(path);
                 }
 
+                if (config.cjsTranslate) {
+                    currContents = commonJs.convert(path, currContents);
+                }
+
                 if (config.onBuildRead) {
                     currContents = config.onBuildRead(moduleName, path, currContents);
                 }
@@ -15246,7 +15230,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     currContents = pragma.namespace(currContents, namespace);
                 }
 
-                currContents = build.toTransport(namespace, moduleName, path, currContents, layer);
+                currContents = build.toTransport(namespace, moduleName, path, currContents, layer, {
+                                    useSourceUrl: config.useSourceUrl
+                                });
 
                 if (packageConfig) {
                     currContents = addSemiColon(currContents) + '\n';
@@ -15307,7 +15293,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }).join('","') + '"]';
     };
 
-    build.toTransport = function (namespace, moduleName, path, contents, layer) {
+    build.toTransport = function (namespace, moduleName, path, contents, layer, options) {
+        var baseUrl = layer && layer.context.config.baseUrl;
+
         function onFound(info) {
             //Only mark this module as having a name if not a named module,
             //or if a named module and the name matches expectations.
@@ -15316,7 +15304,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
-        return transform.toTransport(namespace, moduleName, path, contents, onFound);
+        //Convert path to be a local one to the baseUrl, useful for
+        //useSourceUrl.
+        if (baseUrl) {
+            path = path.replace(baseUrl, '');
+        }
+
+        return transform.toTransport(namespace, moduleName, path, contents, onFound, options);
     };
 
     return build;
