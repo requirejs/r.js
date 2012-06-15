@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.2+ Fri, 15 Jun 2012 19:14:31 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.2',
+        version = '2.0.2+ Fri, 15 Jun 2012 19:14:31 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14767,10 +14767,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             try {
                 buildFileConfig = eval("(" + buildFileContents + ")");
                 build.makeAbsConfig(buildFileConfig, absFilePath);
-
-                if (!buildFileConfig.out && !buildFileConfig.dir) {
-                    buildFileConfig.dir = (buildFileConfig.baseUrl || config.baseUrl) + "/build/";
-                }
 
                 //Mix in the config now so that items in mainConfigFile can
                 //be resolved relative to them if necessary, like if appDir
