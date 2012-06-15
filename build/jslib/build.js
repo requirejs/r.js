@@ -764,10 +764,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 buildFileConfig = eval("(" + buildFileContents + ")");
                 build.makeAbsConfig(buildFileConfig, absFilePath);
 
-                if (!buildFileConfig.out && !buildFileConfig.dir) {
-                    buildFileConfig.dir = (buildFileConfig.baseUrl || config.baseUrl) + "/build/";
-                }
-
                 //Mix in the config now so that items in mainConfigFile can
                 //be resolved relative to them if necessary, like if appDir
                 //is set here, but the baseUrl is in mainConfigFile. Will
