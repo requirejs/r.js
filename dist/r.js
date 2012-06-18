@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.2+ Mon, 18 Jun 2012 04:35:08 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.2+ Mon, 18 Jun 2012 17:33:16 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.2+ Mon, 18 Jun 2012 04:35:08 GMT',
+        version = '2.0.2+ Mon, 18 Jun 2012 17:33:16 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -556,7 +556,7 @@ var requirejs, require, define;
                 } else {
                     //A regular module.
                     normalizedName = normalize(name, parentName, applyMap);
-                    url = context.nameToUrl(normalizedName, null, parentModuleMap);
+                    url = context.nameToUrl(normalizedName);
                 }
             }
 
@@ -1680,8 +1680,7 @@ var requirejs, require, define;
                 }
 
                 return context.nameToUrl(normalize(moduleNamePlusExt, relModuleMap && relModuleMap.id, true),
-                                         ext,
-                                         relModuleMap);
+                                         ext);
             },
 
             /**
