@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.2+ Mon, 18 Jun 2012 17:33:16 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.2+ Mon, 18 Jun 2012 20:53:28 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.2+ Mon, 18 Jun 2012 17:33:16 GMT',
+        version = '2.0.2+ Mon, 18 Jun 2012 20:53:28 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2021,21 +2021,21 @@ var requirejs, require, define;
             //baseUrl, if it is not already set.
             dataMain = script.getAttribute('data-main');
             if (dataMain) {
-
-                //Pull off the directory of data-main for use as the
-                //baseUrl.
-                src = dataMain.split('/');
-                mainScript = src.pop();
-                subPath = src.length ? src.join('/')  + '/' : './';
-
                 //Set final baseUrl if there is not already an explicit one.
                 if (!cfg.baseUrl) {
+                    //Pull off the directory of data-main for use as the
+                    //baseUrl.
+                    src = dataMain.split('/');
+                    mainScript = src.pop();
+                    subPath = src.length ? src.join('/')  + '/' : './';
+
                     cfg.baseUrl = subPath;
+                    dataMain = mainScript;
                 }
 
                 //Strip off any trailing .js since dataMain is now
                 //like a module name.
-                dataMain = mainScript.replace(jsSuffixRegExp, '');
+                dataMain = dataMain.replace(jsSuffixRegExp, '');
 
                 //Put the data-main script in the files to load.
                 cfg.deps = cfg.deps ? cfg.deps.concat(dataMain) : [dataMain];
@@ -3135,12 +3135,14 @@ if(env === 'node') {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint strict: false */
-/*global define: false, console: false */
+/*jslint */
+/*global define, process */
 
-define('node/print', function () {
+define('node/print', ['fs'], function (fs) {
+    'use strict';
     function print(msg) {
-        console.log(msg);
+        fs.writeSync(process.stdout.fd, msg + '\n');
+        fs.fsyncSync(process.stdout.fd);
     }
 
     return print;
