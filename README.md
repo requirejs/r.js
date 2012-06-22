@@ -4,7 +4,7 @@ A command line tool for running JavaScript scripts that use the
 [Asychronous Module Defintion API (AMD)](http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition)
 for declaring and using JavaScript modules and regular JavaScript script files.
 
-It is part of the [RequireJS project](http://requirejs.org), and works will with
+It is part of the [RequireJS project](http://requirejs.org), and works with
 the RequireJS implementation of AMD.
 
 r.js is a single script that has two major functions:
