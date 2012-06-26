@@ -1192,6 +1192,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             fileContents = config.onBuildWrite(moduleName, path, fileContents);
                         }
                     };
+                    writeApi.buildPath = module._buildPath;
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
