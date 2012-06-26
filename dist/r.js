@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.2+ Mon, 18 Jun 2012 20:53:28 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.2+ Tue, 26 Jun 2012 23:04:40 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.2+ Mon, 18 Jun 2012 20:53:28 GMT',
+        version = '2.0.2+ Tue, 26 Jun 2012 23:04:40 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -8031,7 +8031,8 @@ exports['ast_consolidate'] = function(oAbstractSyntaxTree) {
 /* End:                  */
 /* vim: set ft=javascript fenc=utf-8 et ts=2 sts=2 sw=2: */
 /* :mode=javascript:noTabs=true:tabSize=2:indentSize=2:deepIndent=true: */
-});define('uglifyjs/parse-js', ["exports"], function(exports) {
+});
+define('uglifyjs/parse-js', ["exports"], function(exports) {
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -9391,12 +9392,14 @@ exports.KEYWORDS = KEYWORDS;
 exports.ATOMIC_START_TOKEN = ATOMIC_START_TOKEN;
 exports.OPERATORS = OPERATORS;
 exports.is_alphanumeric_char = is_alphanumeric_char;
+exports.is_identifier_start = is_identifier_start;
+exports.is_identifier_char = is_identifier_char;
 exports.set_logger = function(logger) {
         warn = logger;
 };
-});define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
-
-var jsp = require("./parse-js"),
+});
+define('uglifyjs/squeeze-more', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
+    var jsp = require("./parse-js"),
     pro = require("./process"),
     slice = jsp.slice,
     member = jsp.member,
@@ -9470,7 +9473,9 @@ function ast_squeeze_more(ast) {
 };
 
 exports.ast_squeeze_more = ast_squeeze_more;
-});define('uglifyjs/process', ["require", "exports", "module", "./parse-js", "./squeeze-more"], function(require, exports, module) {
+});
+define('uglifyjs/process', ["require", "exports", "module", "./parse-js", "./squeeze-more"], function(require, exports, module) {
+
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -9534,6 +9539,7 @@ exports.ast_squeeze_more = ast_squeeze_more;
 var jsp = require("./parse-js"),
     slice = jsp.slice,
     member = jsp.member,
+    is_identifier_char = jsp.is_identifier_char,
     PRECEDENCE = jsp.PRECEDENCE,
     OPERATORS = jsp.OPERATORS;
 
@@ -9982,7 +9988,13 @@ function ast_add_scope(ast) {
 
 function ast_mangle(ast, options) {
         var w = ast_walker(), walk = w.walk, scope;
-        options = options || {};
+        options = defaults(options, {
+                mangle       : true,
+                toplevel     : false,
+                defines      : null,
+                except       : null,
+                no_functions : false
+        });
 
         function get_mangled(name, newMangle) {
                 if (!options.mangle) return name;
@@ -10009,7 +10021,7 @@ function ast_mangle(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                if (!options.no_functions) {
+                if (!options.no_functions && options.mangle) {
                         var is_defun = this[0] == "defun", extra;
                         if (name) {
                                 if (is_defun) name = get_mangled(name);
@@ -10709,6 +10721,9 @@ function ast_squeeze(ast, options) {
                 t = walk(t);
                 e = walk(e);
 
+                if (empty(e) && empty(t))
+                        return [ "stat", c ];
+
                 if (empty(t)) {
                         c = negate(c);
                         t = e;
@@ -10729,8 +10744,6 @@ function ast_squeeze(ast, options) {
                                 }
                         })();
                 }
-                if (empty(e) && empty(t))
-                        return [ "stat", c ];
                 var ret = [ "if", c, t, e ];
                 if (t[0] == "if" && empty(t[3]) && empty(e)) {
                         ret = best_of(ret, walk([ "if", [ "binary", "&&", c, t[1] ], t[2] ]));
@@ -10874,6 +10887,15 @@ function ast_squeeze(ast, options) {
                                 return expr[1];
                         }
                         return [ this[0], expr,  MAP(args, walk) ];
+                },
+                "num": function (num) {
+                        if (!isFinite(num))
+                                return [ "binary", "/", num === 1 / 0
+                                         ? [ "num", 1 ] : num === -1 / 0
+                                         ? [ "unary-prefix", "-", [ "num", 1 ] ]
+                                         : [ "num", 0 ], [ "num", 0 ] ];
+
+                        return [ this[0], num ];
                 }
         }, function() {
                 for (var i = 0; i < 2; ++i) {
@@ -10974,6 +10996,15 @@ function gen_code(ast, options) {
                 finally { indentation -= incr; }
         };
 
+        function last_char(str) {
+                str = str.toString();
+                return str.charAt(str.length - 1);
+        };
+
+        function first_char(str) {
+                return str.toString().charAt(0);
+        };
+
         function add_spaces(a) {
                 if (beautify)
                         return a.join(" ");
@@ -10982,7 +11013,8 @@ function gen_code(ast, options) {
                         var next = a[i + 1];
                         b.push(a[i]);
                         if (next &&
-                            ((/[a-z0-9_\x24]$/i.test(a[i].toString()) && /^[a-z0-9_\x24]/i.test(next.toString())) ||
+                            ((is_identifier_char(last_char(a[i])) && (is_identifier_char(first_char(next))
+                                                                      || first_char(next) == "\\")) ||
                              (/[\+\-]$/.test(a[i].toString()) && /^[\+\-]/.test(next.toString())))) {
                                 b.push(" ");
                         }
@@ -11042,7 +11074,7 @@ function gen_code(ast, options) {
         };
 
         function make_num(num) {
-                var str = num.toString(10), a = [ str.replace(/^0\./, ".") ], m;
+                var str = num.toString(10), a = [ str.replace(/^0\./, ".").replace('e+', 'e') ], m;
                 if (Math.floor(num) === num) {
                         if (num >= 0) {
                                 a.push("0x" + num.toString(16).toLowerCase(), // probably pointless
@@ -11535,7 +11567,8 @@ exports.MAP = MAP;
 
 // keep this last!
 exports.ast_squeeze_more = require("./squeeze-more").ast_squeeze_more;
-});define('uglifyjs/index', ["require", "exports", "module", "./parse-js", "./process", "./consolidator"], function(require, exports, module) {
+});
+define('uglifyjs/index', ["require", "exports", "module", "./parse-js", "./process", "./consolidator"], function(require, exports, module) {
 //convienence function(src, [options]);
 function uglify(orig_code, options){
   options || (options = {});
