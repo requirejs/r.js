@@ -1,5 +1,5 @@
 var cs = require('coffee-script'),
-    requirejs = require('requirejs');
+    requirejs = require('../../../dist/r.js');
 
 requirejs.config({
     baseUrl: 'scripts',

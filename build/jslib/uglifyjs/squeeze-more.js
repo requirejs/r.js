@@ -1,6 +1,5 @@
 define(["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
-
-var jsp = require("./parse-js"),
+    var jsp = require("./parse-js"),
     pro = require("./process"),
     slice = jsp.slice,
     member = jsp.member,

@@ -1,4 +1,5 @@
 define(["require", "exports", "module", "./parse-js", "./squeeze-more"], function(require, exports, module) {
+
 /***********************************************************************
 
   A JavaScript tokenizer / parser / beautifier / compressor.
@@ -62,6 +63,7 @@ define(["require", "exports", "module", "./parse-js", "./squeeze-more"], functio
 var jsp = require("./parse-js"),
     slice = jsp.slice,
     member = jsp.member,
+    is_identifier_char = jsp.is_identifier_char,
     PRECEDENCE = jsp.PRECEDENCE,
     OPERATORS = jsp.OPERATORS;
 
@@ -510,7 +512,13 @@ function ast_add_scope(ast) {
 
 function ast_mangle(ast, options) {
         var w = ast_walker(), walk = w.walk, scope;
-        options = options || {};
+        options = defaults(options, {
+                mangle       : true,
+                toplevel     : false,
+                defines      : null,
+                except       : null,
+                no_functions : false
+        });
 
         function get_mangled(name, newMangle) {
                 if (!options.mangle) return name;
@@ -537,7 +545,7 @@ function ast_mangle(ast, options) {
         };
 
         function _lambda(name, args, body) {
-                if (!options.no_functions) {
+                if (!options.no_functions && options.mangle) {
                         var is_defun = this[0] == "defun", extra;
                         if (name) {
                                 if (is_defun) name = get_mangled(name);
@@ -1237,6 +1245,9 @@ function ast_squeeze(ast, options) {
                 t = walk(t);
                 e = walk(e);
 
+                if (empty(e) && empty(t))
+                        return [ "stat", c ];
+
                 if (empty(t)) {
                         c = negate(c);
                         t = e;
@@ -1257,8 +1268,6 @@ function ast_squeeze(ast, options) {
                                 }
                         })();
                 }
-                if (empty(e) && empty(t))
-                        return [ "stat", c ];
                 var ret = [ "if", c, t, e ];
                 if (t[0] == "if" && empty(t[3]) && empty(e)) {
                         ret = best_of(ret, walk([ "if", [ "binary", "&&", c, t[1] ], t[2] ]));
@@ -1402,6 +1411,15 @@ function ast_squeeze(ast, options) {
                                 return expr[1];
                         }
                         return [ this[0], expr,  MAP(args, walk) ];
+                },
+                "num": function (num) {
+                        if (!isFinite(num))
+                                return [ "binary", "/", num === 1 / 0
+                                         ? [ "num", 1 ] : num === -1 / 0
+                                         ? [ "unary-prefix", "-", [ "num", 1 ] ]
+                                         : [ "num", 0 ], [ "num", 0 ] ];
+
+                        return [ this[0], num ];
                 }
         }, function() {
                 for (var i = 0; i < 2; ++i) {
@@ -1502,6 +1520,15 @@ function gen_code(ast, options) {
                 finally { indentation -= incr; }
         };
 
+        function last_char(str) {
+                str = str.toString();
+                return str.charAt(str.length - 1);
+        };
+
+        function first_char(str) {
+                return str.toString().charAt(0);
+        };
+
         function add_spaces(a) {
                 if (beautify)
                         return a.join(" ");
@@ -1510,7 +1537,8 @@ function gen_code(ast, options) {
                         var next = a[i + 1];
                         b.push(a[i]);
                         if (next &&
-                            ((/[a-z0-9_\x24]$/i.test(a[i].toString()) && /^[a-z0-9_\x24]/i.test(next.toString())) ||
+                            ((is_identifier_char(last_char(a[i])) && (is_identifier_char(first_char(next))
+                                                                      || first_char(next) == "\\")) ||
                              (/[\+\-]$/.test(a[i].toString()) && /^[\+\-]/.test(next.toString())))) {
                                 b.push(" ");
                         }
@@ -1570,7 +1598,7 @@ function gen_code(ast, options) {
         };
 
         function make_num(num) {
-                var str = num.toString(10), a = [ str.replace(/^0\./, ".") ], m;
+                var str = num.toString(10), a = [ str.replace(/^0\./, ".").replace('e+', 'e') ], m;
                 if (Math.floor(num) === num) {
                         if (num >= 0) {
                                 a.push("0x" + num.toString(16).toLowerCase(), // probably pointless
