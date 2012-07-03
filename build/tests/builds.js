@@ -1266,4 +1266,24 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    //Make sure dormant, un-required modules in a build do not trigger
+    //'module did not load error' https://github.com/jrburke/r.js/issues/213
+    doh.register("dormant213",
+        [
+            function dormant213(t) {
+                file.deleteFile("lib/dormant213/main-built.js");
+
+                build(["lib/dormant213/build.js"]);
+
+                t.is(nol(c("lib/dormant213/expected.js")),
+                     nol(c("lib/dormant213/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

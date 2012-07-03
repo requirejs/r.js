@@ -1056,7 +1056,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         registry = context.registry;
         for (id in registry) {
             if (registry.hasOwnProperty(id) && id.indexOf('_@r') !== 0) {
-                if (id.indexOf('_unnormalized') === -1) {
+                if (id.indexOf('_unnormalized') === -1 && registry[id].enabled) {
                     errIds.push(id);
                     errUrl = registry[id].map.url;
 
