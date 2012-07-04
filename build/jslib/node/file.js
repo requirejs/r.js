@@ -263,6 +263,31 @@ define(['fs', 'path'], function (fs, path) {
                     fs.unlinkSync(fileName);
                 }
             }
+        },
+
+
+        /**
+         * Deletes any empty directories under the given directory.
+         */
+        deleteEmptyDirs: function (startDir) {
+            var dirFileArray, i, fileName, filePath, stat;
+
+            if (file.exists(startDir)) {
+                dirFileArray = fs.readdirSync(startDir);
+                for (i = 0; i < dirFileArray.length; i++) {
+                    fileName = dirFileArray[i];
+                    filePath = path.join(startDir, fileName);
+                    stat = fs.statSync(filePath);
+                    if (stat.isDirectory()) {
+                        file.deleteEmptyDirs(filePath);
+                    }
+                }
+
+                //If directory is now empty, remove it.
+                if (fs.readdirSync(startDir).length ===  0) {
+                    file.deleteFile(startDir);
+                }
+            }
         }
     };
 

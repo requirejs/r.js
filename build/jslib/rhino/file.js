@@ -5,7 +5,7 @@
  */
 //Helper functions to deal with file I/O.
 
-/*jslint plusplus: false, strict: false */
+/*jslint plusplus: false, strict: true */
 /*global java: false, define: false */
 
 define(function () {
@@ -243,6 +243,35 @@ define(function () {
                     }
                 }
                 fileObj["delete"]();
+            }
+        },
+
+        /**
+         * Deletes any empty directories under the given directory.
+         * The startDirIsJavaObject is private to this implementation's
+         * recursion needs.
+         */
+        deleteEmptyDirs: function (startDir, startDirIsJavaObject) {
+            var topDir = startDir,
+                dirFileArray, i, fileObj;
+
+            if (!startDirIsJavaObject) {
+                topDir = new java.io.File(startDir);
+            }
+
+            if (topDir.exists()) {
+                dirFileArray = topDir.listFiles();
+                for (i = 0; i < dirFileArray.length; i++) {
+                    fileObj = dirFileArray[i];
+                    if (fileObj.isDirectory()) {
+                        file.deleteEmptyDirs(fileObj, true);
+                    }
+                }
+
+                //If the directory is empty now, delete it.
+                if (topDir.listFiles().length === 0) {
+                    file.deleteFile(String(topDir.getPath()));
+                }
             }
         }
     };

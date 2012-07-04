@@ -405,6 +405,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             });
         }
 
+        //If removeCombined in play, remove any empty directories that
+        //may now exist because of its use
+        if (config.removeCombined && !config.out && config.dir) {
+            file.deleteEmptyDirs(config.dir);
+        }
+
         //Do other optimizations.
         if (config.out && !config.cssIn) {
             //Just need to worry about one JS file.

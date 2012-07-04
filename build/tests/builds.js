@@ -1027,6 +1027,9 @@ define(['build', 'env!env/file'], function (build, file) {
                 t.is(false, file.exists("lib/removeCombined/app-built/js/c.js"));
                 t.is(true, file.exists("lib/removeCombined/app-built/js/d.js"));
 
+                //Make sure empty directories are pruned
+                t.is(false, file.exists('lib/removeCombined/app-built/js/sub'), 'empty directories removed');
+
                 require._buildReset();
             }
 
@@ -1049,6 +1052,9 @@ define(['build', 'env!env/file'], function (build, file) {
                 t.is(false, file.exists("lib/removeCombined/baseUrl-built/b.js"));
                 t.is(false, file.exists("lib/removeCombined/baseUrl-built/c.js"));
                 t.is(true, file.exists("lib/removeCombined/baseUrl-built/d.js"));
+
+                //Make sure empty directories are pruned
+                t.is(false, file.exists('lib/removeCombined/baseUrl-built/sub'), 'empty directories removed');
 
                 require._buildReset();
             }
