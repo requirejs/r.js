@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.2+ Tue, 03 Jul 2012 22:45:51 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.2+ Wed, 04 Jul 2012 00:44:40 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.2+ Tue, 03 Jul 2012 22:45:51 GMT',
+        version = '2.0.2+ Wed, 04 Jul 2012 00:44:40 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2718,6 +2718,31 @@ define('node/file', ['fs', 'path'], function (fs, path) {
                     fs.unlinkSync(fileName);
                 }
             }
+        },
+
+
+        /**
+         * Deletes any empty directories under the given directory.
+         */
+        deleteEmptyDirs: function (startDir) {
+            var dirFileArray, i, fileName, filePath, stat;
+
+            if (file.exists(startDir)) {
+                dirFileArray = fs.readdirSync(startDir);
+                for (i = 0; i < dirFileArray.length; i++) {
+                    fileName = dirFileArray[i];
+                    filePath = path.join(startDir, fileName);
+                    stat = fs.statSync(filePath);
+                    if (stat.isDirectory()) {
+                        file.deleteEmptyDirs(filePath);
+                    }
+                }
+
+                //If directory is now empty, remove it.
+                if (fs.readdirSync(startDir).length ===  0) {
+                    file.deleteFile(startDir);
+                }
+            }
         }
     };
 
@@ -2735,7 +2760,7 @@ if(env === 'rhino') {
  */
 //Helper functions to deal with file I/O.
 
-/*jslint plusplus: false, strict: false */
+/*jslint plusplus: false, strict: true */
 /*global java: false, define: false */
 
 define('rhino/file', function () {
@@ -2973,6 +2998,35 @@ define('rhino/file', function () {
                     }
                 }
                 fileObj["delete"]();
+            }
+        },
+
+        /**
+         * Deletes any empty directories under the given directory.
+         * The startDirIsJavaObject is private to this implementation's
+         * recursion needs.
+         */
+        deleteEmptyDirs: function (startDir, startDirIsJavaObject) {
+            var topDir = startDir,
+                dirFileArray, i, fileObj;
+
+            if (!startDirIsJavaObject) {
+                topDir = new java.io.File(startDir);
+            }
+
+            if (topDir.exists()) {
+                dirFileArray = topDir.listFiles();
+                for (i = 0; i < dirFileArray.length; i++) {
+                    fileObj = dirFileArray[i];
+                    if (fileObj.isDirectory()) {
+                        file.deleteEmptyDirs(fileObj, true);
+                    }
+                }
+
+                //If the directory is empty now, delete it.
+                if (topDir.listFiles().length === 0) {
+                    file.deleteFile(String(topDir.getPath()));
+                }
             }
         }
     };
@@ -14434,6 +14488,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     }
                 }
             });
+        }
+
+        //If removeCombined in play, remove any empty directories that
+        //may now exist because of its use
+        if (config.removeCombined && !config.out && config.dir) {
+            file.deleteEmptyDirs(config.dir);
         }
 
         //Do other optimizations.
