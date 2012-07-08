@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.2+ Sun, 08 Jul 2012 06:36:02 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.2+ Sun, 08 Jul 2012 06:41:19 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.2+ Sun, 08 Jul 2012 06:36:02 GMT',
+        version = '2.0.2+ Sun, 08 Jul 2012 06:41:19 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14932,8 +14932,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Check for errors in config
         if (config.main) {
-            throw new Error('"main" passed as an option to build, but the ' +
+            throw new Error('"main" passed as an option, but the ' +
                             'supported option is called "name".');
+        }
+        if (!config.name && !config.modules && !config.include && !config.cssIn) {
+            throw new Error('Missing either a "name", "include" or "modules" ' +
+                            'option');
         }
         if (config.cssIn && !config.out) {
             throw new Error("ERROR: 'out' option missing.");
