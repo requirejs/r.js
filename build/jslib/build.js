@@ -286,8 +286,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             //Just set up the _buildPath for the module layer.
             require(config);
             if (!config.cssIn) {
-                config.modules[0]._buildPath = typeof config.out === 'function' ?
-                                               'FUNCTION' : config.out;
+                modules = config.modules = [{
+                        name: config.main,
+                        _buildPath: typeof config.out === 'function' ?
+                                               'FUNCTION' : config.out}];
             }
         } else if (!config.cssIn) {
             //Now set up the config for require to use the build area, and calculate the
