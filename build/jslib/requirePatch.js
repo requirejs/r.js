@@ -30,7 +30,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
             oldNewContext = require.s.newContext,
-            oldDef;
+            oldDef,
+
+            //create local undefined values for module and exports,
+            //so that when files are evaled in this function they do not
+            //see the node values used for r.js
+            exports,
+            module;
 
         //Stored cached file contents for reuse in other layers.
         require._cachedFileContents = {};

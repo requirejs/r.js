@@ -1292,4 +1292,23 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Make sure evaled plugin dependencies in a build do not see the module
+    //and exports value for r.js https://github.com/jrburke/r.js/issues/217
+    doh.register("noexports",
+        [
+            function noexports(t) {
+                file.deleteFile("lib/noexports/main-built.js");
+
+                build(["lib/noexports/build.js"]);
+
+                t.is(nol(c("lib/noexports/expected.js")),
+                     nol(c("lib/noexports/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
