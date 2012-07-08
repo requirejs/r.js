@@ -841,8 +841,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Check for errors in config
         if (config.main) {
-            throw new Error('"main" passed as an option to build, but the ' +
+            throw new Error('"main" passed as an option, but the ' +
                             'supported option is called "name".');
+        }
+        if (!config.name && !config.modules && !config.include && !config.cssIn) {
+            throw new Error('Missing either a "name", "include" or "modules" ' +
+                            'option');
         }
         if (config.cssIn && !config.out) {
             throw new Error("ERROR: 'out' option missing.");
