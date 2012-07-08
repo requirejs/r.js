@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.2+ Wed, 04 Jul 2012 00:44:40 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.2+ Sun, 08 Jul 2012 06:25:26 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.2+ Wed, 04 Jul 2012 00:44:40 GMT',
+        version = '2.0.2+ Sun, 08 Jul 2012 06:25:26 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13598,7 +13598,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
         var layer,
             pluginBuilderRegExp = /(["']?)pluginBuilder(["']?)\s*[=\:]\s*["']([^'"\s]+)["']/,
             oldNewContext = require.s.newContext,
-            oldDef;
+            oldDef,
+
+            //create local undefined values for module and exports,
+            //so that when files are evaled in this function they do not
+            //see the node values used for r.js
+            exports,
+            module;
 
         //Stored cached file contents for reuse in other layers.
         require._cachedFileContents = {};
