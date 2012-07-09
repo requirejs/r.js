@@ -683,16 +683,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
 
-        //Do not allow URLs for paths resources.
-        if (config.paths) {
-            for (prop in config.paths) {
-                if (config.paths.hasOwnProperty(prop)) {
-                    config.paths[prop] = build.makeAbsPath(config.paths[prop],
-                                              (config.baseUrl || absFilePath));
-                }
-            }
-        }
-
         build.makeAbsObject(["out", "cssIn"], config, absFilePath);
         build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
     };
@@ -826,6 +816,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Re-apply the override config values. Command line
         //args should take precedence over build file values.
         mixConfig(config, cfg);
+
+        //Fix paths to full paths so that they can be adjusted consistently
+        //lately to be in the output area.
+        lang.eachProp(config.paths, function (value, prop) {
+            config.paths[prop] = build.makeAbsPath(value, config.baseUrl);
+        });
 
         //Set final output dir
         if (config.hasOwnProperty("baseUrl")) {
