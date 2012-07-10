@@ -4,14 +4,12 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint */
-/*global define, process */
+/*jslint strict: false */
+/*global define: false, console: false */
 
-define(['fs'], function (fs) {
-    'use strict';
+define(function () {
     function print(msg) {
-        fs.writeSync(process.stdout.fd, msg + '\n');
-        fs.fsyncSync(process.stdout.fd);
+        console.log(msg);
     }
 
     return print;
