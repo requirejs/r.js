@@ -1273,7 +1273,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         };
         for (var j = 0; j < onBuildCompletes.length; j++) {
-            fileContents = onBuildCompletes[j](moduleName, path, completeWrite);                  
+            onBuildCompletes[j](moduleName, path, completeWrite);                  
         }
 
         //Add a require at the end to kick start module execution, if that
