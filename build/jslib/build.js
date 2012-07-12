@@ -1158,6 +1158,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Write the built module to disk, and build up the build output.
         fileContents = "";
+        onBuildReads = [];
+        onBuildWrites = [];
         for (i = 0; i < layer.buildFilePaths.length; i++) {
             path = layer.buildFilePaths[i];
             moduleName = layer.buildFileToModule[path];
@@ -1192,8 +1194,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                             fileContents = config.onBuildWrite(moduleName, path, fileContents);
                         }
                     };
-                    writeApi.buildPath = module._buildPath;
                     builder.write(parts.prefix, parts.name, writeApi);
+                }
+                if (builder.onBuildRead) {
+                    onBuildReads.push(builder.onBuildRead);
+                }
+                if (builder.onBuildWrite) {
+                    onBuildWrites.push(builder.onBuildWrite);                         
                 }
             } else {
                 if (stubModulesByName.hasOwnProperty(moduleName)) {
@@ -1216,8 +1223,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 if (config.onBuildRead) {
-                    currContents = config.onBuildRead(moduleName, path, currContents);
+                    onBuildReads.push(config.onBuildRead);
                 }
+                for (var i = 0; i < onBuildReads.length; i++) {
+                    currContents = onBuildReads[i](moduleName, path, currContents);                  
+                }             
 
                 if (namespace) {
                     currContents = pragma.namespace(currContents, namespace);
@@ -1235,8 +1245,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 if (config.onBuildWrite) {
-                    currContents = config.onBuildWrite(moduleName, path, currContents);
+                    onBuildWrites.push(config.onBuildWrite);
                 }
+                for (var i = 0; i < onBuildWrites.length; i++) {
+                    currContents = onBuildWrites[i](moduleName, path, currContents);                  
+                }             
 
                 //Semicolon is for files that are not well formed when
                 //concatenated with other content.
