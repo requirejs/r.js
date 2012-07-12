@@ -1266,8 +1266,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
 
         //run onBuildComplete plugin hooks
+        completeWrite = function (input) {
+            fileContents += "\n" + addSemiColon(input);
+            if (config.onBuildWrite) {
+                fileContents = config.onBuildWrite(moduleName, path, fileContents);
+            }
+        };
         for (var j = 0; j < onBuildCompletes.length; j++) {
-            fileContents = onBuildCompletes[j](moduleName, path, fileContents);                  
+            fileContents = onBuildCompletes[j](moduleName, path, completeWrite);                  
         }
 
         //Add a require at the end to kick start module execution, if that
