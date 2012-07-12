@@ -1128,6 +1128,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.flattenModule = function (module, layer, config) {
         var buildFileContents = "",
+            onBuildCompletes = [],
             namespace = config.namespace || '',
             namespaceWithDot = namespace ? namespace + '.' : '',
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
@@ -1158,7 +1159,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Write the built module to disk, and build up the build output.
         fileContents = "";
-        var onBuildWrites = [];
         for (i = 0; i < layer.buildFilePaths.length; i++) {
             path = layer.buildFilePaths[i];
             moduleName = layer.buildFileToModule[path];
@@ -1195,8 +1195,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
-                if (builder.onBuildWrite) {
-                    onBuildWrites.push(builder.onBuildWrite);                         
+                if (builder.onBuildComplete) {
+                    onBuildCompletes.push(builder.onBuildComplete);                         
                 }
             } else {
                 if (stubModulesByName.hasOwnProperty(moduleName)) {
@@ -1236,13 +1236,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                     packageConfig.name + "', ['" + moduleName +
                                     "'], function (main) { return main; });\n";
                 }
-
+                
                 if (config.onBuildWrite) {
-                    onBuildWrites.push(config.onBuildWrite);
+                    currContents = config.onBuildWrite(moduleName, path, currContents);
                 }
-                for (var j = 0; j < onBuildWrites.length; j++) {
-                    currContents = onBuildWrites[j](moduleName, path, currContents);                  
-                }             
 
                 //Semicolon is for files that are not well formed when
                 //concatenated with other content.
@@ -1266,6 +1263,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                 }
             }
+        }
+
+        //run onBuildComplete plugin hooks
+        for (var j = 0; j < onBuildCompletes.length; j++) {
+            fileContents = onBuildCompletes[j](moduleName, path, fileContents);                  
         }
 
         //Add a require at the end to kick start module execution, if that
