@@ -1158,7 +1158,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Write the built module to disk, and build up the build output.
         fileContents = "";
-        var onBuildReads = [];
         var onBuildWrites = [];
         for (i = 0; i < layer.buildFilePaths.length; i++) {
             path = layer.buildFilePaths[i];
@@ -1196,9 +1195,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
-                if (builder.onBuildRead) {
-                    onBuildReads.push(builder.onBuildRead);
-                }
                 if (builder.onBuildWrite) {
                     onBuildWrites.push(builder.onBuildWrite);                         
                 }
@@ -1223,11 +1219,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 if (config.onBuildRead) {
-                    onBuildReads.push(config.onBuildRead);
+                    currContents = config.onBuildRead(moduleName, path, currContents);      
                 }
-                for (var i = 0; i < onBuildReads.length; i++) {
-                    currContents = onBuildReads[i](moduleName, path, currContents);                  
-                }             
 
                 if (namespace) {
                     currContents = pragma.namespace(currContents, namespace);
@@ -1247,7 +1240,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 if (config.onBuildWrite) {
                     onBuildWrites.push(config.onBuildWrite);
                 }
-                for (var i = 0; i < onBuildWrites.length; i++) {
+                for (var j = 0; j < onBuildWrites.length; j++) {
                     currContents = onBuildWrites[i](moduleName, path, currContents);                  
                 }             
 
