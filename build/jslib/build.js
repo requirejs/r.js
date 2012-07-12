@@ -1241,7 +1241,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     onBuildWrites.push(config.onBuildWrite);
                 }
                 for (var j = 0; j < onBuildWrites.length; j++) {
-                    currContents = onBuildWrites[i](moduleName, path, currContents);                  
+                    currContents = onBuildWrites[j](moduleName, path, currContents);                  
                 }             
 
                 //Semicolon is for files that are not well formed when
