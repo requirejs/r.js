@@ -1158,8 +1158,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
         //Write the built module to disk, and build up the build output.
         fileContents = "";
-        onBuildReads = [];
-        onBuildWrites = [];
+        var onBuildReads = [];
+        var onBuildWrites = [];
         for (i = 0; i < layer.buildFilePaths.length; i++) {
             path = layer.buildFilePaths[i];
             moduleName = layer.buildFileToModule[path];
