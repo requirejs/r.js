@@ -1364,3 +1364,6 @@ exports.set_logger = function(logger) {
         warn = logger;
 };
 });
+// Local variables:
+// js-indent-level: 8
+// End:
