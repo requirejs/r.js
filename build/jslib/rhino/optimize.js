@@ -78,6 +78,10 @@ define(['logger'], function (logger) {
             }
             options.prettyPrint = keepLines || options.prettyPrint;
 
+            if (config.disableGlobalThisWarning) {
+                options.setWarningLevel(jscomp.DiagnosticGroups.GLOBAL_THIS, jscomp.CheckLevel.OFF);
+            }
+
             FLAG_compilation_level = jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS'];
             FLAG_compilation_level.setOptionsForCompilationLevel(options);
 
