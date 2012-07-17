@@ -883,6 +883,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 {
                     name: config.name,
                     out: config.out,
+                    create: config.create,
                     include: config.include,
                     exclude: config.exclude,
                     excludeShallow: config.excludeShallow,
