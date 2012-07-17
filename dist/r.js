@@ -14660,7 +14660,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         'hasOnSave.',
         'wrap.',
         'uglify.',
-        'closure.'
+        'closure.',
+        'map.'
     ];
 
     build.hasDotPropMatch = function (prop) {
