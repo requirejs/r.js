@@ -44,11 +44,11 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * @param {Node} an AST node that represents an array of strings.
      */
     function toAstArray(ary) {
-        var output = [
-            'array',
-            []
-        ],
-        i, item;
+        var i, item,
+            output = [
+                'array',
+                []
+            ];
 
         for (i = 0; i < ary.length; i++) {
             item = ary[i];
@@ -60,6 +60,25 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
 
         return output;
     }
+
+
+    //From an exprima example for traversing its ast.
+    function traverse(object, visitor) {
+        var key, child;
+
+        if (visitor.call(null, object) === false) {
+            return;
+        }
+        for (key in object) {
+            if (object.hasOwnProperty(key)) {
+                child = object[key];
+                if (typeof child === 'object' && child !== null) {
+                    traverse(child, visitor);
+                }
+            }
+        }
+    }
+
 
     /**
      * Validates a node as being an object literal (like for i18n bundles)
@@ -78,8 +97,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * dependency.
      */
     function validateDeps(node) {
-        var newDeps = ['array', []],
-            arrayArgs, i, dep;
+        var arrayArgs, i, dep,
+            newDeps = ['array', []];
 
         if (!node) {
             return null;
@@ -119,8 +138,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * array literal, or did not have any string literals..
      */
     function getValidDeps(node) {
-        var newDeps = [],
-            arrayArgs, i, dep;
+        var arrayArgs, i, dep,
+            newDeps = [];
 
         if (!node) {
             return null;
@@ -166,12 +185,12 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         options = options || {};
 
         //Set up source input
-        var moduleDeps = [],
+        var i, moduleCall, depString,
+            moduleDeps = [],
             result = '',
             moduleList = [],
             needsDefine = true,
-            astRoot = parser.parse(fileContents),
-            i, moduleCall, depString;
+            astRoot = parser.parse(fileContents);
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
             //If name is an array, it means it is an anonymous module,
@@ -264,8 +283,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * node, defaults to parse.parseNode.
      */
     parse.recurse = function (parentNode, onMatch, options, recurseCallback) {
-        var hasHas = options && options.has,
-            i, node;
+        var i, node,
+            hasHas = options && options.has;
 
         recurseCallback = recurseCallback || this.parseNode;
 
@@ -286,7 +305,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                     //For if/else if/else, the else if is in the [3],
                     //so only ever have to deal with this structure.
                     if (hasHas && node[0] === 'if' && node[1] && node[1][0] === 'name' &&
-                        (node[1][1] === 'true' || node[1][1] === 'false')) {
+                            (node[1][1] === 'true' || node[1][1] === 'false')) {
                         if (node[1][1] === 'true') {
                             this.recurse([node[2]], onMatch, options, recurseCallback);
                         } else {
@@ -312,8 +331,22 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * @returns {Boolean}
      */
     parse.definesRequire = function (fileName, fileContents) {
-        var astRoot = parser.parse(fileContents);
-        return this.nodeHasRequire(astRoot);
+        var found = false;
+
+        traverse(esprima.parse(fileContents), function (node) {
+            var exp = node.expression;
+            if (exp && exp.type === 'AssignmentExpression' &&
+                    exp.left && exp.left.type === 'MemberExpression' &&
+                    exp.left.object && exp.left.object.name === 'define' &&
+                    exp.left.property && exp.left.property.name === 'amd') {
+                found = true;
+
+                //Stop traversal
+                return false;
+            }
+        });
+
+        return found;
     };
 
     /**
@@ -488,7 +521,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                 if (call) {
                     //A require('') use.
                     if (call[0] === 'name' && call[1] === 'require' &&
-                        args[0][0] === 'string') {
+                            args[0][0] === 'string') {
                         return onMatch(args[0][1]);
                     }
                 }
@@ -557,7 +590,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                 if (args) {
                     //An exports or module.exports assignment.
                     if (args[0] === 'name' && args[1] === 'module' &&
-                        node[2][2] === 'exports') {
+                            node[2][2] === 'exports') {
                         return onMatch('moduleExports');
                     } else if (args[0] === 'name' && args[1] === 'exports') {
                         return onMatch('exports');
@@ -570,7 +603,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                 if (call) {
                     //A require('') use.
                     if (call[0] === 'name' && call[1] === 'require' &&
-                        args[0][0] === 'string') {
+                            args[0][0] === 'string') {
                         return onMatch('require');
                     }
                 }
@@ -611,30 +644,6 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
     };
 
     /**
-     * Determines if a given node contains a require() definition.
-     * @param {Array} node
-     * @returns {Boolean}
-     */
-    parse.nodeHasRequire = function (node) {
-        var i, n;
-
-        if (this.isDefineNode(node)) {
-            return true;
-        }
-
-        if (isArray(node)) {
-            for (i = 0; i < node.length; i++) {
-                n = node[i];
-                if (this.nodeHasRequire(n)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    };
-
-    /**
      * Is the given node the actual definition of define(). Actually uses
      * the definition of define.amd to find require.
      * @param {Array} node
@@ -651,7 +660,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         if (node[0] === 'assign' && node[1] === true) {
             assign = node[2];
             if (assign[0] === 'dot' && assign[1][0] === 'name' &&
-                assign[1][1] === 'define' && assign[2] === 'amd') {
+                    assign[1][1] === 'define' && assign[2] === 'amd') {
                 return true;
             }
         }
@@ -681,7 +690,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
 
             if (call) {
                 if (call[0] === 'name' &&
-                   (call[1] === 'require' || call[1] === 'requirejs')) {
+                        (call[1] === 'require' || call[1] === 'requirejs')) {
 
                     //It is a plain require() call.
                     config = args[0];
@@ -714,11 +723,11 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                     //which does create its own internal define in one file,
                     //to be inlined.
                     if (((name[0] === 'string' || isArrayLiteral(name) ||
-                          name[0] === 'function' || isObjectLiteral(name))) &&
-                        (!deps || isArrayLiteral(deps) ||
-                         deps[0] === 'function' || isObjectLiteral(deps) ||
-                         // allow define(['dep'], factory) pattern
-                         (isArrayLiteral(name) && deps[0] === 'name' && args.length === 2))) {
+                            name[0] === 'function' || isObjectLiteral(name))) &&
+                            (!deps || isArrayLiteral(deps) ||
+                            deps[0] === 'function' || isObjectLiteral(deps) ||
+                            // allow define(['dep'], factory) pattern
+                            (isArrayLiteral(name) && deps[0] === 'name' && args.length === 2))) {
 
                         //If first arg is a function, could be a commonjs wrapper,
                         //look inside for commonjs dependencies.
@@ -757,8 +766,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         if (node[0] === 'defun' && node[1] === 'define') {
             type = 'declaresDefine';
         } else if (node[0] === 'assign' && node[2] && node[2][2] === 'amd' &&
-            node[2][1] && node[2][1][0] === 'name' &&
-            node[2][1][1] === 'define') {
+                node[2][1] && node[2][1][0] === 'name' &&
+                node[2][1][1] === 'define') {
             type = 'defineAmd';
         } else if (node[0] === 'call') {
             call = node[1];
@@ -766,13 +775,13 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
 
             if (call) {
                 if ((call[0] === 'dot' &&
-                   (call[1] && call[1][0] === 'name' &&
-                    (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
-                   call[2] === 'config')) {
+                        (call[1] && call[1][0] === 'name' &&
+                        (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
+                        call[2] === 'config')) {
                     //A require.config() or requirejs.config() call.
                     type = call[1][1] + 'Config';
                 } else if (call[0] === 'name' &&
-                   (call[1] === 'require' || call[1] === 'requirejs')) {
+                        (call[1] === 'require' || call[1] === 'requirejs')) {
                     //A require() or requirejs() config call.
                     //Only want ones that start with an object or an array.
                     configNode = args[0];
@@ -818,14 +827,13 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
             if (call) {
                 //A require.config() or requirejs.config() call.
                 if ((call[0] === 'dot' &&
-                   (call[1] && call[1][0] === 'name' &&
-                    (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
-                   call[2] === 'config') ||
-                   //A require() or requirejs() config call.
+                        (call[1] && call[1][0] === 'name' &&
+                        (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
+                        call[2] === 'config') ||
+                        //A require() or requirejs() config call.
 
-                   (call[0] === 'name' &&
-                   (call[1] === 'require' || call[1] === 'requirejs'))
-                ) {
+                        (call[0] === 'name' &&
+                        (call[1] === 'require' || call[1] === 'requirejs'))) {
                     //It is a plain require() call.
                     configNode = args[0];
 
@@ -859,12 +867,12 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * @returns {String} a string of license comments.
      */
     parse.getLicenseComments = function (fileName, contents) {
-        var ast = esprima.parse(contents, {
+        var commentNode, refNode, subNode, value, i, j,
+            ast = esprima.parse(contents, {
                 comment: true
             }),
             result = '',
-            lineEnd = contents.indexOf('\r') === -1 ? '\n' : '\r\n',
-            commentNode, refNode, subNode, value, i, j;
+            lineEnd = contents.indexOf('\r') === -1 ? '\n' : '\r\n';
 
         if (ast.comments) {
             for (i = 0; i < ast.comments.length; i++) {
@@ -900,9 +908,9 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                 }
 
                 if (value.indexOf('license') !== -1 ||
-                    (commentNode.type === 'Block' && value.indexOf('/*!') === 0) ||
-                    value.indexOf('opyright') !== -1 ||
-                    value.indexOf('(c)') !== -1) {
+                        (commentNode.type === 'Block' && value.indexOf('/*!') === 0) ||
+                        value.indexOf('opyright') !== -1 ||
+                        value.indexOf('(c)') !== -1) {
 
                     result += value;
                 }
