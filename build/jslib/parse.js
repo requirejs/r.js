@@ -7,64 +7,21 @@
 /*jslint plusplus: true */
 /*global define: false */
 
-define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
+define(['./esprima'], function (esprima) {
     'use strict';
 
-    var parser = uglify.parser,
-        processor = uglify.uglify,
-        ostring = Object.prototype.toString,
-        isArray;
-
-    if (Array.isArray) {
-        isArray = Array.isArray;
-    } else {
-        isArray = function (it) {
-            return ostring.call(it) === "[object Array]";
-        };
-    }
-
-    /**
-     * Determines if the AST node is an array literal
-     */
-    function isArrayLiteral(node) {
-        return node[0] === 'array';
-    }
-
-    /**
-     * Determines if the AST node is an object literal
-     */
-    function isObjectLiteral(node) {
-        return node[0] === 'object';
-    }
-
-    /**
-     * Converts a regular JS array of strings to an AST node that
-     * represents that array.
-     * @param {Array} ary
-     * @param {Node} an AST node that represents an array of strings.
-     */
-    function toAstArray(ary) {
-        var i, item,
-            output = [
-                'array',
-                []
-            ];
-
-        for (i = 0; i < ary.length; i++) {
-            item = ary[i];
-            output[1].push([
-                'string',
-                item
-            ]);
-        }
-
-        return output;
-    }
-
+    var ostring = Object.prototype.toString,
+        //This string is saved off because JSLint complains
+        //about obj.arguments use, as 'reserved word'
+        argPropName = 'arguments';
 
     //From an exprima example for traversing its ast.
     function traverse(object, visitor) {
         var key, child;
+
+        if (!object) {
+            return;
+        }
 
         if (visitor.call(null, object) === false) {
             return;
@@ -81,96 +38,38 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
 
 
     /**
-     * Validates a node as being an object literal (like for i18n bundles)
-     * or an array literal with just string members. If an array literal,
-     * only return array members that are full strings. So the caller of
-     * this function should use the return value as the new value for the
-     * node.
-     *
-     * This function does not need to worry about comments, they are not
-     * present in this AST.
+     * Pulls out dependencies from an array literal with just string members.
+     * If string literals, will just return those string values in an array,
+     * skipping other items in the array.
      *
      * @param {Node} node an AST node.
      *
-     * @returns {Node} an AST node to use for the valid dependencies.
+     * @returns {Array} an array of strings.
      * If null is returned, then it means the input node was not a valid
      * dependency.
      */
-    function validateDeps(node) {
-        var arrayArgs, i, dep,
-            newDeps = ['array', []];
-
-        if (!node) {
-            return null;
-        }
-
-        if (isObjectLiteral(node) || node[0] === 'function') {
-            return node;
-        }
-
-        //Dependencies can be an object literal or an array.
-        if (!isArrayLiteral(node)) {
-            return null;
-        }
-
-        arrayArgs = node[1];
-
-        for (i = 0; i < arrayArgs.length; i++) {
-            dep = arrayArgs[i];
-            if (dep[0] === 'string') {
-                newDeps[1].push(dep);
-            }
-        }
-        return newDeps[1].length ? newDeps : null;
-    }
-
-    /**
-     * Gets dependencies from a node, but only if it is an array literal,
-     * and only if the dependency is a string literal.
-     *
-     * This function does not need to worry about comments, they are not
-     * present in this AST.
-     *
-     * @param {Node} node an AST node.
-     *
-     * @returns {Array} of valid dependencies.
-     * If null is returned, then it means the input node was not a valid
-     * array literal, or did not have any string literals..
-     */
     function getValidDeps(node) {
-        var arrayArgs, i, dep,
-            newDeps = [];
-
-        if (!node) {
-            return null;
+        if (!node || node.type !== 'ArrayExpression' || !node.elements) {
+            return;
         }
 
-        if (isObjectLiteral(node) || node[0] === 'function') {
-            return null;
-        }
+        var deps = [];
 
-        //Dependencies can be an object literal or an array.
-        if (!isArrayLiteral(node)) {
-            return null;
-        }
-
-        arrayArgs = node[1];
-
-        for (i = 0; i < arrayArgs.length; i++) {
-            dep = arrayArgs[i];
-            if (dep[0] === 'string') {
-                newDeps.push(dep[1]);
+        node.elements.some(function (elem) {
+            if (elem.type === 'Literal') {
+                deps.push(elem.value);
             }
-        }
-        return newDeps.length ? newDeps : null;
+        });
+
+        return deps.length ? deps : undefined;
     }
 
     /**
-     * Main parse function. Returns a string of any valid require or define/require.def
-     * calls as part of one JavaScript source string.
+     * Main parse function. Returns a string of any valid require or
+     * define/require.def calls as part of one JavaScript source string.
      * @param {String} moduleName the module name that represents this file.
-     * It is used to create a default define if there is not one already for the file.
-     * This allows properly tracing dependencies for builds. Otherwise, if
+     * It is used to create a default define if there is not one already for the
+     * file. This allows properly tracing dependencies for builds. Otherwise, if
      * the file just has a require() call, the file dependencies will not be
      * properly reflected: the file will come before its dependencies.
      * @param {String} moduleName
@@ -178,8 +77,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * @param {String} fileContents
      * @param {Object} options optional options. insertNeedsDefine: true will
      * add calls to require.needsDefine() if appropriate.
-     * @returns {String} JS source string or null, if no require or define/require.def
-     * calls are found.
+     * @returns {String} JS source string or null, if no require or
+     * define/require.def calls are found.
      */
     function parse(moduleName, fileName, fileContents, options) {
         options = options || {};
@@ -190,28 +89,11 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
             result = '',
             moduleList = [],
             needsDefine = true,
-            astRoot = parser.parse(fileContents);
+            astRoot = esprima.parse(fileContents);
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
-            //If name is an array, it means it is an anonymous module,
-            //so adjust args appropriately. An anonymous module could
-            //have a FUNCTION as the name type, but just ignore those
-            //since we just want to find dependencies.
-            if (name && isArrayLiteral(name)) {
-                deps = name;
-                name = null;
-            }
-
-            deps = getValidDeps(deps);
             if (!deps) {
                 deps = [];
-            }
-
-            //Get the name as a string literal, if it is available.
-            if (name && name[0] === 'string') {
-                name = name[1];
-            } else {
-                name = null;
             }
 
             if (callName === 'define' && (!name || name === moduleName)) {
@@ -231,7 +113,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
 
             //If define was found, no need to dive deeper, unless
             //the config explicitly wants to dig deeper.
-            return !options.findNestedDependencies;
+            return !!options.findNestedDependencies;
         }, options);
 
         if (options.insertNeedsDefine && needsDefine) {
@@ -253,14 +135,17 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                     moduleDeps = [];
                 }
 
-                depString = moduleCall.deps.length ? '["' + moduleCall.deps.join('","') + '"]' : '[]';
-                result += 'define("' + moduleCall.name + '",' + depString + ');';
+                depString = moduleCall.deps.length ? '["' +
+                            moduleCall.deps.join('","') + '"]' : '[]';
+                result += 'define("' + moduleCall.name + '",' +
+                          depString + ');';
             }
             if (moduleDeps.length) {
                 if (result) {
                     result += '\n';
                 }
-                depString = moduleDeps.length ? '["' + moduleDeps.join('","') + '"]' : '[]';
+                depString = moduleDeps.length ? '["' + moduleDeps.join('","') +
+                            '"]' : '[]';
                 result += 'define("' + moduleName + '",' + depString + ');';
             }
         }
@@ -268,56 +153,44 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         return result || null;
     }
 
-    //Add some private methods to object for use in derived objects.
-    parse.isArray = isArray;
-    parse.isObjectLiteral = isObjectLiteral;
-    parse.isArrayLiteral = isArrayLiteral;
-
     /**
      * Handles parsing a file recursively for require calls.
      * @param {Array} parentNode the AST node to start with.
      * @param {Function} onMatch function to call on a parse match.
      * @param {Object} [options] This is normally the build config options if
      * it is passed.
-     * @param {Function} [recurseCallback] function to call on each valid
-     * node, defaults to parse.parseNode.
      */
-    parse.recurse = function (parentNode, onMatch, options, recurseCallback) {
-        var i, node,
+    parse.recurse = function (object, onMatch, options) {
+        //Like traverse, but skips if branches that would not be processed
+        //after has application that results in tests of true or false boolean
+        //literal values.
+        var key, child,
             hasHas = options && options.has;
 
-        recurseCallback = recurseCallback || this.parseNode;
+        if (!object) {
+            return;
+        }
 
-        if (isArray(parentNode)) {
-            for (i = 0; i < parentNode.length; i++) {
-                node = parentNode[i];
-                if (isArray(node)) {
-                    //If has config is in play, if calls have been converted
-                    //by this point to be true/false values. So, if
-                    //options has a 'has' value, skip if branches that have
-                    //literal false values.
-
-                    //uglify returns if constructs in an array:
-                    //[0]: 'if'
-                    //[1]: the condition, ['name', true | false] for the has replaced case.
-                    //[2]: the block to process if true
-                    //[3]: the block to process if false
-                    //For if/else if/else, the else if is in the [3],
-                    //so only ever have to deal with this structure.
-                    if (hasHas && node[0] === 'if' && node[1] && node[1][0] === 'name' &&
-                            (node[1][1] === 'true' || node[1][1] === 'false')) {
-                        if (node[1][1] === 'true') {
-                            this.recurse([node[2]], onMatch, options, recurseCallback);
-                        } else {
-                            this.recurse([node[3]], onMatch, options, recurseCallback);
-                        }
-                    } else {
-                        //If the onMatch indicated parsing should
-                        //stop for children of this node, stop, otherwise,
-                        //keep going.
-                        if (!recurseCallback(node, onMatch)) {
-                            this.recurse(node, onMatch, options, recurseCallback);
-                        }
+        //If has replacement has resulted in if(true){} or if(false){}, take
+        //the appropriate branch and skip the other one.
+        if (hasHas && object.type === 'IfStatement' && object.test.type &&
+                object.test.type === 'Literal') {
+            if (object.test.value) {
+                //Take the if branch
+                this.recurse(object.consequent, onMatch, options);
+            } else {
+                //Take the else branch
+                this.recurse(object.alternate, onMatch, options);
+            }
+        } else {
+            if (this.parseNode(object, onMatch) === false) {
+                return;
+            }
+            for (key in object) {
+                if (object.hasOwnProperty(key)) {
+                    child = object[key];
+                    if (typeof child === 'object' && child !== null) {
+                        this.recurse(child, onMatch, options);
                     }
                 }
             }
@@ -325,7 +198,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
     };
 
     /**
-     * Determines if the file defines require().
+     * Determines if the file defines the require/define module API.
+     * Specifically, it looks for the `define.amd = ` expression.
      * @param {String} fileName
      * @param {String} fileContents
      * @returns {Boolean}
@@ -334,11 +208,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         var found = false;
 
         traverse(esprima.parse(fileContents), function (node) {
-            var exp = node.expression;
-            if (exp && exp.type === 'AssignmentExpression' &&
-                    exp.left && exp.left.type === 'MemberExpression' &&
-                    exp.left.object && exp.left.object.name === 'define' &&
-                    exp.left.property && exp.left.property.name === 'amd') {
+            if (parse.hasDefineAmd(node)) {
                 found = true;
 
                 //Stop traversal
@@ -360,7 +230,7 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * returns an array, but could be of length zero.
      */
     parse.getAnonDeps = function (fileName, fileContents) {
-        var astRoot = parser.parse(fileContents),
+        var astRoot = esprima.parse(fileContents),
             defFunc = this.findAnonDefineFactory(astRoot);
 
         return parse.getAnonDepsFromNode(defFunc);
@@ -379,11 +249,11 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         if (node) {
             this.findRequireDepNames(node, deps);
 
-            //If no deps, still add the standard CommonJS require, exports, module,
-            //in that order, to the deps, but only if specified as function args.
-            //In particular, if exports is used, it is favored over the return
-            //value of the function, so only add it if asked.
-            funcArgLength = node[2] && node[2].length;
+            //If no deps, still add the standard CommonJS require, exports,
+            //module, in that order, to the deps, but only if specified as
+            //function args. In particular, if exports is used, it is favored
+            //over the return value of the function, so only add it if asked.
+            funcArgLength = node.params && node.params.length;
             if (funcArgLength) {
                 deps = (funcArgLength > 1 ? ["require", "exports", "module"] :
                         ["require"]).concat(deps);
@@ -398,41 +268,40 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * @returns {Boolean}
      */
     parse.findAnonDefineFactory = function (node) {
-        var callback, i, n, call, args;
+        var match;
 
-        if (isArray(node)) {
-            if (node[0] === 'call' && node.length > 2) {
-                call = node[1];
-                args = node[2];
-                if ((call[0] === 'name' && call[1] === 'define') ||
-                           (call[0] === 'dot' && call[1][1] === 'require' && call[2] === 'def')) {
+        traverse(node, function (node) {
+            var arg0, arg1,
+                exp = node.expression;
 
-                    //There should only be one argument and it should be a function,
-                    //or a named module with function as second arg
-                    if (args.length === 1 && args[0][0] === 'function') {
-                        return args[0];
-                    } else if (args.length === 2 && args[0][0] === 'string' &&
-                               args[1][0] === 'function') {
-                        return args[1];
-                    }
+            if (exp && exp.type === 'CallExpression' &&
+                    exp.callee && exp.callee.type === 'Identifier' &&
+                    exp.callee.name === 'define' && exp[argPropName]) {
+
+                //Just the factory function passed to define
+                arg0 = exp[argPropName][0];
+                if (arg0 && arg0.type === 'FunctionExpression') {
+                    match = arg0;
+                    return false;
+                }
+
+                //A string literal module ID followed by the factory function.
+                arg1 = exp[argPropName][1];
+                if (arg0.type === 'Literal' &&
+                        arg1 && arg1.type === 'FunctionExpression') {
+                    match = arg1;
+                    return false;
                 }
             }
+        });
 
-            //Check child nodes
-            for (i = 0; i < node.length; i++) {
-                n = node[i];
-                callback = this.findAnonDefineFactory(n);
-                if (callback) {
-                    return callback;
-                }
-            }
-        }
-
-        return null;
+        return match;
     };
 
     /**
-     * Finds any config that is passed to requirejs.
+     * Finds any config that is passed to requirejs. That includes calls to
+     * require/requirejs.config(), as well as require({}, ...) and
+     * requirejs({}, ...)
      * @param {String} fileName
      * @param {String} fileContents
      *
@@ -445,19 +314,34 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         //This is a litle bit inefficient, it ends up with two uglifyjs parser
         //calls. Can revisit later, but trying to build out larger functional
         //pieces first.
-        var foundConfig = null,
-            astRoot = parser.parse(fileContents);
+        var jsConfig,
+            foundConfig = null,
+            astRoot = esprima.parse(fileContents, {
+                range: true
+            });
 
-        parse.recurse(astRoot, function (configNode) {
-            var jsConfig;
+        traverse(astRoot, function (node) {
+            var arg,
+                exp = node.expression,
+                c = exp && exp.callee,
+                requireType = parse.hasRequire(node);
 
-            if (!foundConfig && configNode) {
-                jsConfig = parse.nodeToString(configNode);
-                foundConfig = eval('(' + jsConfig + ')');
-                return foundConfig;
+            if (requireType && (requireType === 'require' ||
+                    requireType === 'requirejs' ||
+                    requireType === 'requireConfig' ||
+                    requireType === 'requirejsConfig')) {
+
+                arg = exp[argPropName] && exp[argPropName][0];
+
+                if (arg && arg.type === 'ObjectExpression') {
+                    jsConfig = parse.nodeToString(fileContents, arg);
+                    foundConfig = eval('(' + jsConfig + ')');
+                    return false;
+                }
             }
-            return undefined;
-        }, null, parse.parseConfigNode);
+
+
+        });
 
         return foundConfig;
     };
@@ -476,16 +360,9 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
         //calls. Can revisit later, but trying to build out larger functional
         //pieces first.
         var dependencies = [],
-            astRoot = parser.parse(fileContents);
+            astRoot = esprima.parse(fileContents);
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
-            //Normalize the input args.
-            if (name && isArrayLiteral(name)) {
-                deps = name;
-                name = null;
-            }
-
-            deps = getValidDeps(deps);
             if (deps) {
                 dependencies = dependencies.concat(deps);
             }
@@ -495,43 +372,77 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
     };
 
     /**
-     * Finds only CJS dependencies, ones that are the form require('stringLiteral')
+     * Finds only CJS dependencies, ones that are the form
+     * require('stringLiteral')
      */
     parse.findCjsDependencies = function (fileName, fileContents, options) {
-        //This is a litle bit inefficient, it ends up with two uglifyjs parser
-        //calls. Can revisit later, but trying to build out larger functional
-        //pieces first.
-        var dependencies = [],
-            astRoot = parser.parse(fileContents);
+        var dependencies = [];
 
-        parse.recurse(astRoot, function (dep) {
-            dependencies.push(dep);
-        }, options, function (node, onMatch) {
+        traverse(esprima.parse(fileContents), function (node) {
+            var arg;
 
-            var call, args;
-
-            if (!isArray(node)) {
-                return false;
-            }
-
-            if (node[0] === 'call') {
-                call = node[1];
-                args = node[2];
-
-                if (call) {
-                    //A require('') use.
-                    if (call[0] === 'name' && call[1] === 'require' &&
-                            args[0][0] === 'string') {
-                        return onMatch(args[0][1]);
-                    }
+            if (node && node.type === 'CallExpression' && node.callee &&
+                    node.callee.type === 'Identifier' &&
+                    node.callee.name === 'require' && node[argPropName] &&
+                    node[argPropName].length === 1) {
+                arg = node[argPropName][0];
+                if (arg.type === 'Literal') {
+                    dependencies.push(arg.value);
                 }
             }
-
-            return false;
-
         });
 
         return dependencies;
+    };
+
+    //function define() {}
+    parse.hasDefDefine = function (node) {
+        return node.type === 'FunctionDeclaration' && node.id &&
+                    node.id.type === 'Identifier' && node.id.name === 'define';
+    };
+
+    //define.amd = ...
+    parse.hasDefineAmd = function (node) {
+        var exp = node.expression;
+        return exp && exp.type === 'AssignmentExpression' &&
+            exp.left && exp.left.type === 'MemberExpression' &&
+            exp.left.object && exp.left.object.name === 'define' &&
+            exp.left.property && exp.left.property.name === 'amd';
+    };
+
+    //require(), requirejs(), require.config() and requirejs.config()
+    parse.hasRequire = function (node) {
+        var callName,
+            exp = node.expression,
+            c = exp && exp.callee;
+
+        if (exp && exp.type === 'CallExpression' && c) {
+            if (c.type === 'Identifier' &&
+                    (c.name === 'require' ||
+                    c.name === 'requirejs')) {
+                //A require/requirejs({}, ...) call
+                callName = c.name;
+            } else if (c.type === 'MemberExpression' &&
+                    c.object &&
+                    c.object.type === 'Identifier' &&
+                    (c.object.name === 'require' ||
+                        c.object.name === 'requirejs') &&
+                    c.property && c.property.name === 'config') {
+                // require/requirejs.config({}) call
+                callName = c.object.name + 'Config';
+            }
+        }
+
+        return callName;
+    };
+
+    //define()
+    parse.hasDefine = function (node) {
+        var exp = node.expression;
+
+        return exp && exp.type === 'CallExpression' && exp.callee &&
+            exp.callee.type === 'Identifier' &&
+            exp.callee.name === 'define';
     };
 
     /**
@@ -539,15 +450,37 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * file. Also finds out if define() is declared and if define.amd is called.
      */
     parse.usesAmdOrRequireJs = function (fileName, fileContents, options) {
-        var astRoot = parser.parse(fileContents),
-            uses;
+        var uses;
 
-        parse.recurse(astRoot, function (prop) {
-            if (!uses) {
-                uses = {};
+        traverse(esprima.parse(fileContents), function (node) {
+            var type, callName, arg, exp;
+
+            if (parse.hasDefDefine(node)) {
+                //function define() {}
+                type = 'declaresDefine';
+            } else if (parse.hasDefineAmd(node)) {
+                type = 'defineAmd';
+            } else {
+                callName = parse.hasRequire(node);
+                if (callName) {
+                    exp = node.expression;
+                    arg = exp[argPropName] && exp[argPropName][0];
+                    if (arg && (arg.type === 'ObjectExpression' ||
+                            arg.type === 'ArrayExpression')) {
+                        type = callName;
+                    }
+                } else if (parse.hasDefine(node)) {
+                    type = 'define';
+                }
             }
-            uses[prop] = true;
-        }, options, parse.findAmdOrRequireJsNode);
+
+            if (type) {
+                if (!uses) {
+                    uses = {};
+                }
+                uses[type] = true;
+            }
+        });
 
         return uses;
     };
@@ -559,58 +492,50 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      */
     parse.usesCommonJs = function (fileName, fileContents, options) {
         var uses = null,
-            assignsExports = false,
-            astRoot = parser.parse(fileContents);
+            assignsExports = false;
 
-        parse.recurse(astRoot, function (prop) {
-            if (prop === 'varExports') {
-                assignsExports = true;
-            } else if (prop !== 'exports' || !assignsExports) {
-                if (!uses) {
-                    uses = {};
+
+        traverse(esprima.parse(fileContents), function (node) {
+            var type,
+                exp = node.expression;
+
+            if (node.type === 'Identifier' &&
+                    (node.name === '__dirname' || node.name === '__filename')) {
+                type = node.name.substring(2);
+            } else if (node.type === 'VariableDeclarator' && node.id &&
+                    node.id.type === 'Identifier' &&
+                        node.id.name === 'exports') {
+                //Hmm, a variable assignment for exports, so does not use cjs
+                //exports.
+                type = 'varExports';
+            } else if (exp && exp.type === 'AssignmentExpression' && exp.left &&
+                    exp.left.type === 'MemberExpression' && exp.left.object) {
+                if (exp.left.object.name === 'module' && exp.left.property &&
+                        exp.left.property.name === 'exports') {
+                    type = 'moduleExports';
+                } else if (exp.left.object.name === 'exports' &&
+                        exp.left.property) {
+                    type = 'exports';
                 }
-                uses[prop] = true;
+
+            } else if (node && node.type === 'CallExpression' && node.callee &&
+                    node.callee.type === 'Identifier' &&
+                    node.callee.name === 'require' && node[argPropName] &&
+                    node[argPropName].length === 1 &&
+                    node[argPropName][0].type === 'Literal') {
+                type = 'require';
             }
-        }, options, function (node, onMatch) {
 
-            var call, args;
-
-            if (!isArray(node)) {
-                return false;
-            }
-
-            if (node[0] === 'name' && (node[1] === '__dirname' || node[1] === '__filename')) {
-                return onMatch(node[1].substring(2));
-            } else if (node[0] === 'var' && node[1] && node[1][0] && node[1][0][0] === 'exports') {
-                //Hmm, a variable assignment for exports, so does not use cjs exports.
-                return onMatch('varExports');
-            } else if (node[0] === 'assign' && node[2] && node[2][0] === 'dot') {
-                args = node[2][1];
-
-                if (args) {
-                    //An exports or module.exports assignment.
-                    if (args[0] === 'name' && args[1] === 'module' &&
-                            node[2][2] === 'exports') {
-                        return onMatch('moduleExports');
-                    } else if (args[0] === 'name' && args[1] === 'exports') {
-                        return onMatch('exports');
+            if (type) {
+                if (type === 'varExports') {
+                    assignsExports = true;
+                } else if (type !== 'exports' || !assignsExports) {
+                    if (!uses) {
+                        uses = {};
                     }
-                }
-            } else if (node[0] === 'call') {
-                call = node[1];
-                args = node[2];
-
-                if (call) {
-                    //A require('') use.
-                    if (call[0] === 'name' && call[1] === 'require' &&
-                            args[0][0] === 'string') {
-                        return onMatch('require');
-                    }
+                    uses[type] = true;
                 }
             }
-
-            return false;
-
         });
 
         return uses;
@@ -620,55 +545,25 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
     parse.findRequireDepNames = function (node, deps) {
         var moduleName, i, n, call, args;
 
-        if (isArray(node)) {
-            if (node[0] === 'call') {
-                call = node[1];
-                args = node[2];
+        traverse(node, function (node) {
+            var arg;
 
-                if (call && call[0] === 'name' && call[1] === 'require') {
-                    moduleName = args[0];
-                    if (moduleName[0] === 'string') {
-                        deps.push(moduleName[1]);
-                    }
+            if (node && node.type === 'CallExpression' && node.callee &&
+                    node.callee.type === 'Identifier' &&
+                    node.callee.name === 'require' &&
+                    node[argPropName] && node[argPropName].length === 1) {
+
+                arg = node[argPropName][0];
+                if (arg.type === 'Literal') {
+                    deps.push(arg.value);
                 }
-
-
             }
-
-            //Check child nodes
-            for (i = 0; i < node.length; i++) {
-                n = node[i];
-                this.findRequireDepNames(n, deps);
-            }
-        }
+        });
     };
 
     /**
-     * Is the given node the actual definition of define(). Actually uses
-     * the definition of define.amd to find require.
-     * @param {Array} node
-     * @returns {Boolean}
-     */
-    parse.isDefineNode = function (node) {
-        //Actually look for the define.amd = assignment, since
-        //that is more indicative of RequireJS vs a plain require definition.
-        var assign;
-        if (!node) {
-            return null;
-        }
-
-        if (node[0] === 'assign' && node[1] === true) {
-            assign = node[2];
-            if (assign[0] === 'dot' && assign[1][0] === 'name' &&
-                    assign[1][1] === 'define' && assign[2] === 'amd') {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    /**
-     * Determines if a specific node is a valid require or define/require.def call.
+     * Determines if a specific node is a valid require or define/require.def
+     * call.
      * @param {Array} node
      * @param {Function} onMatch a function to call when a match is found.
      * It is passed the match name, and the config, name, deps possible args.
@@ -678,186 +573,91 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
      * Otherwise null.
      */
     parse.parseNode = function (node, onMatch) {
-        var call, name, config, deps, args, cjsDeps;
+        var name, deps, cjsDeps, arg, factory,
+            exp = node.expression,
+            args = exp && exp[argPropName],
+            callName = parse.hasRequire(node);
 
-        if (!isArray(node)) {
-            return false;
-        }
-
-        if (node[0] === 'call') {
-            call = node[1];
-            args = node[2];
-
-            if (call) {
-                if (call[0] === 'name' &&
-                        (call[1] === 'require' || call[1] === 'requirejs')) {
-
-                    //It is a plain require() call.
-                    config = args[0];
-                    deps = args[1];
-                    if (isArrayLiteral(config)) {
-                        deps = config;
-                        config = null;
-                    }
-
-                    deps = validateDeps(deps);
-                    if (!deps) {
-                        return null;
-                    }
-
-                    return onMatch("require", null, null, deps);
-
-                } else if (call[0] === 'name' && call[1] === 'define') {
-
-                    //A define call
-                    name = args[0];
-                    deps = args[1];
-                    //Only allow define calls that match what is expected
-                    //in an AMD call:
-                    //* first arg should be string, array, function or object
-                    //* second arg optional, or array, function or object.
-                    //This helps weed out calls to a non-AMD define, but it is
-                    //not completely robust. Someone could create a define
-                    //function that still matches this shape, but this is the
-                    //best that is possible, and at least allows UglifyJS,
-                    //which does create its own internal define in one file,
-                    //to be inlined.
-                    if (((name[0] === 'string' || isArrayLiteral(name) ||
-                            name[0] === 'function' || isObjectLiteral(name))) &&
-                            (!deps || isArrayLiteral(deps) ||
-                            deps[0] === 'function' || isObjectLiteral(deps) ||
-                            // allow define(['dep'], factory) pattern
-                            (isArrayLiteral(name) && deps[0] === 'name' && args.length === 2))) {
-
-                        //If first arg is a function, could be a commonjs wrapper,
-                        //look inside for commonjs dependencies.
-                        //Also, if deps is a function look for commonjs deps.
-                        if (name && name[0] === 'function') {
-                            cjsDeps = parse.getAnonDepsFromNode(name);
-                            if (cjsDeps.length) {
-                                name = toAstArray(cjsDeps);
-                            }
-                        } else if (deps && deps[0] === 'function') {
-                            cjsDeps = parse.getAnonDepsFromNode(deps);
-                            if (cjsDeps.length) {
-                                deps = toAstArray(cjsDeps);
-                            }
-                        }
-
-                        return onMatch("define", null, name, deps);
-                    }
+        if (callName === 'require' || callName === 'requirejs') {
+            //A plain require/requirejs call
+            arg = exp[argPropName] && exp[argPropName][0];
+            if (arg.type !== 'ArrayExpression') {
+                if (arg.type === 'ObjectExpression') {
+                    //A config call, try the second arg.
+                    arg = exp[argPropName][1];
                 }
             }
-        }
 
-        return false;
+            deps = getValidDeps(arg);
+            if (!deps) {
+                return;
+            }
+
+            return onMatch("require", null, null, deps);
+        } else if (parse.hasDefine(node) && args && args.length) {
+            name = args[0];
+            deps = args[1];
+            factory = args[2];
+
+            if (name.type === 'ArrayExpression') {
+                //No name, adjust args
+                factory = deps;
+                deps = name;
+                name = null;
+            } else if (name.type === 'FunctionExpression') {
+                //Just the factory, no name or deps
+                factory = name;
+                name = deps = null;
+            } else if (name.type !== 'Literal') {
+                 //An object literal, just null out
+                name = deps = factory = null;
+            }
+
+            if (name && name.type === 'Literal' && deps) {
+                if (deps.type === 'FunctionExpression') {
+                    //deps is the factory
+                    factory = deps;
+                    deps = null;
+                } else if (deps.type === 'ObjectExpression') {
+                    //deps is object literal, null out
+                    deps = factory = null;
+                }
+            }
+
+            if (deps && deps.type === 'ArrayExpression') {
+                deps = getValidDeps(deps);
+            } else if (factory && factory.type === 'FunctionExpression') {
+                //If no deps and a factory function, could be a commonjs sugar
+                //wrapper, scan the function for dependencies.
+                cjsDeps = parse.getAnonDepsFromNode(factory);
+                if (cjsDeps.length) {
+                    deps = cjsDeps;
+                }
+            } else if (deps || factory) {
+                //Does not match the shape of an AMD call.
+                return;
+            }
+
+            //Just save off the name as a string instead of an AST object.
+            if (name && name.type === 'Literal') {
+                name = name.value;
+            }
+
+            return onMatch("define", null, name, deps);
+        }
     };
 
     /**
-     * Looks for define(), require({} || []), requirejs({} || []) calls.
-     */
-    parse.findAmdOrRequireJsNode = function (node, onMatch) {
-        var call, args, configNode, type;
-
-        if (!isArray(node)) {
-            return false;
-        }
-
-        if (node[0] === 'defun' && node[1] === 'define') {
-            type = 'declaresDefine';
-        } else if (node[0] === 'assign' && node[2] && node[2][2] === 'amd' &&
-                node[2][1] && node[2][1][0] === 'name' &&
-                node[2][1][1] === 'define') {
-            type = 'defineAmd';
-        } else if (node[0] === 'call') {
-            call = node[1];
-            args = node[2];
-
-            if (call) {
-                if ((call[0] === 'dot' &&
-                        (call[1] && call[1][0] === 'name' &&
-                        (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
-                        call[2] === 'config')) {
-                    //A require.config() or requirejs.config() call.
-                    type = call[1][1] + 'Config';
-                } else if (call[0] === 'name' &&
-                        (call[1] === 'require' || call[1] === 'requirejs')) {
-                    //A require() or requirejs() config call.
-                    //Only want ones that start with an object or an array.
-                    configNode = args[0];
-                    if (configNode[0] === 'object' || configNode[0] === 'array') {
-                        type = call[1];
-                    }
-                } else if (call[0] === 'name' && call[1] === 'define') {
-                    //A define call.
-                    type = 'define';
-                }
-            }
-        }
-
-        if (type) {
-            return onMatch(type);
-        }
-
-        return false;
-    };
-
-    /**
-     * Determines if a specific node is a valid require/requirejs config
-     * call. That includes calls to require/requirejs.config().
-     * @param {Array} node
-     * @param {Function} onMatch a function to call when a match is found.
-     * It is passed the match name, and the config, name, deps possible args.
-     * The config, name and deps args are not normalized.
-     *
-     * @returns {String} a JS source string with the valid require/define call.
-     * Otherwise null.
-     */
-    parse.parseConfigNode = function (node, onMatch) {
-        var call, configNode, args;
-
-        if (!isArray(node)) {
-            return false;
-        }
-
-        if (node[0] === 'call') {
-            call = node[1];
-            args = node[2];
-
-            if (call) {
-                //A require.config() or requirejs.config() call.
-                if ((call[0] === 'dot' &&
-                        (call[1] && call[1][0] === 'name' &&
-                        (call[1][1] === 'require' || call[1][1] === 'requirejs')) &&
-                        call[2] === 'config') ||
-                        //A require() or requirejs() config call.
-
-                        (call[0] === 'name' &&
-                        (call[1] === 'require' || call[1] === 'requirejs'))) {
-                    //It is a plain require() call.
-                    configNode = args[0];
-
-                    if (configNode[0] !== 'object') {
-                        return null;
-                    }
-
-                    return onMatch(configNode);
-
-                }
-            }
-        }
-
-        return false;
-    };
-
-    /**
-     * Converts an AST node into a JS source string. Does not maintain formatting
-     * or even comments from original source, just returns valid JS source.
-     * @param {Array} node
+     * Converts an AST node into a JS source string by extracting
+     * the node's location from the given contents string. Assumes
+     * esprima.parse() with ranges was done.
+     * @param {String} contents
+     * @param {Object} node
      * @returns {String} a JS source string.
      */
-    parse.nodeToString = function (node) {
-        return processor.gen_code(node, true);
+    parse.nodeToString = function (contents, node) {
+        var range = node.range;
+        return contents.substring(range[0], range[1]);
     };
 
     /**
@@ -885,12 +685,13 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                     if (i + 1 >= ast.comments.length) {
                         value += lineEnd;
                     } else {
-                        //Look for immediately adjacent single line comments since
-                        //it could from a multiple line comment made out of single
-                        //line comments. Like this comment.
+                        //Look for immediately adjacent single line comments
+                        //since it could from a multiple line comment made out
+                        //of single line comments. Like this comment.
                         for (j = i + 1; j < ast.comments.length; j++) {
                             subNode = ast.comments[j];
-                            if (subNode.type === 'Line' && subNode.range[0] === refNode.range[1]) {
+                            if (subNode.type === 'Line' &&
+                                    subNode.range[0] === refNode.range[1]) {
                                 //Adjacent single line comment. Collect it.
                                 value += '//' + subNode.value + lineEnd;
                                 refNode = subNode;
@@ -908,7 +709,8 @@ define(['./esprima', './uglifyjs/index'], function (esprima, uglify) {
                 }
 
                 if (value.indexOf('license') !== -1 ||
-                        (commentNode.type === 'Block' && value.indexOf('/*!') === 0) ||
+                        (commentNode.type === 'Block' &&
+                            value.indexOf('/*!') === 0) ||
                         value.indexOf('opyright') !== -1 ||
                         value.indexOf('(c)') !== -1) {
 
