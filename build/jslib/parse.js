@@ -311,9 +311,6 @@ define(['./esprima'], function (esprima) {
      */
     parse.findConfig = function (fileName, fileContents) {
         /*jslint evil: true */
-        //This is a litle bit inefficient, it ends up with two uglifyjs parser
-        //calls. Can revisit later, but trying to build out larger functional
-        //pieces first.
         var jsConfig,
             foundConfig = null,
             astRoot = esprima.parse(fileContents, {
@@ -356,9 +353,6 @@ define(['./esprima'], function (esprima) {
      * have not been normalized, they may be relative IDs.
      */
     parse.findDependencies = function (fileName, fileContents, options) {
-        //This is a litle bit inefficient, it ends up with two uglifyjs parser
-        //calls. Can revisit later, but trying to build out larger functional
-        //pieces first.
         var dependencies = [],
             astRoot = esprima.parse(fileContents);
 
