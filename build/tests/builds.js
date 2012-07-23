@@ -1311,4 +1311,22 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Allow JS 1.8 that works in spidermonkey to be built.
+    //https://github.com/jrburke/r.js/issues/72
+    doh.register("js18",
+        [
+            function js18(t) {
+                file.deleteFile("lib/js18/main-built.js");
+
+                build(["lib/js18/build.js"]);
+
+                t.is(nol(c("lib/js18/expected.js")),
+                     nol(c("lib/js18/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });
