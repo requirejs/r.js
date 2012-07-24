@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.4+ Tue, 17 Jul 2012 23:55:16 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.4+ Tue, 24 Jul 2012 00:15:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.4+ Tue, 17 Jul 2012 23:55:16 GMT',
+        version = '2.0.4+ Tue, 24 Jul 2012 00:15:07 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -105,7 +105,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.0.4 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.0.4+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -116,7 +116,7 @@ var requirejs, require, define;
 (function (global) {
     'use strict';
 
-    var version = '2.0.4',
+    var version = '2.0.4+',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -1468,7 +1468,11 @@ var requirejs, require, define;
                 //update the maps for them, since their info, like URLs to load,
                 //may have changed.
                 eachProp(registry, function (mod, id) {
-                    mod.map = makeModuleMap(id);
+                    //If module already has init called, since it is too
+                    //late to modify them.
+                    if (!mod.inited) {
+                        mod.map = makeModuleMap(id);
+                    }
                 });
 
                 //If a deps array or a config callback is specified, then call
