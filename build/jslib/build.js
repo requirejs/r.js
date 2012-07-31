@@ -1080,6 +1080,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             namespaceWithDot = namespace ? namespace + '.' : '',
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
             context = layer.context,
+            onLayerComplete = [],
             path, reqIndex, fileContents, currContents,
             i, moduleName, shim,
             parts, builder, writeApi;
@@ -1131,6 +1132,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         }
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
+                }
+                if (builder.onLayerComplete) {
+                    onLayerComplete.push(builder.onLayerComplete);                         
                 }
             } else {
                 if (stubModulesByName.hasOwnProperty(moduleName)) {
@@ -1185,7 +1189,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
             }
         }
-
+        //run onLayerComplete plugin hooks
+        completeWrite = function (input) {
+            if (config.onBuildWrite) {
+                fileContents = config.onBuildWrite(moduleName, path, fileContents);
+            }
+            fileContents += "\n" + addSemiColon(input);
+        };
+        for (var j = 0; j < onLayerComplete.length; j++) {
+            onLayerComplete[j](moduleName, completeWrite);                  
+        }
         //Add a require at the end to kick start module execution, if that
         //was desired. Usually this is only specified when using small shim
         //loaders like almond.
