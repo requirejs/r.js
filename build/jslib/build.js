@@ -1190,7 +1190,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             }
         }
         //run onLayerComplete plugin hooks
-        completeWrite = function (input) {
+        var completeWrite = function (input) {
             if (config.onBuildWrite) {
                 fileContents = config.onBuildWrite(moduleName, path, fileContents);
             }
