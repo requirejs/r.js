@@ -1191,13 +1191,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
         //run onLayerComplete plugin hooks
         var completeWrite = function (input) {
-            if (config.onBuildWrite) {
-                fileContents = config.onBuildWrite(moduleName, path, fileContents);
-            }
             fileContents += "\n" + addSemiColon(input);
         };
         for (var j = 0; j < onLayerComplete.length; j++) {
-            onLayerComplete[j](moduleName, completeWrite);                  
+            onLayerComplete[j](module.name, completeWrite);                  
         }
         //Add a require at the end to kick start module execution, if that
         //was desired. Usually this is only specified when using small shim
