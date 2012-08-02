@@ -1139,6 +1139,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      */
     build.flattenModule = function (module, layer, config) {
         var buildFileContents = "",
+            onBuildCompletes = [],
             namespace = config.namespace || '',
             namespaceWithDot = namespace ? namespace + '.' : '',
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
@@ -1205,6 +1206,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     };
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
+                if (builder.onBuildComplete) {
+                    onBuildCompletes.push(builder.onBuildComplete);                         
+                }
             } else {
                 if (stubModulesByName.hasOwnProperty(moduleName)) {
                     //Just want to insert a simple module definition instead
@@ -1226,7 +1230,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 if (config.onBuildRead) {
-                    currContents = config.onBuildRead(moduleName, path, currContents);
+                    currContents = config.onBuildRead(moduleName, path, currContents);      
                 }
 
                 if (namespace) {
@@ -1243,7 +1247,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                     packageConfig.name + "', ['" + moduleName +
                                     "'], function (main) { return main; });\n";
                 }
-
+                
                 if (config.onBuildWrite) {
                     currContents = config.onBuildWrite(moduleName, path, currContents);
                 }
@@ -1270,6 +1274,17 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                 }
             }
+        }
+
+        //run onBuildComplete plugin hooks
+        completeWrite = function (input) {
+            fileContents += "\n" + addSemiColon(input);
+            if (config.onBuildWrite) {
+                fileContents = config.onBuildWrite(moduleName, path, fileContents);
+            }
+        };
+        for (var j = 0; j < onBuildCompletes.length; j++) {
+            onBuildCompletes[j](moduleName, path, completeWrite);                  
         }
 
         //Add a require at the end to kick start module execution, if that
