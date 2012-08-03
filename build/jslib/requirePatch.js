@@ -196,7 +196,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                         layer.existingRequireUrl = url;
                                     }
                                 } catch (e1) {
-                                    throw new Error('Parse error using UglifyJS ' +
+                                    throw new Error('Parse error using esprima ' +
                                                     'for file: ' + url + '\n' + e1);
                                 }
 
@@ -226,7 +226,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                         });
                                     }
                                 } catch (e2) {
-                                    throw new Error('Parse error using UglifyJS ' +
+                                    throw new Error('Parse error using esprima ' +
                                                     'for file: ' + url + '\n' + e2);
                                 }
 
