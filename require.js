@@ -3,13 +3,13 @@
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
-/*jslint regexp: true, nomen: true */
+//Not using strict: uneven strict support in browsers, #392, and causes
+//problems with requirejs.exec()/transpiler plugins that may not be strict.
+/*jslint regexp: true, nomen: true, sloppy: true */
 /*global window, navigator, document, importScripts, jQuery, setTimeout, opera */
 
 var requirejs, require, define;
 (function (global) {
-    'use strict';
-
     var version = '2.0.4+',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
@@ -292,7 +292,7 @@ var requirejs, require, define;
                 map = config.map,
                 starMap = map && map['*'],
                 pkgName, pkgConfig, mapValue, nameParts, i, j, nameSegment,
-                foundMap;
+                foundMap, foundI, foundStarMap, starI;
 
             //Adjust any relative paths.
             if (name && name.charAt(0) === '.') {
@@ -343,28 +343,41 @@ var requirejs, require, define;
                         for (j = baseParts.length; j > 0; j -= 1) {
                             mapValue = map[baseParts.slice(0, j).join('/')];
 
-                            //baseName segment has  config, find if it has one for
+                            //baseName segment has config, find if it has one for
                             //this name.
                             if (mapValue) {
                                 mapValue = mapValue[nameSegment];
                                 if (mapValue) {
                                     //Match, update name to the new value.
                                     foundMap = mapValue;
+                                    foundI = i;
                                     break;
                                 }
                             }
                         }
                     }
 
-                    if (!foundMap && starMap && starMap[nameSegment]) {
-                        foundMap = starMap[nameSegment];
-                    }
-
                     if (foundMap) {
-                        nameParts.splice(0, i, foundMap);
-                        name = nameParts.join('/');
                         break;
                     }
+
+                    //Check for a star map match, but just hold on to it,
+                    //if there is a shorter segment match later in a matching
+                    //config, then favor over this star map.
+                    if (!foundStarMap && starMap && starMap[nameSegment]) {
+                        foundStarMap = starMap[nameSegment];
+                        starI = i;
+                    }
+                }
+
+                if (!foundMap && foundStarMap) {
+                    foundMap = foundStarMap;
+                    foundI = starI;
+                }
+
+                if (foundMap) {
+                    nameParts.splice(0, foundI, foundMap);
+                    name = nameParts.join('/');
                 }
             }
 
@@ -1127,9 +1140,9 @@ var requirejs, require, define;
                     //Use parentName here since the plugin's name is not reliable,
                     //could be some weird string with no path that actually wants to
                     //reference the parentName's path.
-                    plugin.load(map.name, makeRequire(map.parentMap, true, function (deps, cb) {
+                    plugin.load(map.name, makeRequire(map.parentMap, true, function (deps, cb, er) {
                         deps.rjsSkipMap = true;
-                        return context.require(deps, cb);
+                        return context.require(deps, cb, er);
                     }), load, config);
                 }));
 
@@ -1363,8 +1376,9 @@ var requirejs, require, define;
                 //may have changed.
                 eachProp(registry, function (mod, id) {
                     //If module already has init called, since it is too
-                    //late to modify them.
-                    if (!mod.inited) {
+                    //late to modify them, and ignore unnormalized ones
+                    //since they are transient.
+                    if (!mod.inited && !mod.map.unnormalized) {
                         mod.map = makeModuleMap(id);
                     }
                 });
@@ -1637,7 +1651,8 @@ var requirejs, require, define;
                     }
 
                     //Join the path parts together, then figure out if baseUrl is needed.
-                    url = syms.join('/') + (ext || '.js');
+                    url = syms.join('/');
+                    url += (ext || (/\?/.test(url) ? '' : '.js'));
                     url = (url.charAt(0) === '/' || url.match(/^[\w\+\.\-]+:/) ? '' : config.baseUrl) + url;
                 }
 

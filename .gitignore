@@ -1,5 +1,5 @@
 .DS_Store
-r.js
+/r.js
 build/tests/builds
 build/tests/lib/amdefine/built.js
 build/tests/lib/appDirSrcOverwrite/www-built
