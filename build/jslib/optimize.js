@@ -344,7 +344,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 try {
                     ast = parser.parse(fileContents, config.strict_semicolons);
-                    ast = processor.ast_mangle(ast, config);
+                    if (config.no_mangle !== true) {
+                        ast = processor.ast_mangle(ast, config);
+                    }
                     ast = processor.ast_squeeze(ast, config);
 
                     fileContents = processor.gen_code(ast, config);
