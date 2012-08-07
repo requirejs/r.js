@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.4+ Tue, 07 Aug 2012 04:35:03 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.4+ Tue, 07 Aug 2012 06:21:13 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.4+ Tue, 07 Aug 2012 04:35:03 GMT',
+        version = '2.0.4+ Tue, 07 Aug 2012 06:21:13 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13357,7 +13357,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 try {
                     ast = parser.parse(fileContents, config.strict_semicolons);
-                    ast = processor.ast_mangle(ast, config);
+                    if (config.no_mangle !== true) {
+                        ast = processor.ast_mangle(ast, config);
+                    }
                     ast = processor.ast_squeeze(ast, config);
 
                     fileContents = processor.gen_code(ast, config);
