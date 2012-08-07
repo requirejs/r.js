@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.4+ Mon, 06 Aug 2012 03:36:33 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.4+ Tue, 07 Aug 2012 04:35:03 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.4+ Mon, 06 Aug 2012 03:36:33 GMT',
+        version = '2.0.4+ Tue, 07 Aug 2012 04:35:03 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
