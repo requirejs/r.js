@@ -7,7 +7,7 @@ require(['sub1'], function (sub1) {});
 define("main", function(){});
 
 /**
- * @license RequireJS text 2.0.1 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS text 2.0.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/requirejs/text for details
  */
@@ -19,7 +19,8 @@ define("main", function(){});
 define('text',['module'], function (module) {
     
 
-    var progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],
+    var text, fs,
+        progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],
         xmlRegExp = /^\s*<\?xml(\s)+version=[\'\"](\d)*.(\d)*[\'\"](\s)*\?>/im,
         bodyRegExp = /<body[^>]*>\s*([\s\S]+)\s*<\/body>/im,
         hasLocation = typeof location !== 'undefined' && location.href,
@@ -27,11 +28,10 @@ define('text',['module'], function (module) {
         defaultHostName = hasLocation && location.hostname,
         defaultPort = hasLocation && (location.port || undefined),
         buildMap = [],
-        masterConfig = (module.config && module.config()) || {},
-        text, fs;
+        masterConfig = (module.config && module.config()) || {};
 
     text = {
-        version: '2.0.1',
+        version: '2.0.2',
 
         strip: function (content) {
             //Strips <?xml ...?> declarations so that external SVG and XML
@@ -121,8 +121,8 @@ define('text',['module'], function (module) {
          * @returns Boolean
          */
         useXhr: function (url, protocol, hostname, port) {
-            var match = text.xdRegExp.exec(url),
-                uProtocol, uHostName, uPort;
+            var uProtocol, uHostName, uPort,
+                match = text.xdRegExp.exec(url);
             if (!match) {
                 return true;
             }
@@ -241,42 +241,14 @@ define('text',['module'], function (module) {
             }
             callback(file);
         };
-    } else if (text.createXhr()) {
-        text.get = function (url, callback, errback) {
-            var xhr = text.createXhr();
-            xhr.open('GET', url, true);
-
-            //Allow overrides specified in config
-            if (masterConfig.onXhr) {
-                masterConfig.onXhr(xhr, url);
-            }
-
-            xhr.onreadystatechange = function (evt) {
-                var status, err;
-                //Do not explicitly handle errors, those should be
-                //visible via console output in the browser.
-                if (xhr.readyState === 4) {
-                    status = xhr.status;
-                    if (status > 399 && status < 600) {
-                        //An http 4xx or 5xx error. Signal an error.
-                        err = new Error(url + ' HTTP status: ' + status);
-                        err.xhr = xhr;
-                        errback(err);
-                    } else {
-                        callback(xhr.responseText);
-                    }
-                }
-            };
-            xhr.send(null);
-        };
-    } else if (typeof Packages !== 'undefined') {
+    } else if (typeof Packages !== 'undefined' && typeof java !== 'undefined') {
         //Why Java, why is this so awkward?
         text.get = function (url, callback) {
-            var encoding = "utf-8",
+            var stringBuffer, line,
+                encoding = "utf-8",
                 file = new java.io.File(url),
                 lineSeparator = java.lang.System.getProperty("line.separator"),
                 input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file), encoding)),
-                stringBuffer, line,
                 content = '';
             try {
                 stringBuffer = new java.lang.StringBuffer();
@@ -306,6 +278,34 @@ define('text',['module'], function (module) {
                 input.close();
             }
             callback(content);
+        };
+    } else if (text.createXhr()) {
+        text.get = function (url, callback, errback) {
+            var xhr = text.createXhr();
+            xhr.open('GET', url, true);
+
+            //Allow overrides specified in config
+            if (masterConfig.onXhr) {
+                masterConfig.onXhr(xhr, url);
+            }
+
+            xhr.onreadystatechange = function (evt) {
+                var status, err;
+                //Do not explicitly handle errors, those should be
+                //visible via console output in the browser.
+                if (xhr.readyState === 4) {
+                    status = xhr.status;
+                    if (status > 399 && status < 600) {
+                        //An http 4xx or 5xx error. Signal an error.
+                        err = new Error(url + ' HTTP status: ' + status);
+                        err.xhr = xhr;
+                        errback(err);
+                    } else {
+                        callback(xhr.responseText);
+                    }
+                }
+            };
+            xhr.send(null);
         };
     }
 
