@@ -86,6 +86,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 context.needFullExec = {};
                 context.fullExec = {};
                 context.plugins = {};
+                context.buildShimExports = {};
 
                 //Override the shim exports function generator to just
                 //spit out strings that can be used in the stringified
@@ -100,6 +101,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             '    }\n' +
                             '}(this))';
                         };
+                        result.exports = exports;
                     } else {
                         result = function () {
                             return '(function (global) {\n' +
@@ -138,7 +140,8 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //Override load so that the file paths can be collected.
                 context.load = function (moduleName, url) {
                     /*jslint evil: true */
-                    var contents, pluginBuilderMatch, builderName;
+                    var contents, pluginBuilderMatch, builderName,
+                        shim, shimExports;
 
                     //Do not mark the url as fetched if it is
                     //not an empty: URL, used by the optimizer.
@@ -237,9 +240,22 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 eval(contents);
                             }
 
-                            //Need to close out completion of this module
-                            //so that listeners will get notified that it is available.
                             try {
+                                //If have a string shim config, and this is
+                                //a fully executed module, try to see if
+                                //it created a variable in this eval scope
+                                if (context.needFullExec[moduleName]) {
+                                    shim = context.config.shim[moduleName];
+                                    if (shim && shim.exports && shim.exports.exports) {
+                                        shimExports = eval(shim.exports.exports);
+                                        if (typeof shimExports !== 'undefined') {
+                                            context.buildShimExports[moduleName] = shimExports;
+                                        }
+                                    }
+                                }
+
+                                //Need to close out completion of this module
+                                //so that listeners will get notified that it is available.
                                 context.completeLoad(moduleName);
                             } catch (e) {
                                 //Track which module could not complete loading.
@@ -266,10 +282,15 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //Marks module has having a name, and optionally executes the
                 //callback, but only if it meets certain criteria.
                 context.execCb = function (name, cb, args, exports) {
+                    var buildShimExports = layer.context.buildShimExports[name];
+
                     if (!layer.needsDefine[name]) {
                         layer.modulesWithNames[name] = true;
                     }
-                    if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
+
+                    if (buildShimExports) {
+                        return buildShimExports;
+                    } else if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
                         return cb.apply(exports, args);
                     }
                     return undefined;
