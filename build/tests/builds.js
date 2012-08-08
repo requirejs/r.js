@@ -1329,4 +1329,23 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Allow some basic shimmed deps to work for plugins
+    //https://github.com/jrburke/r.js/issues/203
+    doh.register("pluginShimDep",
+        [
+            function pluginShimDep(t) {
+                file.deleteFile("lib/pluginShimDep/main-built.js");
+
+                build(["lib/pluginShimDep/build.js"]);
+
+                t.is(nol(c("lib/pluginShimDep/expected.js")),
+                     nol(c("lib/pluginShimDep/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

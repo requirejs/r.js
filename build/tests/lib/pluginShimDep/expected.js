@@ -1,4 +1,16 @@
-define(['aux'], function (aux) {
+
+var AUX = {
+    toUp: function (value) {
+        return value.toUpperCase();
+    }
+};
+define("aux", (function (global) {
+    return function () {
+        return global.AUX;
+    }
+}(this)));
+
+define('plug',['aux'], function (aux) {
     var buildMap = {};
 
     function jsEscape(content) {
@@ -26,3 +38,11 @@ define(['aux'], function (aux) {
         }
     };
 });
+
+define('plug!hi', function () { return 'HI';});
+
+require(['plug!hi'], function (value) {
+    console.log(value);
+});
+
+define("main", function(){});

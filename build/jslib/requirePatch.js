@@ -284,7 +284,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 context.execCb = function (name, cb, args, exports) {
                     var buildShimExports = layer.context.buildShimExports[name];
 
-                    if (!layer.needsDefine[name]) {
+                    if (!layer.needsDefine[name] && !buildShimExports) {
                         layer.modulesWithNames[name] = true;
                     }
 
