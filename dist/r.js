@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.4+ Tue, 07 Aug 2012 06:21:13 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.4+ Wed, 08 Aug 2012 00:14:56 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.4+ Tue, 07 Aug 2012 06:21:13 GMT',
+        version = '2.0.4+ Wed, 08 Aug 2012 00:14:56 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -121,7 +121,9 @@ var requirejs, require, define;
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
         currDirRegExp = /^\.\//,
-        ostring = Object.prototype.toString,
+        op = Object.prototype,
+        ostring = op.toString,
+        hasOwn = op.hasOwnProperty,
         ap = Array.prototype,
         aps = ap.slice,
         apsp = ap.splice,
@@ -182,7 +184,7 @@ var requirejs, require, define;
     }
 
     function hasProp(obj, prop) {
-        return obj.hasOwnProperty(prop);
+        return hasOwn.call(obj, prop);
     }
 
     /**
@@ -1287,7 +1289,10 @@ var requirejs, require, define;
                         handler = handlers[depMap.id];
 
                         if (handler) {
-                            this.depExports[i] = handler(this);
+                            this[depMap.id + '-handler'] =
+                            this.depExports[i] =
+                            handler(this);
+
                             return;
                         }
 
@@ -1595,6 +1600,10 @@ var requirejs, require, define;
             },
 
             undef: function (id) {
+                //Bind any waiting define() calls to this context,
+                //fix for #408
+                takeGlobalQueue();
+
                 var map = makeModuleMap(id, null, true),
                     mod = registry[id];
 
@@ -2267,13 +2276,18 @@ var requirejs, require, define;
             }
         } else {
             def(moduleName, function () {
+                //Get the original name, since relative requires may be
+                //resolved differently in node (issue #202)
+                var originalName = context.registry[moduleName] &&
+                            context.registry[moduleName].map.originalName;
+
                 try {
-                    return (context.config.nodeRequire || req.nodeRequire)(moduleName);
+                    return (context.config.nodeRequire || req.nodeRequire)(originalName);
                 } catch (e) {
                     err = new Error('Calling node\'s require("' +
-                                        moduleName + '") failed with error: ' + e);
+                                        originalName + '") failed with error: ' + e);
                     err.originalError = e;
-                    err.moduleName = moduleName;
+                    err.moduleName = originalName;
                     return req.onError(err);
                 }
             });
