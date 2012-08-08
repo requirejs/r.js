@@ -80,13 +80,18 @@
             }
         } else {
             def(moduleName, function () {
+                //Get the original name, since relative requires may be
+                //resolved differently in node (issue #202)
+                var originalName = context.registry[moduleName] &&
+                            context.registry[moduleName].map.originalName;
+
                 try {
-                    return (context.config.nodeRequire || req.nodeRequire)(moduleName);
+                    return (context.config.nodeRequire || req.nodeRequire)(originalName);
                 } catch (e) {
                     err = new Error('Calling node\'s require("' +
-                                        moduleName + '") failed with error: ' + e);
+                                        originalName + '") failed with error: ' + e);
                     err.originalError = e;
-                    err.moduleName = moduleName;
+                    err.moduleName = originalName;
                     return req.onError(err);
                 }
             });
