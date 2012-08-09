@@ -969,6 +969,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Remove things that may cause problems in the build.
         delete config.jQuery;
         delete config.enforceDefine;
+        delete config.urlArgs;
 
         return config;
     };
