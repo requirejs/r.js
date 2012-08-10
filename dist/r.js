@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.5+ Thu, 09 Aug 2012 22:53:01 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.5+ Fri, 10 Aug 2012 05:41:36 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.5+ Thu, 09 Aug 2012 22:53:01 GMT',
+        version = '2.0.5+ Fri, 10 Aug 2012 05:41:36 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -14758,6 +14758,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Fix paths to full paths so that they can be adjusted consistently
         //lately to be in the output area.
         lang.eachProp(config.paths, function (value, prop) {
+            if (lang.isArray(value)) {
+                throw new Error('paths fallback not supported in optimizer. ' +
+                                'Please provide a build config path override ' +
+                                'for ' + prop);
+            }
             config.paths[prop] = build.makeAbsPath(value, config.baseUrl);
         });
 
