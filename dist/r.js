@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.5+ Fri, 10 Aug 2012 05:41:36 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.5+ Fri, 10 Aug 2012 17:11:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.5+ Fri, 10 Aug 2012 05:41:36 GMT',
+        version = '2.0.5+ Fri, 10 Aug 2012 17:11:34 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15303,9 +15303,18 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 config.logLevel = config.hasOwnProperty('logLevel') ?
                                   config.logLevel : logger.SILENT;
 
+                //Reset build internals first in case this is part
+                //of a long-running server process that could have
+                //exceptioned out in a bad state. It is only defined
+                //after the first call though.
+                if (requirejs._buildReset) {
+                    requirejs._buildReset();
+                }
+
                 var result = build(config);
 
-                //Reset build internals on each run.
+                //And clean up, in case something else triggers
+                //a build in another pathway.
                 requirejs._buildReset();
 
                 if (callback) {
