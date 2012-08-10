@@ -821,6 +821,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         //Fix paths to full paths so that they can be adjusted consistently
         //lately to be in the output area.
         lang.eachProp(config.paths, function (value, prop) {
+            if (lang.isArray(value)) {
+                throw new Error('paths fallback not supported in optimizer. ' +
+                                'Please provide a build config path override ' +
+                                'for ' + prop);
+            }
             config.paths[prop] = build.makeAbsPath(value, config.baseUrl);
         });
 
