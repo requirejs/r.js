@@ -1146,6 +1146,13 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
+
+        //Use override settings, particularly for pragmas
+        if (module.override) {
+            config = lang.mixin({}, config, true);
+            lang.mixin(config, module.override, true);
+        }
+
         var buildFileContents = "",
             namespace = config.namespace || '',
             namespaceWithDot = namespace ? namespace + '.' : '',
@@ -1154,12 +1161,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             path, reqIndex, fileContents, currContents,
             i, moduleName, shim, packageConfig,
             parts, builder, writeApi;
-
-        //Use override settings, particularly for pragmas
-        if (module.override) {
-            config = lang.mixin({}, config, true);
-            lang.mixin(config, module.override, true);
-        }
 
         //Start build output for the module.
         buildFileContents += "\n" +
