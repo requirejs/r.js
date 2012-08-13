@@ -1148,6 +1148,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     build.flattenModule = function (module, layer, config) {
 
         //Use override settings, particularly for pragmas
+        //Do this before the var readings since it reads config values.
         if (module.override) {
             config = lang.mixin({}, config, true);
             lang.mixin(config, module.override, true);
