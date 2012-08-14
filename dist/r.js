@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.5+ Fri, 10 Aug 2012 17:11:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.5+ Tue, 14 Aug 2012 03:26:36 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.5+ Fri, 10 Aug 2012 17:11:34 GMT',
+        version = '2.0.5+ Tue, 14 Aug 2012 03:26:36 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -11678,7 +11678,7 @@ define('parse', ['./esprima'], function (esprima) {
         //about obj.arguments use, as 'reserved word'
         argPropName = 'arguments';
 
-    //From an exprima example for traversing its ast.
+    //From an esprima example for traversing its ast.
     function traverse(object, visitor) {
         var key, child;
 
@@ -11934,22 +11934,21 @@ define('parse', ['./esprima'], function (esprima) {
         var match;
 
         traverse(node, function (node) {
-            var arg0, arg1,
-                exp = node.expression;
+            var arg0, arg1;
 
-            if (exp && exp.type === 'CallExpression' &&
-                    exp.callee && exp.callee.type === 'Identifier' &&
-                    exp.callee.name === 'define' && exp[argPropName]) {
+            if (node && node.type === 'CallExpression' &&
+                    node.callee && node.callee.type === 'Identifier' &&
+                    node.callee.name === 'define' && node[argPropName]) {
 
                 //Just the factory function passed to define
-                arg0 = exp[argPropName][0];
+                arg0 = node[argPropName][0];
                 if (arg0 && arg0.type === 'FunctionExpression') {
                     match = arg0;
                     return false;
                 }
 
                 //A string literal module ID followed by the factory function.
-                arg1 = exp[argPropName][1];
+                arg1 = node[argPropName][1];
                 if (arg0.type === 'Literal' &&
                         arg1 && arg1.type === 'FunctionExpression') {
                     match = arg1;
@@ -11982,8 +11981,7 @@ define('parse', ['./esprima'], function (esprima) {
 
         traverse(astRoot, function (node) {
             var arg,
-                exp = node.expression,
-                c = exp && exp.callee,
+                c = node && node.callee,
                 requireType = parse.hasRequire(node);
 
             if (requireType && (requireType === 'require' ||
@@ -11991,7 +11989,7 @@ define('parse', ['./esprima'], function (esprima) {
                     requireType === 'requireConfig' ||
                     requireType === 'requirejsConfig')) {
 
-                arg = exp[argPropName] && exp[argPropName][0];
+                arg = node[argPropName] && node[argPropName][0];
 
                 if (arg && arg.type === 'ObjectExpression') {
                     jsConfig = parse.nodeToString(fileContents, arg);
@@ -12060,20 +12058,18 @@ define('parse', ['./esprima'], function (esprima) {
 
     //define.amd = ...
     parse.hasDefineAmd = function (node) {
-        var exp = node.expression;
-        return exp && exp.type === 'AssignmentExpression' &&
-            exp.left && exp.left.type === 'MemberExpression' &&
-            exp.left.object && exp.left.object.name === 'define' &&
-            exp.left.property && exp.left.property.name === 'amd';
+        return node && node.type === 'AssignmentExpression' &&
+            node.left && node.left.type === 'MemberExpression' &&
+            node.left.object && node.left.object.name === 'define' &&
+            node.left.property && node.left.property.name === 'amd';
     };
 
     //require(), requirejs(), require.config() and requirejs.config()
     parse.hasRequire = function (node) {
         var callName,
-            exp = node.expression,
-            c = exp && exp.callee;
+            c = node && node.callee;
 
-        if (exp && exp.type === 'CallExpression' && c) {
+        if (node && node.type === 'CallExpression' && c) {
             if (c.type === 'Identifier' &&
                     (c.name === 'require' ||
                     c.name === 'requirejs')) {
@@ -12095,11 +12091,9 @@ define('parse', ['./esprima'], function (esprima) {
 
     //define()
     parse.hasDefine = function (node) {
-        var exp = node.expression;
-
-        return exp && exp.type === 'CallExpression' && exp.callee &&
-            exp.callee.type === 'Identifier' &&
-            exp.callee.name === 'define';
+        return node && node.type === 'CallExpression' && node.callee &&
+            node.callee.type === 'Identifier' &&
+            node.callee.name === 'define';
     };
 
     /**
@@ -12110,7 +12104,7 @@ define('parse', ['./esprima'], function (esprima) {
         var uses;
 
         traverse(esprima.parse(fileContents), function (node) {
-            var type, callName, arg, exp;
+            var type, callName, arg;
 
             if (parse.hasDefDefine(node)) {
                 //function define() {}
@@ -12120,8 +12114,7 @@ define('parse', ['./esprima'], function (esprima) {
             } else {
                 callName = parse.hasRequire(node);
                 if (callName) {
-                    exp = node.expression;
-                    arg = exp[argPropName] && exp[argPropName][0];
+                    arg = node[argPropName] && node[argPropName][0];
                     if (arg && (arg.type === 'ObjectExpression' ||
                             arg.type === 'ArrayExpression')) {
                         type = callName;
@@ -12231,17 +12224,16 @@ define('parse', ['./esprima'], function (esprima) {
      */
     parse.parseNode = function (node, onMatch) {
         var name, deps, cjsDeps, arg, factory,
-            exp = node.expression,
-            args = exp && exp[argPropName],
+            args = node && node[argPropName],
             callName = parse.hasRequire(node);
 
         if (callName === 'require' || callName === 'requirejs') {
             //A plain require/requirejs call
-            arg = exp[argPropName] && exp[argPropName][0];
+            arg = node[argPropName] && node[argPropName][0];
             if (arg.type !== 'ArrayExpression') {
                 if (arg.type === 'ObjectExpression') {
                     //A config call, try the second arg.
-                    arg = exp[argPropName][1];
+                    arg = node[argPropName][1];
                 }
             }
 
@@ -15083,6 +15075,14 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
+
+        //Use override settings, particularly for pragmas
+        //Do this before the var readings since it reads config values.
+        if (module.override) {
+            config = lang.mixin({}, config, true);
+            lang.mixin(config, module.override, true);
+        }
+
         var buildFileContents = "",
             namespace = config.namespace || '',
             namespaceWithDot = namespace ? namespace + '.' : '',
@@ -15091,12 +15091,6 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             path, reqIndex, fileContents, currContents,
             i, moduleName, shim, packageConfig,
             parts, builder, writeApi;
-
-        //Use override settings, particularly for pragmas
-        if (module.override) {
-            config = lang.mixin({}, config, true);
-            lang.mixin(config, module.override, true);
-        }
 
         //Start build output for the module.
         buildFileContents += "\n" +
