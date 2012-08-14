@@ -109,6 +109,28 @@ define(['parse', 'env!env/file'], function (parse, file) {
     );
     doh.run();
 
+
+    doh.register('parseFindNestedDependencies',
+        [
+            function parseFindNestedDependencies(t) {
+                var good1 = '(function() {\n' +
+                        '  define([\'require\', \'a\', \'b\'], function(require, a, b) {\n' +
+                        '    return require([\'c\'], function(c) {\n' +
+                        '      c(a, b);\n' +
+                        '    });\n' +
+                        '  });\n' +
+                        '}).call(this);\n'
+
+                t.is('define("good1",["require","a","b","c"]);', parse("good1", "good1", good1, {
+                    findNestedDependencies: true
+                }));
+            }
+        ]
+    );
+    doh.run();
+
+
+
     doh.register('parseHasRequire',
         [
             function parseHasRequire(t) {
