@@ -29,7 +29,7 @@ if ('function' === typeof foo.define && foo.define.amd) {
 }
 ;
 (function (define) {
-    foo.define('modules/three',[], function (require) {
+    foo.define('modules/three',['require'], function (require) {
         //If have dependencies, get them here
         var four = foo.require('./four'),
             five = foo.require('./five');

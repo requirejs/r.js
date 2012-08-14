@@ -276,7 +276,6 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-
     doh.register("buildNamespace",
         [
             function buildNamespace(t) {

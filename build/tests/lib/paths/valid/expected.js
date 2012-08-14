@@ -28,4 +28,4 @@ define('../paths',[
 
 require(['../paths']);
 
-define("main", function(){});
+define("main",[], function(){});

@@ -273,6 +273,11 @@ define(['./esprima'], function (esprima) {
         traverse(node, function (node) {
             var arg0, arg1;
 
+            //If already found a match, bail.
+            if (match) {
+              return false;
+            }
+
             if (node && node.type === 'CallExpression' &&
                     node.callee && node.callee.type === 'Identifier' &&
                     node.callee.name === 'define' && node[argPropName]) {
