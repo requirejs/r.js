@@ -24,13 +24,15 @@ define(['./esprima'], function (esprima) {
         }
 
         if (visitor.call(null, object) === false) {
-            return;
+            return false;
         }
         for (key in object) {
             if (object.hasOwnProperty(key)) {
                 child = object[key];
                 if (typeof child === 'object' && child !== null) {
-                    traverse(child, visitor);
+                    if (traverse(child, visitor) === false) {
+                        return false;
+                    }
                 }
             }
         }
