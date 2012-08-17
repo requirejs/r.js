@@ -1,5 +1,5 @@
-define(["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
-    var jsp = require("./parse-js"),
+define(["require", "exports", "module", "./parse-js", "./squeeze-more"], function(require, exports, module) {
+var jsp = require("./parse-js"),
     pro = require("./process"),
     slice = jsp.slice,
     member = jsp.member,
@@ -73,4 +73,8 @@ function ast_squeeze_more(ast) {
 };
 
 exports.ast_squeeze_more = ast_squeeze_more;
+
+// Local variables:
+// js-indent-level: 8
+// End:
 });
