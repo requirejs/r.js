@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.5+ Tue, 14 Aug 2012 22:55:27 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.5+ Fri, 17 Aug 2012 01:31:46 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.5+ Tue, 14 Aug 2012 22:55:27 GMT',
+        version = '2.0.5+ Fri, 17 Aug 2012 01:31:46 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -11687,13 +11687,15 @@ define('parse', ['./esprima'], function (esprima) {
         }
 
         if (visitor.call(null, object) === false) {
-            return;
+            return false;
         }
         for (key in object) {
             if (object.hasOwnProperty(key)) {
                 child = object[key];
                 if (typeof child === 'object' && child !== null) {
-                    traverse(child, visitor);
+                    if (traverse(child, visitor) === false) {
+                        return false;
+                    }
                 }
             }
         }
@@ -11935,11 +11937,6 @@ define('parse', ['./esprima'], function (esprima) {
 
         traverse(node, function (node) {
             var arg0, arg1;
-
-            //If already found a match, bail.
-            if (match) {
-              return false;
-            }
 
             if (node && node.type === 'CallExpression' &&
                     node.callee && node.callee.type === 'Identifier' &&
