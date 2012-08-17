@@ -58,7 +58,9 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 return true;
             } else {
                 if (!layer.ignoredUrls[url]) {
-                    logger.info('Cannot optimize network URL, skipping: ' + url);
+                    if (url.indexOf('empty:') === -1) {
+                        logger.info('Cannot optimize network URL, skipping: ' + url);
+                    }
                     layer.ignoredUrls[url] = true;
                 }
                 return false;
