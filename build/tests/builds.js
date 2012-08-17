@@ -635,6 +635,26 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Confirms that only the first requirejs.config() is found
+    //https://github.com/jrburke/r.js/issues/257
+    //https://github.com/jrburke/r.js/issues/258
+    doh.register("mainConfigFileFirst",
+        [
+            function mainConfigFileFirst(t) {
+                file.deleteFile("lib/mainConfigFile/first/main-built.js");
+
+                build(["lib/mainConfigFile/first/tools/build.js"]);
+
+                t.is(nol(c("lib/mainConfigFile/first/expected.js")),
+                     nol(c("lib/mainConfigFile/first/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("mainConfigFileBasicCommand",
         [
             function mainConfigFileBasic(t) {

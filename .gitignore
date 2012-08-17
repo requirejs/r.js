@@ -19,6 +19,7 @@ build/tests/lib/insertRequire/main-built.js
 build/tests/lib/intDefine/main-built.js
 build/tests/lib/jqueryConfig/main-built.js
 build/tests/lib/mainConfigFile/basic/main-built.js
+build/tests/lib/mainConfigFile/first/main-built.js
 build/tests/lib/mainConfigFile/mergeConfig/main-built.js
 build/tests/lib/mainConfigBaseUrl/www-built
 build/tests/lib/moduleThenPlugin/built.js
