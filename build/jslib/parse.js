@@ -660,6 +660,7 @@ define(['./esprima'], function (esprima) {
                 comment: true
             }),
             result = '',
+            existsMap = {},
             lineEnd = contents.indexOf('\r') === -1 ? '\n' : '\r\n';
 
         if (ast.comments) {
@@ -696,13 +697,14 @@ define(['./esprima'], function (esprima) {
                     value = '/*' + commentNode.value + '*/' + lineEnd + lineEnd;
                 }
 
-                if (value.indexOf('license') !== -1 ||
+                if (!existsMap[value] && (value.indexOf('license') !== -1 ||
                         (commentNode.type === 'Block' &&
                             value.indexOf('/*!') === 0) ||
                         value.indexOf('opyright') !== -1 ||
-                        value.indexOf('(c)') !== -1) {
+                        value.indexOf('(c)') !== -1)) {
 
                     result += value;
+                    existsMap[value] = true;
                 }
 
             }

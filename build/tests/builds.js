@@ -357,6 +357,25 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Only keep unique comments
+    //https://github.com/jrburke/r.js/issues/251
+    doh.register("preserveLicenseUnique",
+        [
+            function preserveLicenseUnique(t) {
+                file.deleteFile("lib/comments/unique/built.js");
+
+                build(["lib/comments/unique/build.js"]);
+
+                t.is(nol(c("lib/comments/unique/expected.js")),
+                     nol(c("lib/comments/unique/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("nestedFind",
         [
             function nestedFind(t) {
