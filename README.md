@@ -118,9 +118,26 @@ modules.
 
 # Directory layout
 
-**NOTE**: If you clone this repository, it **must** be a sibling to a clone of the
-[RequireJS repository](https://github.com/jrburke/requirejs), where that
-repository is called **requirejs**. Otherwise the tests will not run.
+## Directory prerequisites
+
+r.js assumes that there are some other projects checked out as sibling
+directories to it, and named certain names, in order for the tests to pass.
+
+So it is best to create the following directory structure with the following
+git clone commands:
+
+    mkdir requirejs
+    cd requirejs
+    git clone git://github.com/jrburke/r.js.git
+    git clone git://github.com/jrburke/requirejs.git
+    git clone git://github.com/requirejs/text.git
+
+So there should be a sibling `requirejs` and `text` directories to the r.js
+directory containing your clone of the r.js project.
+
+## Directory details
+
+The r.js project has the following directory layout:
 
 * **dist.js**: the script that builds r.js
 * **require.js**: the version of require.js to include in r.js
