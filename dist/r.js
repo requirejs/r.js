@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.6 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.6+ Wed, 22 Aug 2012 19:05:04 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.6',
+        version = '2.0.6+ Wed, 22 Aug 2012 19:05:04 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -12370,11 +12370,11 @@ define('parse', ['./esprima'], function (esprima) {
                             } else {
                                 //No more single line comment blocks. Break out
                                 //and continue outer looping.
-                                value += lineEnd;
-                                i = j - 1;
                                 break;
                             }
                         }
+                        value += lineEnd;
+                        i = j - 1;
                     }
                 } else {
                     value = '/*' + commentNode.value + '*/' + lineEnd + lineEnd;
