@@ -376,6 +376,28 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Do not dupe parts of comments when at the end of the file.
+    //https://github.com/jrburke/r.js/issues/264
+    doh.register("preserveLicenseNoPartialDupe",
+        [
+            function preserveLicenseNoPartialDupe(t) {
+                file.deleteFile("lib/comments/noPartialDupe/built");
+
+                //Run two builds, this profile has keepBuildDir set to true.
+                build(["lib/comments/noPartialDupe/build.js"]);
+                build(["lib/comments/noPartialDupe/build.js"]);
+
+                t.is(nol(c("lib/comments/noPartialDupe/expected.js")),
+                     nol(c("lib/comments/noPartialDupe/built/underscore.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     doh.register("nestedFind",
         [
             function nestedFind(t) {

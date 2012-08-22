@@ -687,11 +687,11 @@ define(['./esprima'], function (esprima) {
                             } else {
                                 //No more single line comment blocks. Break out
                                 //and continue outer looping.
-                                value += lineEnd;
-                                i = j - 1;
                                 break;
                             }
                         }
+                        value += lineEnd;
+                        i = j - 1;
                     }
                 } else {
                     value = '/*' + commentNode.value + '*/' + lineEnd + lineEnd;
