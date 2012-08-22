@@ -14929,10 +14929,26 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         end: '}());'
                     };
                 } else {
-                    config.wrap.start = config.wrap.start ||
-                            file.readFile(build.makeAbsPath(config.wrap.startFile, absFilePath));
-                    config.wrap.end = config.wrap.end ||
-                            file.readFile(build.makeAbsPath(config.wrap.endFile, absFilePath));
+                    var i;
+                    if (typeof config.wrap.start !== "string" && (typeof config.wrap.startFile === "string" || config.wrap.startFile instanceof Array)) {
+                        if (typeof config.wrap.startFile === "string") {
+                            config.wrap.startFile = [config.wrap.startFile];
+                        }
+                        for (i = 0; i < config.wrap.startFile.length; i ++) {
+                            config.wrap.start = config.wrap.start ? config.wrap.start + "\n" : "";
+                            config.wrap.start += file.readFile(build.makeAbsPath(config.wrap.startFile[i], absFilePath));
+                        }
+                    }
+
+                    if (typeof config.wrap.end !== "string" && (typeof config.wrap.endFile === "string" || config.wrap.endFile instanceof Array)) {
+                        if (typeof config.wrap.endFile === "string") {
+                            config.wrap.endFile = [config.wrap.endFile];
+                        }
+                        for (i = 0; i < config.wrap.endFile.length; i ++) {
+                            config.wrap.end = config.wrap.end ? config.wrap.end + "\n" : "";
+                            config.wrap.end += file.readFile(build.makeAbsPath(config.wrap.endFile[i], absFilePath));
+                        }
+                    }
                 }
             }
         } catch (wrapError) {
