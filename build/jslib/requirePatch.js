@@ -100,7 +100,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             return '(function (global) {\n' +
                             '    return function () {\n' +
                             '        return global.' + exports + ';\n' +
-                            '    }\n' +
+                            '    };\n' +
                             '}(this))';
                         };
                         result.exports = exports;
@@ -110,7 +110,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             '    return function () {\n' +
                             '        var func = ' + exports.toString() + ';\n' +
                             '        return func.apply(global, arguments);\n' +
-                            '    }\n' +
+                            '    };\n' +
                             '}(this))';
                         };
                     }

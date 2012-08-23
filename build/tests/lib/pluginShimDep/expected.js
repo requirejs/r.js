@@ -7,7 +7,7 @@ var PAX = {
 define("pax", (function (global) {
     return function () {
         return global.PAX;
-    }
+    };
 }(this)));
 
 define('plug',['pax'], function (pax) {

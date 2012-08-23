@@ -9,7 +9,7 @@ define("a", (function (global) {
     return function () {
         var func = function (){return this.A.name};
         return func.apply(global, arguments);
-    }
+    };
 }(this)));
 
 function D() {
@@ -35,7 +35,7 @@ var C = {
 define("c", ["a","b"], (function (global) {
     return function () {
         return global.C;
-    }
+    };
 }(this)));
 
 var e = {
@@ -49,7 +49,7 @@ var e = {
 define("e", (function (global) {
     return function () {
         return global.e.nested.e;
-    }
+    };
 }(this)));
 
 require({
