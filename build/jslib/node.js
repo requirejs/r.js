@@ -44,7 +44,11 @@
             if (ret === undefined) {
                 //Try to dynamically fetch it.
                 req.load(context, moduleName, moduleMap.url);
-                //The above call is sync, so can do the next thing safely.
+
+                //Enable the module
+                context.enable(moduleMap, relModuleMap);
+
+                //The above calls are sync, so can do the next thing safely.
                 ret = context.defined[moduleName];
             }
         }
