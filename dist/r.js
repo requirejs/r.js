@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.6+ Thu, 23 Aug 2012 17:16:22 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.6+ Tue, 28 Aug 2012 18:39:50 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.6+ Thu, 23 Aug 2012 17:16:22 GMT',
+        version = '2.0.6+ Tue, 28 Aug 2012 18:39:50 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2223,7 +2223,11 @@ var requirejs, require, define;
             if (ret === undefined) {
                 //Try to dynamically fetch it.
                 req.load(context, moduleName, moduleMap.url);
-                //The above call is sync, so can do the next thing safely.
+
+                //Enable the module
+                context.enable(moduleMap, relModuleMap);
+
+                //The above calls are sync, so can do the next thing safely.
                 ret = context.defined[moduleName];
             }
         }
