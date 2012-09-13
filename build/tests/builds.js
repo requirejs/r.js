@@ -246,7 +246,7 @@ define(['build', 'env!env/file'], function (build, file) {
                        "paths.text=../../../../text/text", "optimize=none"]);
 
                 t.is(nol(nol((c("../../../requirejs/tests/plugins/fromText/a.refine"))
-                             .replace(/refine/g, 'define')))
+                             .replace(/refine\(/g, 'define(')))
                              .replace(/define\(\{/, "define('refine!a',{"),
                          nol(c("builds/refineATest.js")));
 

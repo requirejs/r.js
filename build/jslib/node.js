@@ -56,6 +56,10 @@
         return ret;
     };
 
+    req.nextTick = function (fn) {
+        process.nextTick(fn);
+    };
+
     //Add wrapper around the code so that it gets the requirejs
     //API instead of the Node API, and it is done lexically so
     //that it survives later execution.

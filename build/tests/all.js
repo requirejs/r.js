@@ -39,9 +39,8 @@ require({
     //Build tests should be last in case they alter the environment
     //in a weird way.
     'tests/builds'
-]);
+], function () {
+    //Show final report.
+    doh.run();
+});
 
-//Show final report. Do this outside the require call, not
-//in a require callback because the builds will modify require.js
-//to not call callbacks.
-doh.run();
