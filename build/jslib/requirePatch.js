@@ -138,7 +138,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                         }
                     } else if ((needFullExec[id] && !fullExec[id]) ||
                                (parentId && needFullExec[parentId] && !fullExec[id])) {
-                        context.undef(id);
+                        context.require.undef(id);
                     }
 
                     return oldEnable.apply(context, arguments);
@@ -312,7 +312,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             }
 
                             if (!context.fullExec[depMap.id]) {
-                                context.undef(depMap.id);
+                                context.require.undef(depMap.id);
                             }
                         }));
                     }
@@ -332,7 +332,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                     //If the module is not waiting to finish being defined,
                     //undef it and start over, to get full execution.
                     if (!context.fullExec[pluginId] && (!pluginMod || pluginMod.defined)) {
-                        context.undef(pluginMap.id);
+                        context.require.undef(pluginMap.id);
                     }
 
                     return oldCallPlugin.apply(this, arguments);
