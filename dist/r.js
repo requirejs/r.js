@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.6+ Fri, 14 Sep 2012 04:24:42 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.6+ Fri, 14 Sep 2012 04:57:52 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.6+ Fri, 14 Sep 2012 04:24:42 GMT',
+        version = '2.0.6+ Fri, 14 Sep 2012 04:57:52 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -625,23 +625,35 @@ var requirejs, require, define;
 
         handlers = {
             'require': function (mod) {
-                return context.makeRequire(mod.map);
+                if (mod.require) {
+                    return mod.require;
+                } else {
+                    return (mod.require = context.makeRequire(mod.map));
+                }
             },
             'exports': function (mod) {
                 mod.usingExports = true;
                 if (mod.map.isDefine) {
-                    return (mod.exports = defined[mod.map.id] = {});
+                    if (mod.exports) {
+                        return mod.exports;
+                    } else {
+                        return (mod.exports = defined[mod.map.id] = {});
+                    }
                 }
             },
             'module': function (mod) {
-                return (mod.module = {
-                    id: mod.map.id,
-                    uri: mod.map.url,
-                    config: function () {
-                        return (config.config && config.config[mod.map.id]) || {};
-                    },
-                    exports: defined[mod.map.id]
-                });
+                if (mod.module) {
+                    return mod.module;
+                } else {
+                    return (mod.module = {
+                        id: mod.map.id,
+                        uri: mod.map.url,
+                        config: function () {
+                            return (config.config && config.config[mod.map.id]) || {};
+                        },
+                        exports: defined[mod.map.id]
+                    });
+                }
             }
         };
 
@@ -1358,6 +1370,13 @@ var requirejs, require, define;
                         if (isFunction(callback)) {
                             //Invalid call
                             return onError(makeError('requireargs', 'Invalid require call'), errback);
+                        }
+
+                        //If require|exports|module are requested, get the
+                        //value for them from the special handlers. Caveat:
+                        //this only works while module is being defined.
+                        if (relMap && handlers[deps]) {
+                            return handlers[deps](registry[relMap.id]);
                         }
 
                         //Synchronous access to one module. If require.get is
