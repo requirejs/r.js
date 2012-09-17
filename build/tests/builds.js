@@ -1053,6 +1053,27 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    //https://github.com/jrburke/requirejs/issues/466
+    doh.register("mapConfigPlugin",
+        [
+            function mapConfigPlugin(t) {
+                var outFile = "../../../requirejs/tests/mapConfig/built/mapConfigPlugin-tests.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/mapConfig/buildPlugin.js"]);
+
+                t.is(nol(c("lib/mapConfig/expectedPlugin.js")),
+                     nol(c(outFile)));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/165 insertRequire
     doh.register("insertRequire",
         [
