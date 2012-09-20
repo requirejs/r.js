@@ -13353,6 +13353,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                              comment.indexOf('(c)') !== -1)) {
                             //Keep the comment, just increment the startIndex
                             startIndex = endIndex;
+                        } if (comment.indexOf('/*!')==0){
+                            // preserve comment that starts with /*!
+                            startIndex = endIndex;
                         } else {
                             fileContents = fileContents.substring(0, startIndex) + fileContents.substring(endIndex + 2, fileContents.length);
                             startIndex = 0;
