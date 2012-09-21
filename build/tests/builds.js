@@ -1429,4 +1429,26 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Test useDefaultPrefix in a build scenario
+    //https://github.com/jrburke/requirejs/issues/333
+    doh.register("pluginUseDefaultPrefix",
+        [
+            function pluginUseDefaultPrefix(t) {
+                var outFile = "../../../requirejs/tests/plugins/defaultPrefix/built/defaultPrefix-tests.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/plugins/buildDefaultPrefix.js"]);
+
+                t.is(nol(c("lib/plugins/expectedDefaultPrefix.js")),
+                     nol(c(outFile)));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
