@@ -483,7 +483,7 @@ var requirejs, require, define;
         function splitPrefix(name) {
             var prefix,
                 index = name ? name.indexOf('!') : -1;
-            if (index !== -1) {
+            if (index > -1) {
                 prefix = name.substring(0, index);
                 name = name.substring(index + 1, name.length);
             }
@@ -1018,7 +1018,11 @@ var requirejs, require, define;
                 on(pluginMap, 'defined', bind(this, function (plugin) {
                     var load, normalizedMap, normalizedMod,
                         name = this.map.name,
-                        parentName = this.map.parentMap ? this.map.parentMap.name : null;
+                        parentName = this.map.parentMap ? this.map.parentMap.name : null,
+                        localRequire = context.makeRequire(map.parentMap, {
+                            enableBuildCallback: true,
+                            skipMap: true
+                        });
 
                     //If current map is not normalized, wait for that
                     //normalized name to load instead of continuing.
@@ -1088,6 +1092,13 @@ var requirejs, require, define;
                         var hasInteractive = useInteractive,
                             moduleMap = makeModuleMap(moduleName);
 
+                        //If no specific prefix in place, pass on the prefix
+                        //to use, but only by module IDs that are normalized
+                        //against this ID.
+                        if (moduleName.charAt(0) !== '!' && !moduleMap.prefix) {
+                            moduleMap.defaultPrefix = map.prefix;
+                        }
+
                         //Turn off interactive script matching for IE for any define
                         //calls in the text, then turn it back on at the end.
                         if (hasInteractive) {
@@ -1098,7 +1109,12 @@ var requirejs, require, define;
                         //it.
                         getModule(moduleMap);
 
-                        req.exec(text);
+                        try {
+                            req.exec(text);
+                        } catch (e) {
+                            throw new Error('fromText eval for ' + moduleName +
+                                            ' failed: ' + e);
+                        }
 
                         if (hasInteractive) {
                             useInteractive = true;
@@ -1110,15 +1126,16 @@ var requirejs, require, define;
 
                         //Support anonymous modules.
                         context.completeLoad(moduleName);
+
+                        //Bind the value of that module to the value for this
+                        //resource ID.
+                        localRequire([moduleName], load);
                     });
 
                     //Use parentName here since the plugin's name is not reliable,
                     //could be some weird string with no path that actually wants to
                     //reference the parentName's path.
-                    plugin.load(map.name, context.makeRequire(map.parentMap, {
-                        enableBuildCallback: true,
-                        skipMap: true
-                    }), load, config);
+                    plugin.load(map.name, localRequire, load, config);
                 }));
 
                 context.enable(pluginMap, this);
@@ -3457,7 +3474,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1 Tue, 25 Sep 2012 18:36:32 GMT.2 Future Reserved Words
+    // 7.6.1 Tue, 25 Sep 2012 22:29:52 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -3498,7 +3515,7 @@ parseStatement: true, parseSourceElement: true */
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1 Tue, 25 Sep 2012 18:36:32 GMT.1 Keywords
+    // 7.6.1 Tue, 25 Sep 2012 22:29:52 GMT.1 Keywords
 
     function isKeyword(id) {
         var keyword = false;
