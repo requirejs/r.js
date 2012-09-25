@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.6+ Mon, 17 Sep 2012 22:33:13 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js dev2.1 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.6+ Mon, 17 Sep 2012 22:33:13 GMT',
+        version = 'dev2.1',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -3457,7 +3457,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1.2 Future Reserved Words
+    // 7.6.1 Tue, 25 Sep 2012 18:36:32 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -3498,7 +3498,7 @@ parseStatement: true, parseSourceElement: true */
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1.1 Keywords
+    // 7.6.1 Tue, 25 Sep 2012 18:36:32 GMT.1 Keywords
 
     function isKeyword(id) {
         var keyword = false;
