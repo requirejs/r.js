@@ -98,31 +98,20 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //Override the shim exports function generator to just
                 //spit out strings that can be used in the stringified
                 //build output.
-                context.makeShimExports = function (exports) {
-                    var result;
-                    if (typeof exports === 'string') {
-                        result = function () {
-                            return '(function (global) {\n' +
-                            '    return function () {\n' +
-                            '        return global.' + exports + ';\n' +
-                            '    };\n' +
-                            '}(this))';
-                        };
-                        result.exports = exports;
-                    } else {
-                        result = function () {
-                            return '(function (global) {\n' +
-                            '    return function () {\n' +
-                            '        var func = ' + exports.toString() + ';\n' +
-                            '        return func.apply(global, arguments);\n' +
-                            '    };\n' +
-                            '}(this))';
-                        };
+                context.makeShimExports = function (value) {
+                    function fn() {
+                        return '(function (global) {\n' +
+                        '    return function () {\n' +
+                        '        var ret = global.' + value.exports + ';\n' +
+                        (value.init ?
+                        ('       var fn = ' + value.init.toString() + ';\n' +
+                        '        fn.apply(global, arguments);\n') : '') +
+                        '        return ret;\n' +
+                        '    };\n' +
+                        '}(this))';
                     }
 
-                    //Mark the result has being tranformed by the build already.
-                    result.__buildReady = true;
-                    return result;
+                    return fn;
                 };
 
                 context.enable = function (depMap, parent) {
@@ -253,8 +242,8 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 //it created a variable in this eval scope
                                 if (context.needFullExec[moduleName]) {
                                     shim = context.config.shim[moduleName];
-                                    if (shim && shim.exports && shim.exports.exports) {
-                                        shimExports = eval(shim.exports.exports);
+                                    if (shim && shim.exports) {
+                                        shimExports = eval(shim.exports);
                                         if (typeof shimExports !== 'undefined') {
                                             context.buildShimExports[moduleName] = shimExports;
                                         }

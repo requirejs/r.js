@@ -6,7 +6,8 @@ var PAX = {
 };
 define("pax", (function (global) {
     return function () {
-        return global.PAX;
+        var ret = global.PAX;
+        return ret;
     };
 }(this)));
 

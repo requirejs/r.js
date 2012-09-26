@@ -1274,7 +1274,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                      (shim.deps && shim.deps.length ?
                                             build.makeJsArrayString(shim.deps) + ', ' : '') +
-                                     (shim.exports ? shim.exports() : 'function(){}') +
+                                     (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
                                      ');\n';
                 } else {
                     fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';

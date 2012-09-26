@@ -7,8 +7,12 @@
 
 define("a", (function (global) {
     return function () {
-        var func = function (){return this.A.name};
-        return func.apply(global, arguments);
+        var ret = global.A.name;
+       var fn = function () {
+                    window.globalA = this.A.name;
+                };
+        fn.apply(global, arguments);
+        return ret;
     };
 }(this)));
 
@@ -34,7 +38,8 @@ var C = {
 
 define("c", ["a","b"], (function (global) {
     return function () {
-        return global.C;
+        var ret = global.C;
+        return ret;
     };
 }(this)));
 
@@ -48,7 +53,8 @@ var e = {
 
 define("e", (function (global) {
     return function () {
-        return global.e.nested.e;
+        var ret = global.e.nested.e;
+        return ret;
     };
 }(this)));
 
@@ -56,8 +62,9 @@ require({
         baseUrl: './',
         shim: {
             a: {
-                exports: function () {
-                    return this.A.name;
+                exports: 'A.name',
+                init: function () {
+                    window.globalA = this.A.name;
                 }
             },
             'b': ['a', 'd'],
@@ -77,6 +84,7 @@ require({
             [
                 function shimBasic(t){
                     t.is('a', a);
+                    t.is('a', window.globalA);
                     t.is('a', c.b.aValue);
                     t.is('b', c.b.name);
                     t.is('c', c.name);
