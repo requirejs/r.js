@@ -3469,7 +3469,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1 Wed, 26 Sep 2012 03:56:16 GMT.2 Future Reserved Words
+    // 7.6.1 Thu, 27 Sep 2012 21:03:12 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -3510,7 +3510,7 @@ parseStatement: true, parseSourceElement: true */
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1 Wed, 26 Sep 2012 03:56:16 GMT.1 Keywords
+    // 7.6.1 Thu, 27 Sep 2012 21:03:12 GMT.1 Keywords
 
     function isKeyword(id) {
         var keyword = false;
@@ -13416,6 +13416,8 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
 
         //Stored cached file contents for reuse in other layers.
         require._cachedFileContents = {};
+        //Store which cached files contain a require definition.
+        require._cachedDefinesRequireUrls = {};
 
         /**
          * Makes sure the URL is something that can be supported by the
@@ -13545,6 +13547,14 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             if (require._cachedFileContents.hasOwnProperty(url) &&
                                 (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
                                 contents = require._cachedFileContents[url];
+
+                                //If it defines require, mark it so it can be hoisted.
+                                //Done here and in the else below, before the
+                                //else block removes code from the contents.
+                                //Related to #263
+                                if (!layer.existingRequireUrl && require._cachedDefinesRequireUrls[url]) {
+                                    layer.existingRequireUrl = url;
+                                }
                             } else {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
@@ -13564,11 +13574,10 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 //Find out if the file contains a require() definition. Need to know
                                 //this so we can inject plugins right after it, but before they are needed,
                                 //and to make sure this file is first, so that define calls work.
-                                //This situation mainly occurs when the build is done on top of the output
-                                //of another build, where the first build may include require somewhere in it.
                                 try {
                                     if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
                                         layer.existingRequireUrl = url;
+                                        require._cachedDefinesRequireUrls[url] = true;
                                     }
                                 } catch (e1) {
                                     throw new Error('Parse error using esprima ' +
