@@ -40,6 +40,8 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
 
         //Stored cached file contents for reuse in other layers.
         require._cachedFileContents = {};
+        //Store which cached files contain a require definition.
+        require._cachedDefinesRequireUrls = {};
 
         /**
          * Makes sure the URL is something that can be supported by the
@@ -169,6 +171,14 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             if (require._cachedFileContents.hasOwnProperty(url) &&
                                 (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
                                 contents = require._cachedFileContents[url];
+
+                                //If it defines require, mark it so it can be hoisted.
+                                //Done here and in the else below, before the
+                                //else block removes code from the contents.
+                                //Related to #263
+                                if (!layer.existingRequireUrl && require._cachedDefinesRequireUrls[url]) {
+                                    layer.existingRequireUrl = url;
+                                }
                             } else {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
@@ -188,11 +198,10 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 //Find out if the file contains a require() definition. Need to know
                                 //this so we can inject plugins right after it, but before they are needed,
                                 //and to make sure this file is first, so that define calls work.
-                                //This situation mainly occurs when the build is done on top of the output
-                                //of another build, where the first build may include require somewhere in it.
                                 try {
                                     if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
                                         layer.existingRequireUrl = url;
+                                        require._cachedDefinesRequireUrls[url] = true;
                                     }
                                 } catch (e1) {
                                     throw new Error('Parse error using esprima ' +

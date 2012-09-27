@@ -1430,4 +1430,25 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Hoist require definition for multiple layer builds
+    //https://github.com/jrburke/r.js/issues/263
+    doh.register("requireHoistPerLayer",
+        [
+            function requireHoistPerLayer(t) {
+                file.deleteFile("lib/requireHoist/perLayer/built");
+
+                build(["lib/requireHoist/perLayer/build.js"]);
+
+                t.is(nol(c("lib/requireHoist/perLayer/expectedMain1.js")),
+                     nol(c("lib/requireHoist/perLayer/built/main1.js")));
+                t.is(nol(c("lib/requireHoist/perLayer/expectedMain2.js")),
+                     nol(c("lib/requireHoist/perLayer/built/main2.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
