@@ -3469,7 +3469,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1 Thu, 27 Sep 2012 21:03:12 GMT.2 Future Reserved Words
+    // 7.6.1 Thu, 27 Sep 2012 21:40:24 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -3510,7 +3510,7 @@ parseStatement: true, parseSourceElement: true */
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1 Thu, 27 Sep 2012 21:03:12 GMT.1 Keywords
+    // 7.6.1 Thu, 27 Sep 2012 21:40:24 GMT.1 Keywords
 
     function isKeyword(id) {
         var keyword = false;
@@ -13414,10 +13414,18 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
             exports,
             module;
 
-        //Stored cached file contents for reuse in other layers.
-        require._cachedFileContents = {};
-        //Store which cached files contain a require definition.
-        require._cachedDefinesRequireUrls = {};
+        /**
+         * Reset "global" build caches that are kept around between
+         * build layer builds. Useful to do when there are multiple
+         * top level requirejs.optimize() calls.
+         */
+        require._cacheReset = function () {
+            //Stored cached file contents for reuse in other layers.
+            require._cachedFileContents = {};
+            //Store which cached files contain a require definition.
+            require._cachedDefinesRequireUrls = {};
+        };
+        require._cacheReset();
 
         /**
          * Makes sure the URL is something that can be supported by the
@@ -15299,6 +15307,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //after the first call though.
                 if (requirejs._buildReset) {
                     requirejs._buildReset();
+                    requirejs._cacheReset();
                 }
 
                 var result = build(config);
@@ -15306,6 +15315,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //And clean up, in case something else triggers
                 //a build in another pathway.
                 requirejs._buildReset();
+                requirejs._cacheReset();
 
                 if (callback) {
                     callback(result);
