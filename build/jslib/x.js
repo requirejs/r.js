@@ -179,6 +179,7 @@ var requirejs, require, define;
                 //after the first call though.
                 if (requirejs._buildReset) {
                     requirejs._buildReset();
+                    requirejs._cacheReset();
                 }
 
                 var result = build(config);
@@ -186,6 +187,7 @@ var requirejs, require, define;
                 //And clean up, in case something else triggers
                 //a build in another pathway.
                 requirejs._buildReset();
+                requirejs._cacheReset();
 
                 if (callback) {
                     callback(result);

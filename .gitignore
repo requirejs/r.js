@@ -54,6 +54,7 @@ build/tests/lib/rhino-186/built
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/transportBeforeMinify/www-built
 build/tests/lib/urlToEmpty/main-built.js
+build/tests/tools/doubleOptimize/built
 build/tests/tools/override/node_modules
 build/tests/tools/override/one-built.js
 tests/node/node_modules

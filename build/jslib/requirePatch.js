@@ -38,10 +38,18 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
             exports,
             module;
 
-        //Stored cached file contents for reuse in other layers.
-        require._cachedFileContents = {};
-        //Store which cached files contain a require definition.
-        require._cachedDefinesRequireUrls = {};
+        /**
+         * Reset "global" build caches that are kept around between
+         * build layer builds. Useful to do when there are multiple
+         * top level requirejs.optimize() calls.
+         */
+        require._cacheReset = function () {
+            //Stored cached file contents for reuse in other layers.
+            require._cachedFileContents = {};
+            //Store which cached files contain a require definition.
+            require._cachedDefinesRequireUrls = {};
+        };
+        require._cacheReset();
 
         /**
          * Makes sure the URL is something that can be supported by the
