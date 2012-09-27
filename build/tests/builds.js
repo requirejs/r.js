@@ -1451,4 +1451,27 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Apply module overrides for final optimization/pragma work.
+    //https://github.com/jrburke/r.js/issues/275
+    doh.register("pragmasOverride",
+        [
+            function pragmasOverride(t) {
+                file.deleteFile("lib/pragmas/override/built");
+
+                build(["lib/pragmas/override/build.js"]);
+
+                t.is(nol(c("lib/pragmas/override/expectedMain1.js")),
+                     nol(c("lib/pragmas/override/built/main1.js")));
+                t.is(nol(c("lib/pragmas/override/expectedMain2.js")),
+                     nol(c("lib/pragmas/override/built/main2.js")));
+                t.is(nol(c("lib/pragmas/override/expectedHelper.js")),
+                     nol(c("lib/pragmas/override/built/helper.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

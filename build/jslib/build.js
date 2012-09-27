@@ -32,7 +32,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             preserveLicenseComments: true,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
-            dirExclusionRegExp: file.dirExclusionRegExp
+            dirExclusionRegExp: file.dirExclusionRegExp,
+            _buildPathToModuleIndex: {}
         };
 
     /**
@@ -320,8 +321,12 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         }
 
         if (modules) {
-            //For each module layer, call require to calculate dependencies.
-            modules.forEach(function (module) {
+            modules.forEach(function (module, i) {
+                //Save off buildPath to module index in a hash for quicker
+                //lookup later.
+                config._buildPathToModuleIndex[module._buildPath] = i;
+
+                //Call require to calculate dependencies.
                 module.layer = build.traceDependencies(module, config);
             });
 
@@ -427,8 +432,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
 
             //JS optimizations.
             fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
-            for (i = 0; i < fileNames.length; i++) {
-                fileName = fileNames[i];
+            fileNames.forEach(function (fileName, i) {
+                var cfg, moduleIndex, override;
 
                 //Generate the module name from the config.dir root.
                 moduleName = fileName.replace(config.dir, '');
@@ -452,8 +457,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                                                  fileName,
                                                  fileContents);
 
-                optimize.jsFile(fileName, fileContents, fileName, config, pluginCollector);
-            }
+                //If there is an override for a specific layer build module,
+                //and this file is that module, mix in the override for use
+                //by optimize.jsFile.
+                moduleIndex = config._buildPathToModuleIndex[fileName];
+                override = moduleIndex === 0 || moduleIndex > 0 ?
+                           config.modules[moduleIndex].override : null;
+                if (override) {
+                    cfg = {};
+                    lang.mixin(cfg, config, override, true);
+                } else {
+                    cfg = config;
+                }
+
+                optimize.jsFile(fileName, fileContents, fileName, cfg, pluginCollector);
+            });
 
             //Normalize all the plugin resources.
             context = require.s.contexts._;
