@@ -3469,7 +3469,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1 Thu, 27 Sep 2012 23:38:25 GMT.2 Future Reserved Words
+    // 7.6.1 Sat, 29 Sep 2012 00:56:25 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -3510,7 +3510,7 @@ parseStatement: true, parseSourceElement: true */
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1 Thu, 27 Sep 2012 23:38:25 GMT.1 Keywords
+    // 7.6.1 Sat, 29 Sep 2012 00:56:25 GMT.1 Keywords
 
     function isKeyword(id) {
         var keyword = false;
@@ -12365,7 +12365,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
 
             //Find the define calls and their position in the files.
             tokens.forEach(function (token, i) {
-                var prev, prev2, next, next2, next3, next4,
+                var prev, prev2, next, next2, next3, next4, next5,
                     needsId, depAction, nameCommaRange, foundId,
                     sourceUrlData,
                     namespaceExists = false;
@@ -12515,6 +12515,23 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                             } else {
                                 return;
                             }
+                        } else {
+                            return;
+                        }
+                    } else if (next2.type === 'Keyword' && next2.value === 'this') {
+                        //May be the define(this.key); type
+                        next3 = tokens[i + 3];
+                        next4 = tokens[i + 4];
+                        next5 = tokens[i + 5];
+                        if (!next3 || !next4 || !next5) {
+                            return;
+                        }
+
+                        if (next3.type === 'Punctuator' && next3.value === '.' &&
+                                next4.type === 'Identifier' &&
+                                next5.type === 'Punctuator' && next5.value === ')') {
+                            needsId = true;
+                            depAction = 'empty';
                         } else {
                             return;
                         }
