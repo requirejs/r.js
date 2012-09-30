@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.6+ Tue, 28 Aug 2012 18:39:50 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.0.6+ Sun, 30 Sep 2012 03:51:26 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.6+ Tue, 28 Aug 2012 18:39:50 GMT',
+        version = '2.0.6+ Sun, 30 Sep 2012 03:51:26 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1496,6 +1496,17 @@ var requirejs, require, define;
                     //Save the exports for use in nodefine checking.
                     func.exports = exports;
                     return func;
+                } else if (typeof exports === 'object') {
+                    func = function () {
+                        var newExports = {};
+                        eachProp(exports, function(ident, name) {
+                            newExports[name] = getGlobal(ident);
+                        });
+                        return newExports;
+                    };
+                    //Save the exports for use in nodefine checking.
+                    func.exports = exports;
+                    return func;
                 } else {
                     return function () {
                         return exports.apply(global, arguments);
@@ -2068,7 +2079,7 @@ var requirejs, require, define;
     define = function (name, deps, callback) {
         var node, context;
 
-        //Allow for anonymous functions
+        //Allow for anonymous modules
         if (typeof name !== 'string') {
             //Adjust args appropriately
             callback = deps;
