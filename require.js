@@ -1390,6 +1390,17 @@ var requirejs, require, define;
                     //Save the exports for use in nodefine checking.
                     func.exports = exports;
                     return func;
+                } else if (typeof exports === 'object') {
+                    func = function () {
+                        var newExports = {};
+                        eachProp(exports, function(ident, name) {
+                            newExports[name] = getGlobal(ident);
+                        });
+                        return newExports;
+                    };
+                    //Save the exports for use in nodefine checking.
+                    func.exports = exports;
+                    return func;
                 } else {
                     return function () {
                         return exports.apply(global, arguments);
@@ -1962,7 +1973,7 @@ var requirejs, require, define;
     define = function (name, deps, callback) {
         var node, context;
 
-        //Allow for anonymous functions
+        //Allow for anonymous modules
         if (typeof name !== 'string') {
             //Adjust args appropriately
             callback = deps;
