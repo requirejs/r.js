@@ -139,6 +139,93 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("buildWrapBothArray",
+        [
+            function buildWrapBothArray(t) {
+
+                file.deleteFile("lib/wrap/outBothArray.js");
+
+                build(["lib/wrap/buildBothArray.js"]);
+
+                t.is(nol(c("lib/wrap/expectedBothArray.js")),
+                     nol(c("lib/wrap/outBothArray.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+    doh.register("buildWrapOnlyEnd",
+        [
+            function buildWrapOnlyEnd(t) {
+
+                file.deleteFile("lib/wrap/outOnlyEnd.js");
+
+                build(["lib/wrap/buildOnlyEnd.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyEnd.js")),
+                     nol(c("lib/wrap/outOnlyEnd.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+    doh.register("buildWrapOnlyEndArray",
+        [
+            function buildWrapOnlyEndArray(t) {
+
+                file.deleteFile("lib/wrap/outOnlyEndArray.js");
+
+                build(["lib/wrap/buildOnlyEndArray.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyEndArray.js")),
+                     nol(c("lib/wrap/outOnlyEndArray.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+    doh.register("buildWrapOnlyStart",
+        [
+            function buildWrapOnlyStart(t) {
+
+                file.deleteFile("lib/wrap/outOnlyStart.js");
+
+                build(["lib/wrap/buildOnlyStart.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyStart.js")),
+                     nol(c("lib/wrap/outOnlyStart.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
+    doh.register("buildWrapOnlyStartArray",
+        [
+            function buildWrapOnlyStartArray(t) {
+
+                file.deleteFile("lib/wrap/outOnlyStartArray.js");
+
+                build(["lib/wrap/buildOnlyStartArray.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyStartArray.js")),
+                     nol(c("lib/wrap/outOnlyStartArray.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
     doh.register("buildSimple",
         [
             function buildSimple(t) {

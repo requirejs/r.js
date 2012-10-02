@@ -738,6 +738,27 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     }
 
     /**
+     * Converts a wrap.startFile or endFile to be start/end as a string.
+     * the startFile/endFile values can be arrays.
+     */
+    function flattenWrapFile(wrap, keyName, absFilePath) {
+        var keyFileName = keyName + 'File';
+
+        if (typeof wrap[keyName] !== 'string' && wrap[keyFileName]) {
+            wrap[keyName] = '';
+            if (typeof wrap[keyFileName] === 'string') {
+                wrap[keyFileName] = [wrap[keyFileName]];
+            }
+            wrap[keyFileName].forEach(function (fileName) {
+                wrap[keyName] += (wrap[keyName] ? '\n' : '') +
+                    file.readFile(build.makeAbsPath(fileName, absFilePath));
+            });
+        } else if (typeof wrap[keyName] !== 'string') {
+            throw new Error('wrap.' + keyName + ' or wrap.' + keyFileName + ' malformed');
+        }
+    }
+
+    /**
      * Creates a config object for an optimization build.
      * It will also read the build profile if it is available, to create
      * the configuration.
@@ -957,10 +978,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                         end: '}());'
                     };
                 } else {
-                    config.wrap.start = config.wrap.start ||
-                            file.readFile(build.makeAbsPath(config.wrap.startFile, absFilePath));
-                    config.wrap.end = config.wrap.end ||
-                            file.readFile(build.makeAbsPath(config.wrap.endFile, absFilePath));
+                    flattenWrapFile(config.wrap, 'start', absFilePath);
+                    flattenWrapFile(config.wrap, 'end', absFilePath);
                 }
             }
         } catch (wrapError) {
