@@ -1009,7 +1009,8 @@ var requirejs, require, define;
             callPlugin: function () {
                 var map = this.map,
                     id = map.id,
-                    pluginMap = makeModuleMap(map.prefix, null, false, true);
+                    //Map already normalized the prefix.
+                    pluginMap = makeModuleMap(map.prefix);
 
                 //Mark this as a dependency for this plugin, so it
                 //can be traced for cycles.
@@ -1034,10 +1035,10 @@ var requirejs, require, define;
                             }) || '';
                         }
 
+                        //prefix and name should already be normalized, no need
+                        //for applying map config again either.
                         normalizedMap = makeModuleMap(map.prefix + '!' + name,
-                                                      this.map.parentMap,
-                                                      false,
-                                                      true);
+                                                      this.map.parentMap);
                         on(normalizedMap,
                             'defined', bind(this, function (value) {
                                 this.init([], function () { return value; }, null, {
@@ -3469,7 +3470,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1 Tue, 02 Oct 2012 03:25:54 GMT.2 Future Reserved Words
+    // 7.6.1 Tue, 02 Oct 2012 18:56:09 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -3510,7 +3511,7 @@ parseStatement: true, parseSourceElement: true */
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1 Tue, 02 Oct 2012 03:25:54 GMT.1 Keywords
+    // 7.6.1 Tue, 02 Oct 2012 18:56:09 GMT.1 Keywords
 
     function isKeyword(id) {
         var keyword = false;
