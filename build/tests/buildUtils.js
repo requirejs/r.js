@@ -25,8 +25,35 @@ define(['build'], function (build) {
                     multi = 'define("foo", function (require) { var bar = require("bar"); });\n' +
                             'define("bar", function (require) { var foo = require("foo"); });\n',
 
-                    multiExpected = 'define("foo",[\'require\',\'bar\'], function (require) { var bar = require("bar"); });\n' +
-                            'define("bar",[\'require\',\'foo\'], function (require) { var foo = require("foo"); });\n',
+                    multiAnonWrapped = '(function (root, factory) {\n' +
+                    '    if (typeof define === \'function\' && define.amd) {\n' +
+                    '        define([\'b\'], factory);\n' +
+                    '    } else {\n' +
+                    '        // Browser globals\n' +
+                    '        root.amdWeb = factory(root.b);\n' +
+                    '    }\n' +
+                    '}(this, function (b) {\n' +
+                    '    var stored = {};\n' +
+                    '    function define(id, func) { stored[id] = func();}\n' +
+                    '    define("foo", function (require) { var bar = require("bar"); });\n' +
+                    '    define("bar", function (require) { var foo = require("foo"); });\n' +
+                    '    return stored.bar;\n' +
+                    '}));',
+
+                    multiAnonWrappedExpected = '(function (root, factory) {\n' +
+                    '    if (typeof define === \'function\' && define.amd) {\n' +
+                    '        define(\'multiAnonWrapped\',[\'b\'], factory);\n' +
+                    '    } else {\n' +
+                    '        // Browser globals\n' +
+                    '        root.amdWeb = factory(root.b);\n' +
+                    '    }\n' +
+                    '}(this, function (b) {\n' +
+                    '    var stored = {};\n' +
+                    '    function define(id, func) { stored[id] = func();}\n' +
+                    '    define("foo", function (require) { var bar = require("bar"); });\n' +
+                    '    define("bar", function (require) { var foo = require("foo"); });\n' +
+                    '    return stored.bar;\n' +
+                    '}));',
 
                     good3 = 'define(\n' +
                             '    // a comment\n' +
@@ -49,7 +76,9 @@ define(['build'], function (build) {
                 t.is(bad5, build.toTransport('', 'bad/5', 'bad5', bad5));
                 t.is(goodExpected1, build.toTransport('', 'good/1', 'good1', good1));
                 t.is(goodExpected2, build.toTransport('', 'good/2', 'good2', good2));
-                t.is(multiExpected, build.toTransport('', 'multi', 'multi', multi));
+                t.is(multi, build.toTransport('', 'multi', 'multi', multi));
+                t.is(multiAnonWrappedExpected, build.toTransport('',
+                    'multiAnonWrapped', 'multiAnonWrapped', multiAnonWrapped));
                 t.is(goodExpected3, build.toTransport('', 'good/3', 'good3', good3));
                 t.is(goodExpected4, build.toTransport('', 'good/4', 'good4', good4));
             }
