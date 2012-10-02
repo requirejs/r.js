@@ -369,8 +369,16 @@
     //File paths are relative to the build file, or if running a commmand
     //line build, the current directory.
     wrap: {
-        startFile: "part/start.frag",
+        startFile: "parts/start.frag",
         endFile: "parts/end.frag"
+    },
+
+    //As of r.js 2.1.0, startFile and endFile can be arrays of files, and
+    //they will all be loaded and inserted at the start or end, respectively,
+    //of the build layer.
+    wrap: {
+        startFile: ["parts/startOne.frag", "parts/startTwo.frag"],
+        endFile: ["parts/endOne.frag", "parts/endTwo.frag"]
     },
 
     //When the optimizer copies files from the source location to the
