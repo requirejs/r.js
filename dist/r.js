@@ -3470,7 +3470,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1 Tue, 02 Oct 2012 18:56:09 GMT.2 Future Reserved Words
+    // 7.6.1 Tue, 02 Oct 2012 22:59:18 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -3511,7 +3511,7 @@ parseStatement: true, parseSourceElement: true */
         return id === 'eval' || id === 'arguments';
     }
 
-    // 7.6.1 Tue, 02 Oct 2012 18:56:09 GMT.1 Keywords
+    // 7.6.1 Tue, 02 Oct 2012 22:59:18 GMT.1 Keywords
 
     function isKeyword(id) {
         var keyword = false;
@@ -12349,6 +12349,8 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
             options = options || {};
 
             var tokens, foundAnon, deps, lastRange, parenCount, inDefine,
+                scanCount = 0,
+                scanReset = false,
                 defineRanges = [],
                 contentInsertion = '',
                 depString = '';
@@ -12368,7 +12370,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
             tokens.forEach(function (token, i) {
                 var prev, prev2, next, next2, next3, next4, next5,
                     needsId, depAction, nameCommaRange, foundId,
-                    sourceUrlData,
+                    sourceUrlData, range,
                     namespaceExists = false;
 
                 if (inDefine && token.type === 'Punctuator') {
@@ -12546,7 +12548,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                     inDefine = true;
                     parenCount = 0;
 
-                    defineRanges.push({
+                    range = {
                         foundId: foundId,
                         needsId: needsId,
                         depAction: depAction,
@@ -12555,24 +12557,42 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                         parenRange: next.range,
                         nameCommaRange: nameCommaRange,
                         sourceUrlData: sourceUrlData
-                    });
+                    };
+
+                    //Only transform ones that do not have IDs. If it has an
+                    //ID but no dependency array, assume it is something like
+                    //a phonegap implementation, that has its own internal
+                    //define that cannot handle dependency array constructs,
+                    //and if it is a named module, then it means it has been
+                    //set for transport form.
+                    if (range.needsId) {
+                        if (foundAnon) {
+                            throw new Error(path +
+                                ' has two many anonymous modules in it.');
+                        } else {
+                            foundAnon = range;
+                            defineRanges.push(range);
+                        }
+                    } else if (depAction === 'scan') {
+                        scanCount += 1;
+                        if (scanCount > 1) {
+                            //Just go back to an array that just has the
+                            //anon one, since this is an already optimized
+                            //file like the phonegap one.
+                            if (!scanReset) {
+                                defineRanges =  foundAnon ? [foundAnon] : [];
+                                scanReset = true;
+                            }
+                        } else {
+                            defineRanges.push(range);
+                        }
+                    }
                 }
             });
 
             if (!defineRanges.length) {
                 return contents;
             }
-
-            //Find the first anon define, then any that need dependency
-            //scanning.
-            defineRanges = defineRanges.filter(function (range) {
-                if (!foundAnon && range.needsId) {
-                    foundAnon = true;
-                    return true;
-                } else if (range.depAction === 'scan') {
-                    return true;
-                }
-            });
 
             //Reverse the matches, need to start from the bottom of
             //the file to modify it, so that the ranges are still true
