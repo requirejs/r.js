@@ -1071,9 +1071,10 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 //Also remove spaces, since rhino and node differ on their
                 //Function.prototype.toString() output by whitespace, and
-                //the semicolon on end of A.name
+                //the semicolon on end of A.name, and string quotes.
                 t.is(nol(c("lib/shimBasic/expected.js")).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'),
-                     nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'));
+                     nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name')
+                     .replace(/['"]Modified["']/, "'Modified'"));
 
                 require._buildReset();
             }
