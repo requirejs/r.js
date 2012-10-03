@@ -1094,7 +1094,7 @@ var requirejs, require, define;
                             moduleMap = makeModuleMap(moduleName),
                             hasInteractive = useInteractive;
 
-                        //As of 2.1.0 Wed, 03 Oct 2012 05:44:57 GMT, support just passing the text, to reinforce
+                        //As of 2.1.0 Wed, 03 Oct 2012 21:19:16 GMT, support just passing the text, to reinforce
                         //fromText only being called once per resource. Still
                         //support old style of passing moduleName but discard
                         //that moduleName in favor of the internal ref.
@@ -1382,11 +1382,11 @@ var requirejs, require, define;
 
             makeShimExports: function (value) {
                 function fn() {
-                    var ret = getGlobal(value.exports);
+                    var ret;
                     if (value.init) {
-                        value.init.apply(global, arguments);
+                        ret = value.init.apply(global, arguments);
                     }
-                    return ret;
+                    return ret || getGlobal(value.exports);
                 }
                 return fn;
             },
@@ -3472,7 +3472,7 @@ parseStatement: true, parseSourceElement: true */
             ((ch.charCodeAt(0) >= 0x80) && Regex.NonAsciiIdentifierPart.test(ch));
     }
 
-    // 7.6.1 Wed, 03 Oct 2012 05:44:57 GMT.2 Future Reserved Words
+    // 7.6.1 Wed, 03 Oct 2012 21:19:16 GMT.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
         switch (id) {
@@ -13528,11 +13528,11 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                     function fn() {
                         return '(function (global) {\n' +
                         '    return function () {\n' +
-                        '        var ret = global.' + value.exports + ';\n' +
+                        '        var ret, fn;\n' +
                         (value.init ?
-                        ('       var fn = ' + value.init.toString() + ';\n' +
-                        '        fn.apply(global, arguments);\n') : '') +
-                        '        return ret;\n' +
+                        ('       fn = ' + value.init.toString() + ';\n' +
+                        '        ret = fn.apply(global, arguments);\n') : '') +
+                        '        return ret || global.' + value.exports + ';\n' +
                         '    };\n' +
                         '}(this))';
                     }
