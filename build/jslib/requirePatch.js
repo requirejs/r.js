@@ -112,11 +112,11 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                     function fn() {
                         return '(function (global) {\n' +
                         '    return function () {\n' +
-                        '        var ret = global.' + value.exports + ';\n' +
+                        '        var ret, fn;\n' +
                         (value.init ?
-                        ('       var fn = ' + value.init.toString() + ';\n' +
-                        '        fn.apply(global, arguments);\n') : '') +
-                        '        return ret;\n' +
+                        ('       fn = ' + value.init.toString() + ';\n' +
+                        '        ret = fn.apply(global, arguments);\n') : '') +
+                        '        return ret || global.' + value.exports + ';\n' +
                         '    };\n' +
                         '}(this))';
                     }
