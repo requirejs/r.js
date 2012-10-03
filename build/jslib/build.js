@@ -10,8 +10,7 @@
 
 define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
          'transform', 'env!env/load', 'requirePatch', 'env!env/quit',
-         'commonJs'],
-function (lang,   logger,   file,          parse,    optimize,   pragma,
+         'commonJs'], function (lang, logger, file,  parse, optimize, pragma,
           transform,   load,           requirePatch,   quit,
           commonJs) {
     'use strict';
@@ -20,21 +19,21 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         endsWithSemiColonRegExp = /;\s*$/;
 
     buildBaseConfig = {
-            appDir: "",
-            pragmas: {},
-            paths: {},
-            optimize: "uglify",
-            optimizeCss: "standard.keepLines",
-            inlineText: true,
-            isBuild: true,
-            optimizeAllPluginResources: false,
-            findNestedDependencies: false,
-            preserveLicenseComments: true,
-            //By default, all files/directories are copied, unless
-            //they match this regexp, by default just excludes .folders
-            dirExclusionRegExp: file.dirExclusionRegExp,
-            _buildPathToModuleIndex: {}
-        };
+        appDir: "",
+        pragmas: {},
+        paths: {},
+        optimize: "uglify",
+        optimizeCss: "standard.keepLines",
+        inlineText: true,
+        isBuild: true,
+        optimizeAllPluginResources: false,
+        findNestedDependencies: false,
+        preserveLicenseComments: true,
+        //By default, all files/directories are copied, unless
+        //they match this regexp, by default just excludes .folders
+        dirExclusionRegExp: file.dirExclusionRegExp,
+        _buildPathToModuleIndex: {}
+    };
 
     /**
      * Some JS may not be valid if concatenated with other JS, in particular
@@ -89,10 +88,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
      * there is a problem completing the build.
      */
     build = function (args) {
-        var stackRegExp = /( {4}at[^\n]+)\n/,
-            standardIndent = '  ',
-            buildFile, cmdConfig, errorMsg, errorStack, stackMatch, errorTree,
-            i, j, errorMod;
+        var buildFile, cmdConfig, errorMsg, errorStack, stackMatch, errorTree,
+            i, j, errorMod,
+            stackRegExp = /( {4}at[^\n]+)\n/,
+            standardIndent = '  ';
 
         try {
             if (!args || lang.isArray(args)) {
@@ -169,14 +168,15 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
     };
 
     build._run = function (cmdConfig) {
-        var buildFileContents = "",
-            pluginCollector = {},
-            buildPaths, fileName, fileNames,
+        var buildPaths, fileName, fileNames,
             prop, paths, i,
             baseConfig, config,
             modules, builtModule, srcPath, buildContext,
             destPath, moduleName, moduleMap, parentModuleMap, context,
-            resources, resource, pluginProcessed = {}, plugin, fileContents;
+            resources, resource, plugin, fileContents,
+            pluginProcessed = {},
+            buildFileContents = "",
+            pluginCollector = {};
 
         //Can now run the patches to require.js to allow it to be used for
         //build generation. Do it here instead of at the top of the module
@@ -274,7 +274,7 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     //as indicated by a true "create" property on the module, and
                     //it is not a plugin-loaded resource, then throw an error.
                     if (!file.exists(module._sourcePath) && !module.create &&
-                        module.name.indexOf('!') === -1) {
+                            module.name.indexOf('!') === -1) {
                         throw new Error("ERROR: module path does not exist: " +
                                         module._sourcePath + " for module named: " + module.name +
                                         ". Path is relative to: " + file.absPath('.'));
@@ -400,8 +400,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     if (config.removeCombined) {
                         module.layer.buildFilePaths.forEach(function (path) {
                             if (file.exists(path) && !modules.some(function (mod) {
-                                return mod._buildPath === path;
-                            })) {
+                                    return mod._buildPath === path;
+                                })) {
                                 file.deleteFile(path);
                             }
                         });
@@ -727,8 +727,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 //allow a one-level-deep mixing of it.
                 value = source[prop];
                 if (typeof value === 'object' && value &&
-                    !lang.isArray(value) && !lang.isFunction(value) &&
-                    !lang.isRegExp(value)) {
+                        !lang.isArray(value) && !lang.isFunction(value) &&
+                        !lang.isRegExp(value)) {
                     target[prop] = lang.mixin({}, target[prop], value, true);
                 } else {
                     target[prop] = value;
@@ -1144,10 +1144,10 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
         if (errIds.length || failedPluginIds.length) {
             if (failedPluginIds.length) {
                 errMessage += 'Loader plugin' +
-                (failedPluginIds.length === 1 ? '' : 's') +
-                ' did not call ' +
-                'the load callback in the build: ' +
-                failedPluginIds.join(', ') + '\n';
+                    (failedPluginIds.length === 1 ? '' : 's') +
+                    ' did not call ' +
+                    'the load callback in the build: ' +
+                    failedPluginIds.join(', ') + '\n';
             }
             errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
 
@@ -1191,14 +1191,16 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             lang.mixin(config, module.override, true);
         }
 
-        var buildFileContents = "",
+        var path, reqIndex, fileContents, currContents,
+            i, moduleName, shim, packageConfig,
+            parts, builder, writeApi,
+            context = layer.context,
+            buildFileContents = "",
             namespace = config.namespace || '',
             namespaceWithDot = namespace ? namespace + '.' : '',
             stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
-            context = layer.context,
-            path, reqIndex, fileContents, currContents,
-            i, moduleName, shim, packageConfig,
-            parts, builder, writeApi;
+            onLayerEnds = [],
+            onLayerEndAdded = {};
 
         //Start build output for the module.
         buildFileContents += "\n" +
@@ -1233,6 +1235,11 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
             parts = context.makeModuleMap(moduleName);
             builder = parts.prefix && context.defined[parts.prefix];
             if (builder) {
+                if (builder.onLayerEnd && !onLayerEndAdded[parts.prefix]) {
+                    onLayerEnds.push(builder);
+                    onLayerEndAdded[parts.prefix] = true;
+                }
+
                 if (builder.write) {
                     writeApi = function (input) {
                         fileContents += "\n" + addSemiColon(input);
@@ -1242,10 +1249,9 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     };
                     writeApi.asModule = function (moduleName, input) {
                         fileContents += "\n" +
-                                        addSemiColon(
-                                            build.toTransport(namespace, moduleName, path, input, layer, {
-                                                useSourceUrl: layer.context.config.useSourceUrl
-                                            }));
+                            addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
+                                useSourceUrl: layer.context.config.useSourceUrl
+                            }));
                         if (config.onBuildWrite) {
                             fileContents = config.onBuildWrite(moduleName, path, fileContents);
                         }
@@ -1281,8 +1287,8 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                 }
 
                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer, {
-                                    useSourceUrl: config.useSourceUrl
-                                });
+                    useSourceUrl: config.useSourceUrl
+                });
 
                 if (packageConfig) {
                     currContents = addSemiColon(currContents) + '\n';
@@ -1317,6 +1323,23 @@ function (lang,   logger,   file,          parse,    optimize,   pragma,
                     fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                 }
             }
+        }
+
+        if (onLayerEnds.length) {
+            onLayerEnds.forEach(function (builder) {
+                var path;
+                if (typeof module.out === 'string') {
+                    path = module.out;
+                } else if (typeof module._buildPath === 'string') {
+                    path = module._buildPath;
+                }
+                builder.onLayerEnd(function (input) {
+                    fileContents += "\n" + addSemiColon(input);
+                }, {
+                    name: module.name,
+                    path: path
+                });
+            });
         }
 
         //Add a require at the end to kick start module execution, if that

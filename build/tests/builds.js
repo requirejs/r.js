@@ -1561,4 +1561,43 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Test onLayerEnd for loader plugins
+    //https://github.com/jrburke/r.js/pull/241
+    doh.register("pluginsOnLayerEnd",
+        [
+            function pluginsOnLayerEnd(t) {
+                file.deleteFile("lib/plugins/onLayerEnd/main-built.js");
+
+                build(["lib/plugins/onLayerEnd/build.js"]);
+
+                t.is(nol(c("lib/plugins/onLayerEnd/expected.js")),
+                     nol(c("lib/plugins/onLayerEnd/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("pluginsOnLayerEndMulti",
+        [
+            function pluginsOnLayerEndMulti(t) {
+                file.deleteFile("lib/plugins/onLayerEnd/built");
+
+                build(["lib/plugins/onLayerEnd/buildMulti.js"]);
+
+                t.is(nol(c("lib/plugins/onLayerEnd/expectedMultiMain.js")),
+                     nol(c("lib/plugins/onLayerEnd/built/main.js")));
+                t.is(nol(c("lib/plugins/onLayerEnd/expectedMultiSecondary.js")),
+                     nol(c("lib/plugins/onLayerEnd/built/secondary.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
 });
