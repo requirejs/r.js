@@ -32,6 +32,10 @@ define(function () {
             return file.absPath(fileName);
         },
 
+        baseName: function (fileName) {
+            return (new java.io.File(fileName)).getName();
+        },
+
         isFile: function (path) {
             return (new java.io.File(path)).isFile();
         },
