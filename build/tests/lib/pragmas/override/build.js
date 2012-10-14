@@ -3,10 +3,12 @@
     dir: 'built',
     optimize: 'none',
     pragmas: {
-        fancyExclude: true
+        sharedInclude: true,
+        fancyExclude: true,
+        funnyInclude: false
     },
     modules: [
         { name: 'main1' },
-        { name: 'main2', override: { pragmas: { fancyExclude: false }}}
+        { name: 'main2', override: { pragmas: { fancyExclude: false, funnyInclude: true }}}
     ]
 }

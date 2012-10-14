@@ -464,8 +464,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                 override = moduleIndex === 0 || moduleIndex > 0 ?
                            config.modules[moduleIndex].override : null;
                 if (override) {
-                    cfg = {};
-                    lang.mixin(cfg, config, override, true);
+                    cfg = build.createOverrideConfig(config, override);
                 } else {
                     cfg = config;
                 }
@@ -577,25 +576,27 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         });
     }
 
-    //Used by convertArrayToObject to convert some things from prop.name=value
-    //to a prop: { name: value}
-    build.dotProps = [
-        'paths.',
-        'wrap.',
-        'pragmas.',
-        'pragmasOnSave.',
-        'has.',
-        'hasOnSave.',
-        'wrap.',
-        'uglify.',
-        'closure.',
-        'map.'
-    ];
+    build.objProps = {
+        paths: true,
+        wrap: true,
+        pragmas: true,
+        pragmasOnSave: true,
+        has: true,
+        hasOnSave: true,
+        uglify: true,
+        closure: true,
+        map: true
+    };
 
     build.hasDotPropMatch = function (prop) {
-        return build.dotProps.some(function (dotProp) {
-            return prop.indexOf(dotProp) === 0;
-        });
+        var dotProp,
+            index = prop.indexOf('.');
+
+        if (index !== -1) {
+            dotProp = prop.substring(0, index);
+            return build.objProps.hasOwnProperty(dotProp);
+        }
+        return false;
     };
 
     /**
@@ -1168,6 +1169,24 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         return layer;
     };
 
+    build.createOverrideConfig = function (config, override) {
+        var cfg = {};
+
+        lang.mixin(cfg, config, true);
+        lang.eachProp(override, function (value, prop) {
+            if (build.objProps.hasOwnProperty(prop)) {
+                //An object property, merge keys. Start a new object
+                //so that source object in config does not get modified.
+                cfg[prop] = {};
+                lang.mixin(cfg[prop], config[prop], true);
+                lang.mixin(cfg[prop], override[prop], true);
+            } else {
+                cfg[prop] = override[prop];
+            }
+        });
+        return cfg;
+    };
+
     /**
      * Uses the module build config object to create an flattened version
      * of the module, with deep dependencies included.
@@ -1183,24 +1202,25 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
+        var path, reqIndex, fileContents, currContents,
+            i, moduleName, shim, packageConfig,
+            parts, builder, writeApi, tempPragmas,
+            namespace, namespaceWithDot, stubModulesByName,
+            newConfig = {},
+            context = layer.context,
+            buildFileContents = "",
+            onLayerEnds = [],
+            onLayerEndAdded = {};
 
         //Use override settings, particularly for pragmas
         //Do this before the var readings since it reads config values.
         if (module.override) {
-            config = lang.mixin({}, config, true);
-            lang.mixin(config, module.override, true);
+            config = build.createOverrideConfig(config, module.override);
         }
 
-        var path, reqIndex, fileContents, currContents,
-            i, moduleName, shim, packageConfig,
-            parts, builder, writeApi,
-            context = layer.context,
-            buildFileContents = "",
-            namespace = config.namespace || '',
-            namespaceWithDot = namespace ? namespace + '.' : '',
-            stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
-            onLayerEnds = [],
-            onLayerEndAdded = {};
+        namespace = config.namespace || '';
+        namespaceWithDot = namespace ? namespace + '.' : '';
+        stubModulesByName = (config.stubModules && config.stubModules._byName) || {};
 
         //Start build output for the module.
         buildFileContents += "\n" +
