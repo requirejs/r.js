@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.0 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.0',
+        version = '2.1.1',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -105,7 +105,7 @@ var requirejs, require, define;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.0 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.1 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -118,7 +118,7 @@ var requirejs, require, define;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.0',
+        version = '2.1.1',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -206,9 +206,6 @@ var requirejs, require, define;
     /**
      * Simple function to mix in properties from source into target,
      * but only if target does not already have a property of the same name.
-     * This is not robust in IE for transferring methods that match
-     * Object.prototype names, but the uses of mixin here seem unlikely to
-     * trigger a problem related to that.
      */
     function mixin(target, source, force, deepStringMixin) {
         if (source) {
@@ -301,7 +298,9 @@ var requirejs, require, define;
                 baseUrl: './',
                 paths: {},
                 pkgs: {},
-                shim: {}
+                shim: {},
+                map: {},
+                config: {}
             },
             registry = {},
             undefEvents = {},
@@ -1273,6 +1272,25 @@ var requirejs, require, define;
             };
         }
 
+        function intakeDefines() {
+            var args;
+
+            //Any defined modules in the global queue, intake them now.
+            takeGlobalQueue();
+
+            //Make sure any remaining defQueue items get properly processed.
+            while (defQueue.length) {
+                args = defQueue.shift();
+                if (args[0] === null) {
+                    return onError(makeError('mismatch', 'Mismatched anonymous define() module: ' + args[args.length - 1]));
+                } else {
+                    //args are id, deps, factory. Should be normalized by the
+                    //define() function.
+                    callGetModule(args);
+                }
+            }
+        }
+
         context = {
             config: config,
             contextName: contextName,
@@ -1300,20 +1318,23 @@ var requirejs, require, define;
                 //they are additive.
                 var pkgs = config.pkgs,
                     shim = config.shim,
-                    paths = config.paths,
-                    map = config.map;
+                    objs = {
+                        paths: true,
+                        config: true,
+                        map: true
+                    };
 
-                //Mix in the config values, favoring the new values over
-                //existing ones in context.config.
-                mixin(config, cfg, true);
-
-                //Merge paths.
-                config.paths = mixin(paths, cfg.paths, true);
-
-                //Merge map
-                if (cfg.map) {
-                    config.map = mixin(map || {}, cfg.map, true, true);
-                }
+                eachProp(cfg, function (value, prop) {
+                    if (objs[prop]) {
+                        if (prop === 'map') {
+                            mixin(config[prop], value, true, true);
+                        } else {
+                            mixin(config[prop], value, true);
+                        }
+                    } else {
+                        config[prop] = value;
+                    }
+                });
 
                 //Merge shim
                 if (cfg.shim) {
@@ -1394,8 +1415,8 @@ var requirejs, require, define;
             makeRequire: function (relMap, options) {
                 options = options || {};
 
-                function require(deps, callback, errback) {
-                    var id, map, requireMod, args;
+                function localRequire(deps, callback, errback) {
+                    var id, map, requireMod;
 
                     if (options.enableBuildCallback && callback && isFunction(callback)) {
                         callback.__requireJsBuild = true;
@@ -1434,23 +1455,15 @@ var requirejs, require, define;
                         return defined[id];
                     }
 
-                    //Any defined modules in the global queue, intake them now.
-                    takeGlobalQueue();
-
-                    //Make sure any remaining defQueue items get properly processed.
-                    while (defQueue.length) {
-                        args = defQueue.shift();
-                        if (args[0] === null) {
-                            return onError(makeError('mismatch', 'Mismatched anonymous define() module: ' + args[args.length - 1]));
-                        } else {
-                            //args are id, deps, factory. Should be normalized by the
-                            //define() function.
-                            callGetModule(args);
-                        }
-                    }
+                    //Grab defines waiting in the global queue.
+                    intakeDefines();
 
                     //Mark all the dependencies as needing to be loaded.
                     context.nextTick(function () {
+                        //Some defines could have been added since the
+                        //require call, collect them.
+                        intakeDefines();
+
                         requireMod = getModule(makeModuleMap(null, relMap));
 
                         //Store if map config should be applied to this require
@@ -1464,10 +1477,10 @@ var requirejs, require, define;
                         checkLoaded();
                     });
 
-                    return require;
+                    return localRequire;
                 }
 
-                mixin(require, {
+                mixin(localRequire, {
                     isBrowser: isBrowser,
 
                     /**
@@ -1500,7 +1513,7 @@ var requirejs, require, define;
 
                 //Only allow undef on top level require calls
                 if (!relMap) {
-                    require.undef = function (id) {
+                    localRequire.undef = function (id) {
                         //Bind any waiting define() calls to this context,
                         //fix for #408
                         takeGlobalQueue();
@@ -1525,7 +1538,7 @@ var requirejs, require, define;
                     };
                 }
 
-                return require;
+                return localRequire;
             },
 
             /**
@@ -2132,13 +2145,17 @@ var requirejs, require, define;
         //In Node 0.7+ existsSync is on fs.
         exists = fs.existsSync || path.existsSync;
 
+    function syncTick(fn) {
+        fn();
+    }
+
     //Supply an implementation that allows synchronous get of a module.
     req.get = function (context, moduleName, relModuleMap) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
             req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
         }
 
-        var ret,
+        var ret, oldTick,
             moduleMap = context.makeModuleMap(moduleName, relModuleMap);
 
         //Normalize module name, if it contains . or ..
@@ -2148,14 +2165,35 @@ var requirejs, require, define;
             ret = context.defined[moduleName];
         } else {
             if (ret === undefined) {
-                //Try to dynamically fetch it.
-                req.load(context, moduleName, moduleMap.url);
+                //Make sure nextTick for this type of call is sync-based.
+                oldTick = context.nextTick;
+                context.nextTick = syncTick;
+                try {
+                    if (moduleMap.prefix) {
+                        //A plugin, call requirejs to handle it. Now that
+                        //nextTick is syncTick, the require will complete
+                        //synchronously.
+                        context.require([moduleMap.originalName]);
 
-                //Enable the module
-                context.enable(moduleMap, relModuleMap);
+                        //Now that plugin is loaded, can regenerate the moduleMap
+                        //to get the final, normalized ID.
+                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap);
 
-                //The above calls are sync, so can do the next thing safely.
-                ret = context.defined[moduleName];
+                        //The above calls are sync, so can do the next thing safely.
+                        ret = context.defined[moduleMap.id];
+                    } else {
+                        //Try to dynamically fetch it.
+                        req.load(context, moduleName, moduleMap.url);
+
+                        //Enable the module
+                        context.enable(moduleMap, relModuleMap);
+
+                        //The above calls are sync, so can do the next thing safely.
+                        ret = context.defined[moduleName];
+                    }
+                } finally {
+                    context.nextTick = oldTick;
+                }
             }
         }
 
@@ -13509,13 +13547,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 oldInit = moduleProto.init,
                 oldCallPlugin = moduleProto.callPlugin;
 
-            //For build contexts, do everything sync
-            context.nextTick = function (fn) {
-                fn();
-            };
-
             //Only do this for the context used for building.
             if (name === '_') {
+                //For build contexts, do everything sync
+                context.nextTick = function (fn) {
+                    fn();
+                };
+
                 context.needFullExec = {};
                 context.fullExec = {};
                 context.plugins = {};
@@ -14437,8 +14475,7 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
                 override = moduleIndex === 0 || moduleIndex > 0 ?
                            config.modules[moduleIndex].override : null;
                 if (override) {
-                    cfg = {};
-                    lang.mixin(cfg, config, override, true);
+                    cfg = build.createOverrideConfig(config, override);
                 } else {
                     cfg = config;
                 }
@@ -14550,25 +14587,27 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
         });
     }
 
-    //Used by convertArrayToObject to convert some things from prop.name=value
-    //to a prop: { name: value}
-    build.dotProps = [
-        'paths.',
-        'wrap.',
-        'pragmas.',
-        'pragmasOnSave.',
-        'has.',
-        'hasOnSave.',
-        'wrap.',
-        'uglify.',
-        'closure.',
-        'map.'
-    ];
+    build.objProps = {
+        paths: true,
+        wrap: true,
+        pragmas: true,
+        pragmasOnSave: true,
+        has: true,
+        hasOnSave: true,
+        uglify: true,
+        closure: true,
+        map: true
+    };
 
     build.hasDotPropMatch = function (prop) {
-        return build.dotProps.some(function (dotProp) {
-            return prop.indexOf(dotProp) === 0;
-        });
+        var dotProp,
+            index = prop.indexOf('.');
+
+        if (index !== -1) {
+            dotProp = prop.substring(0, index);
+            return build.objProps.hasOwnProperty(dotProp);
+        }
+        return false;
     };
 
     /**
@@ -15141,6 +15180,24 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
         return layer;
     };
 
+    build.createOverrideConfig = function (config, override) {
+        var cfg = {};
+
+        lang.mixin(cfg, config, true);
+        lang.eachProp(override, function (value, prop) {
+            if (build.objProps.hasOwnProperty(prop)) {
+                //An object property, merge keys. Start a new object
+                //so that source object in config does not get modified.
+                cfg[prop] = {};
+                lang.mixin(cfg[prop], config[prop], true);
+                lang.mixin(cfg[prop], override[prop], true);
+            } else {
+                cfg[prop] = override[prop];
+            }
+        });
+        return cfg;
+    };
+
     /**
      * Uses the module build config object to create an flattened version
      * of the module, with deep dependencies included.
@@ -15156,24 +15213,25 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
+        var path, reqIndex, fileContents, currContents,
+            i, moduleName, shim, packageConfig,
+            parts, builder, writeApi, tempPragmas,
+            namespace, namespaceWithDot, stubModulesByName,
+            newConfig = {},
+            context = layer.context,
+            buildFileContents = "",
+            onLayerEnds = [],
+            onLayerEndAdded = {};
 
         //Use override settings, particularly for pragmas
         //Do this before the var readings since it reads config values.
         if (module.override) {
-            config = lang.mixin({}, config, true);
-            lang.mixin(config, module.override, true);
+            config = build.createOverrideConfig(config, module.override);
         }
 
-        var path, reqIndex, fileContents, currContents,
-            i, moduleName, shim, packageConfig,
-            parts, builder, writeApi,
-            context = layer.context,
-            buildFileContents = "",
-            namespace = config.namespace || '',
-            namespaceWithDot = namespace ? namespace + '.' : '',
-            stubModulesByName = (config.stubModules && config.stubModules._byName) || {},
-            onLayerEnds = [],
-            onLayerEndAdded = {};
+        namespace = config.namespace || '';
+        namespaceWithDot = namespace ? namespace + '.' : '';
+        stubModulesByName = (config.stubModules && config.stubModules._byName) || {};
 
         //Start build output for the module.
         buildFileContents += "\n" +
