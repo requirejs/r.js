@@ -125,9 +125,9 @@
     optimizeCss: "standard.keepLines",
 
     //If optimizeCss is in use, a list of of files to ignore for the @import
-    //inlining. The value of this option should be a comma separated list
-    //of CSS file names to ignore. The file names should match whatever
-    //strings are used in the @import calls.
+    //inlining. The value of this option should be a string of comma separated
+    //CSS file names to ignore (like 'a.css,b.css'. The file names should match
+    //whatever strings are used in the @import calls.
     cssImportIgnore: null,
 
     //cssIn is typically used as a command line option. It can be used
