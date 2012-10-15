@@ -26,13 +26,17 @@
         //In Node 0.7+ existsSync is on fs.
         exists = fs.existsSync || path.existsSync;
 
+    function syncTick(fn) {
+        fn();
+    }
+
     //Supply an implementation that allows synchronous get of a module.
     req.get = function (context, moduleName, relModuleMap) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
             req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
         }
 
-        var ret,
+        var ret, oldTick,
             moduleMap = context.makeModuleMap(moduleName, relModuleMap);
 
         //Normalize module name, if it contains . or ..
@@ -42,14 +46,35 @@
             ret = context.defined[moduleName];
         } else {
             if (ret === undefined) {
-                //Try to dynamically fetch it.
-                req.load(context, moduleName, moduleMap.url);
+                //Make sure nextTick for this type of call is sync-based.
+                oldTick = context.nextTick;
+                context.nextTick = syncTick;
+                try {
+                    if (moduleMap.prefix) {
+                        //A plugin, call requirejs to handle it. Now that
+                        //nextTick is syncTick, the require will complete
+                        //synchronously.
+                        context.require([moduleMap.originalName]);
 
-                //Enable the module
-                context.enable(moduleMap, relModuleMap);
+                        //Now that plugin is loaded, can regenerate the moduleMap
+                        //to get the final, normalized ID.
+                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap);
 
-                //The above calls are sync, so can do the next thing safely.
-                ret = context.defined[moduleName];
+                        //The above calls are sync, so can do the next thing safely.
+                        ret = context.defined[moduleMap.id];
+                    } else {
+                        //Try to dynamically fetch it.
+                        req.load(context, moduleName, moduleMap.url);
+
+                        //Enable the module
+                        context.enable(moduleMap, relModuleMap);
+
+                        //The above calls are sync, so can do the next thing safely.
+                        ret = context.defined[moduleName];
+                    }
+                } finally {
+                    context.nextTick = oldTick;
+                }
             }
         }
 

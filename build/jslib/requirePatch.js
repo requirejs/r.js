@@ -93,13 +93,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 oldInit = moduleProto.init,
                 oldCallPlugin = moduleProto.callPlugin;
 
-            //For build contexts, do everything sync
-            context.nextTick = function (fn) {
-                fn();
-            };
-
             //Only do this for the context used for building.
             if (name === '_') {
+                //For build contexts, do everything sync
+                context.nextTick = function (fn) {
+                    fn();
+                };
+
                 context.needFullExec = {};
                 context.fullExec = {};
                 context.plugins = {};
