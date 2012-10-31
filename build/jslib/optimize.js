@@ -204,7 +204,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
             optimized = optimize.js(fileName, fileContents, config, pluginCollector);
 
-            compressed = typeof optimized.toSource == 'function' ? optimized.toSource() : String(optimized);
+            compressed = typeof optimized =='string' ? optimized : optimized.toSource();
 
             if (config.generateSourceMaps && optimized.sourceMap) {
                 baseName = (new java.io.File(outFileName)).getName();
@@ -276,7 +276,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 optResult = optFunc(fileName, fileContents, keepLines, config[optimizerName]);
 
-                return config.generateSourceMaps ? optResult : licenseContents + (optResult.toSource ? optResult.toSource() : optResult);
+                return config.generateSourceMaps ? optResult : licenseContents + (typeof optResult == 'string' ? optResult : optResult.toSource());
             }
 
             return fileContents;
