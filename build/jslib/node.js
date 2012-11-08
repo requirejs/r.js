@@ -24,7 +24,12 @@
         path = nodeReq('path'),
         vm = nodeReq('vm'),
         //In Node 0.7+ existsSync is on fs.
-        exists = fs.existsSync || path.existsSync;
+        exists = fs.existsSync || path.existsSync,
+        hasOwn = Object.prototype.hasOwnProperty;
+
+    function hasProp(obj, prop) {
+        return hasOwn.call(obj, prop);
+    }
 
     function syncTick(fn) {
         fn();
@@ -42,7 +47,7 @@
         //Normalize module name, if it contains . or ..
         moduleName = moduleMap.id;
 
-        if (context.defined.hasOwnProperty(moduleName)) {
+        if (hasProp(context.defined, moduleName)) {
             ret = context.defined[moduleName];
         } else {
             if (ret === undefined) {
@@ -115,7 +120,7 @@
             def(moduleName, function () {
                 //Get the original name, since relative requires may be
                 //resolved differently in node (issue #202)
-                var originalName = context.registry[moduleName] &&
+                var originalName = hasProp(context.registry, moduleName) &&
                             context.registry[moduleName].map.originalName;
 
                 try {

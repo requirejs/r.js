@@ -10,7 +10,14 @@
 define(function () {
     'use strict';
 
-    var lang = {
+    var lang,
+        hasOwn = Object.prototype.hasOwnProperty;
+
+    function hasProp(obj, prop) {
+        return hasOwn.call(obj, prop);
+    }
+
+    lang = {
         backSlashRegExp: /\\/g,
         ostring: Object.prototype.toString,
 
@@ -24,6 +31,19 @@ define(function () {
 
         isRegExp: function(it) {
             return it && it instanceof RegExp;
+        },
+
+        hasProp: hasProp,
+
+        //returns true if the object does not have an own property prop,
+        //or if it does, it is a falsy value.
+        falseProp: function (obj, prop) {
+            return !hasProp(obj, prop) || !obj[prop];
+        },
+
+        //gets own property value for given prop on object
+        getOwn: function (obj, prop) {
+            return hasProp(obj, prop) && obj[prop];
         },
 
         _mixin: function(dest, source, override){
@@ -95,7 +115,7 @@ define(function () {
         eachProp: function eachProp(obj, func) {
             var prop;
             for (prop in obj) {
-                if (obj.hasOwnProperty(prop)) {
+                if (hasProp(obj, prop)) {
                     if (func(obj[prop], prop)) {
                         break;
                     }

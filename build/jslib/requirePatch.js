@@ -18,7 +18,10 @@
 define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs'],
 function (file,           pragma,   parse,   lang,   logger,   commonJs) {
 
-    var allowRun = true;
+    var allowRun = true,
+        hasProp = lang.hasProp,
+        falseProp = lang.falseProp,
+        getOwn = lang.getOwn;
 
     //This method should be called when the patches to require should take hold.
     return function () {
@@ -129,14 +132,16 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                         parentId = parent && parent.map.id,
                         needFullExec = context.needFullExec,
                         fullExec = context.fullExec,
-                        mod = context.registry[id];
+                        mod = getOwn(context.registry, id);
 
                     if (mod && !mod.defined) {
-                        if (parentId && needFullExec[parentId]) {
+                        if (parentId && getOwn(needFullExec, parentId)) {
                             needFullExec[id] = true;
                         }
-                    } else if ((needFullExec[id] && !fullExec[id]) ||
-                               (parentId && needFullExec[parentId] && !fullExec[id])) {
+
+                    } else if ((getOwn(needFullExec, id) && falseProp(fullExec, id)) ||
+                               (parentId && getOwn(needFullExec, parentId) &&
+                                falseProp(fullExec, id))) {
                         context.require.undef(id);
                     }
 
@@ -170,14 +175,15 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                         layer.buildPathMap[moduleName] = url;
                         layer.buildFileToModule[url] = moduleName;
 
-                        if (context.plugins.hasOwnProperty(moduleName)) {
+                        if (hasProp(context.plugins, moduleName)) {
                             //plugins need to have their source evaled as-is.
                             context.needFullExec[moduleName] = true;
                         }
 
                         try {
-                            if (require._cachedFileContents.hasOwnProperty(url) &&
-                                (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
+                            if (hasProp(require._cachedFileContents, url) &&
+                                    (falseProp(context.needFullExec, moduleName) ||
+                                    getOwn(context.fullExec, moduleName))) {
                                 contents = require._cachedFileContents[url];
 
                                 //If it defines require, mark it so it can be hoisted.
@@ -216,7 +222,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                                     'for file: ' + url + '\n' + e1);
                                 }
 
-                                if (context.plugins.hasOwnProperty(moduleName)) {
+                                if (hasProp(context.plugins, moduleName)) {
                                     //This is a loader plugin, check to see if it has a build extension,
                                     //otherwise the plugin will act as the plugin builder too.
                                     pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
@@ -234,7 +240,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 //Do this even for plugins in case they have their own
                                 //dependencies that may be separate to how the pluginBuilder works.
                                 try {
-                                    if (!context.needFullExec[moduleName]) {
+                                    if (falseProp(context.needFullExec, moduleName)) {
                                         contents = parse(moduleName, url, contents, {
                                             insertNeedsDefine: true,
                                             has: context.config.has,
@@ -257,8 +263,8 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 //If have a string shim config, and this is
                                 //a fully executed module, try to see if
                                 //it created a variable in this eval scope
-                                if (context.needFullExec[moduleName]) {
-                                    shim = context.config.shim[moduleName];
+                                if (getOwn(context.needFullExec, moduleName)) {
+                                    shim = getOwn(context.config.shim, moduleName);
                                     if (shim && shim.exports) {
                                         shimExports = eval(shim.exports);
                                         if (typeof shimExports !== 'undefined') {
@@ -295,15 +301,15 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //Marks module has having a name, and optionally executes the
                 //callback, but only if it meets certain criteria.
                 context.execCb = function (name, cb, args, exports) {
-                    var buildShimExports = layer.context.buildShimExports[name];
+                    var buildShimExports = getOwn(layer.context.buildShimExports, name);
 
-                    if (!layer.needsDefine[name] && !buildShimExports) {
+                    if (falseProp(layer.needsDefine, name) && !buildShimExports) {
                         layer.modulesWithNames[name] = true;
                     }
 
                     if (buildShimExports) {
                         return buildShimExports;
-                    } else if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
+                    } else if (cb.__requireJsBuild || getOwn(layer.context.needFullExec, name)) {
                         return cb.apply(exports, args);
                     }
                     return undefined;
@@ -330,14 +336,14 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                     var map = this.map,
                         pluginMap = context.makeModuleMap(map.prefix),
                         pluginId = pluginMap.id,
-                        pluginMod = context.registry[pluginId];
+                        pluginMod = getOwn(context.registry, pluginId);
 
                     context.plugins[pluginId] = true;
                     context.needFullExec[pluginId] = true;
 
                     //If the module is not waiting to finish being defined,
                     //undef it and start over, to get full execution.
-                    if (!context.fullExec[pluginId] && (!pluginMod || pluginMod.defined)) {
+                    if (falseProp(context.fullExec, pluginId) && (!pluginMod || pluginMod.defined)) {
                         context.require.undef(pluginMap.id);
                     }
 
@@ -390,7 +396,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
         //This function signature does not have to be exact, just match what we
         //are looking for.
         define = function (name) {
-            if (typeof name === "string" && !layer.needsDefine[name]) {
+            if (typeof name === "string" && falseProp(layer.needsDefine, name)) {
                 layer.modulesWithNames[name] = true;
             }
             return oldDef.apply(require, arguments);
@@ -415,13 +421,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
             //that. Only valid for the context used in a build, not for
             //other contexts being run, like for useLib, plain requirejs
             //use in node/rhino.
-            if (context.needFullExec && context.needFullExec[id]) {
+            if (context.needFullExec && getOwn(context.needFullExec, id)) {
                 context.fullExec[id] = true;
             }
 
             //A plugin.
             if (map.prefix) {
-                if (!layer.pathAdded[id]) {
+                if (falseProp(layer.pathAdded, id)) {
                     layer.buildFilePaths.push(id);
                     //For plugins the real path is not knowable, use the name
                     //for both module to file and file to module mappings.
@@ -434,7 +440,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
                 url = normalizeUrlWithBase(context, id, map.url);
-                if (!layer.pathAdded[url] && layer.buildPathMap[id]) {
+                if (!layer.pathAdded[url] && getOwn(layer.buildPathMap, id)) {
                     //Remember the list of dependencies for this layer.
                     layer.buildFilePaths.push(url);
                     layer.pathAdded[url] = true;

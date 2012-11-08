@@ -1600,5 +1600,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("hasOwnPropertyTest",
+        [
+            function hasOwnPropertyTest(t) {
+                file.deleteFile("lib/hasOwnProperty/built.js");
+
+                build(["lib/hasOwnProperty/build.js"]);
+
+                t.is(nol(c("lib/hasOwnProperty/expected.js")),
+                     nol(c("lib/hasOwnProperty/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 
 });

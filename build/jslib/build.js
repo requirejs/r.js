@@ -16,6 +16,9 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
     'use strict';
 
     var build, buildBaseConfig,
+        hasProp = lang.hasProp,
+        getOwn = lang.getOwn,
+        falseProp = lang.falseProp,
         endsWithSemiColonRegExp = /;\s*$/;
 
     buildBaseConfig = {
@@ -210,14 +213,14 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                 //All the paths should be inside the appDir, so just adjust
                 //the paths to use the dirBaseUrl
                 for (prop in paths) {
-                    if (paths.hasOwnProperty(prop)) {
+                    if (hasProp(paths, prop)) {
                         buildPaths[prop] = paths[prop].replace(config.appDir, config.dir);
                     }
                 }
             } else {
                 //If no appDir, then make sure to copy the other paths to this directory.
                 for (prop in paths) {
-                    if (paths.hasOwnProperty(prop)) {
+                    if (hasProp(paths, prop)) {
                         //Set up build path for each path prefix, but only do so
                         //if the path falls out of the current baseUrl
                         if (paths[prop].indexOf(config.baseUrl) === 0) {
@@ -353,7 +356,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                     module.exclude.forEach(function (excludeModule, i) {
                         var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
                         for (prop in map) {
-                            if (map.hasOwnProperty(prop)) {
+                            if (hasProp(map, prop)) {
                                 build.removeModulePath(prop, map[prop], module.layer);
                             }
                         }
@@ -364,7 +367,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                     //shallow exclusions are just that module itself, and not
                     //its nested dependencies.
                     module.excludeShallow.forEach(function (excludeShallowModule) {
-                        var path = module.layer.buildPathMap[excludeShallowModule];
+                        var path = getOwn(module.layer.buildPathMap, excludeShallowModule);
                         if (path) {
                             build.removeModulePath(excludeShallowModule, path, module.layer);
                         }
@@ -460,7 +463,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                 //If there is an override for a specific layer build module,
                 //and this file is that module, mix in the override for use
                 //by optimize.jsFile.
-                moduleIndex = config._buildPathToModuleIndex[fileName];
+                moduleIndex = getOwn(config._buildPathToModuleIndex, fileName);
                 override = moduleIndex === 0 || moduleIndex > 0 ?
                            config.modules[moduleIndex].override : null;
                 if (override) {
@@ -476,13 +479,13 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
             context = require.s.contexts._;
 
             for (moduleName in pluginCollector) {
-                if (pluginCollector.hasOwnProperty(moduleName)) {
+                if (hasProp(pluginCollector, moduleName)) {
                     parentModuleMap = context.makeModuleMap(moduleName);
                     resources = pluginCollector[moduleName];
                     for (i = 0; i < resources.length; i++) {
                         resource = resources[i];
                         moduleMap = context.makeModuleMap(resource, parentModuleMap);
-                        if (!context.plugins[moduleMap.prefix]) {
+                        if (falseProp(context.plugins, moduleMap.prefix)) {
                             //Set the value in context.plugins so it
                             //will be evaluated as a full plugin.
                             context.plugins[moduleMap.prefix] = true;
@@ -504,11 +507,11 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                         //Only bother with plugin resources that can be handled
                         //processed by the plugin, via support of the writeFile
                         //method.
-                        if (!pluginProcessed[moduleMap.id]) {
+                        if (falseProp(pluginProcessed, moduleMap.id)) {
                             //Only do the work if the plugin was really loaded.
                             //Using an internal access because the file may
                             //not really be loaded.
-                            plugin = context.defined[moduleMap.prefix];
+                            plugin = getOwn(context.defined, moduleMap.prefix);
                             if (plugin && plugin.writeFile) {
                                 plugin.writeFile(
                                     moduleMap.prefix,
@@ -567,7 +570,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
             if (i === parts.length - 1) {
                 result[prop] = value;
             } else {
-                if (!result[prop]) {
+                if (falseProp(result, prop)) {
                     result[prop] = {};
                 }
                 result = result[prop];
@@ -594,7 +597,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
 
         if (index !== -1) {
             dotProp = prop.substring(0, index);
-            return build.objProps.hasOwnProperty(dotProp);
+            return hasProp(build.objProps, dotProp);
         }
         return false;
     };
@@ -632,7 +635,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
             prop = ary[i].substring(0, separatorIndex);
 
             //Convert to array if necessary
-            if (needArray[prop]) {
+            if (getOwn(needArray, prop)) {
                 value = value.split(",");
             }
 
@@ -662,7 +665,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         if (obj) {
             for (i = 0; i < props.length; i++) {
                 prop = props[i];
-                if (obj.hasOwnProperty(prop) && typeof obj[prop] === 'string') {
+                if (hasProp(obj, prop) && typeof obj[prop] === 'string') {
                     obj[prop] = build.makeAbsPath(obj[prop], absFilePath);
                 }
             }
@@ -680,7 +683,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         for (i = 0; i < props.length; i++) {
             prop = props[i];
 
-            if (config[prop]) {
+            if (getOwn(config, prop)) {
                 //Add abspath if necessary, make sure these paths end in
                 //slashes
                 if (prop === "baseUrl") {
@@ -723,7 +726,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         var prop, value;
 
         for (prop in source) {
-            if (source.hasOwnProperty(prop)) {
+            if (hasProp(source, prop)) {
                 //If the value of the property is a plain object, then
                 //allow a one-level-deep mixing of it.
                 value = source[prop];
@@ -870,7 +873,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         });
 
         //Set final output dir
-        if (config.hasOwnProperty("baseUrl")) {
+        if (hasProp(config, "baseUrl")) {
             if (config.appDir) {
                 config.dirBaseUrl = build.makeAbsPath(config.originalBaseUrl, config.dir);
             } else {
@@ -996,13 +999,13 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         }
 
         //Set file.fileExclusionRegExp if desired
-        if (config.hasOwnProperty('fileExclusionRegExp')) {
+        if (hasProp(config, 'fileExclusionRegExp')) {
             if (typeof config.fileExclusionRegExp === "string") {
                 file.exclusionRegExp = new RegExp(config.fileExclusionRegExp);
             } else {
                 file.exclusionRegExp = config.fileExclusionRegExp;
             }
-        } else if (config.hasOwnProperty('dirExclusionRegExp')) {
+        } else if (hasProp(config, 'dirExclusionRegExp')) {
             //Set file.dirExclusionRegExp if desired, this is the old
             //name for fileExclusionRegExp before 1.0.2. Support for backwards
             //compatibility
@@ -1061,7 +1064,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
      */
     build.traceDependencies = function (module, config) {
         var include, override, layer, context, baseConfig, oldContext,
-            registry, id, idParts, pluginId,
+            registry, id, idParts, pluginId, mod,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
@@ -1112,10 +1115,11 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
         //a message on what is left.
         registry = context.registry;
         for (id in registry) {
-            if (registry.hasOwnProperty(id) && id.indexOf('_@r') !== 0) {
-                if (id.indexOf('_unnormalized') === -1 && registry[id].enabled) {
+            if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
+                mod = getOwn(registry, id);
+                if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
                     errIds.push(id);
-                    errUrl = registry[id].map.url;
+                    errUrl = mod.map.url;
 
                     if (errUrlMap[errUrl]) {
                         hasErrUrl = true;
@@ -1135,7 +1139,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                 //Look for plugins that did not call load()
                 idParts = id.split('!');
                 pluginId = idParts[0];
-                if (idParts.length > 1 && !failedPluginMap.hasOwnProperty(pluginId)) {
+                if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
                     failedPluginIds.push(pluginId);
                     failedPluginMap[pluginId] = true;
                 }
@@ -1157,7 +1161,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                               'could be a misconfiguration if that URL only has ' +
                               'one anonymous module in it:';
                 for (prop in errUrlConflicts) {
-                    if (errUrlConflicts.hasOwnProperty(prop)) {
+                    if (hasProp(errUrlConflicts, prop)) {
                         errMessage += '\n' + prop + ': ' +
                                       errUrlConflicts[prop].join(', ');
                     }
@@ -1174,7 +1178,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
 
         lang.mixin(cfg, config, true);
         lang.eachProp(override, function (value, prop) {
-            if (build.objProps.hasOwnProperty(prop)) {
+            if (hasProp(build.objProps, prop)) {
                 //An object property, merge keys. Start a new object
                 //so that source object in config does not get modified.
                 cfg[prop] = {};
@@ -1245,7 +1249,7 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
             //If the moduleName is for a package main, then update it to the
             //real main value.
             packageConfig = layer.context.config.pkgs &&
-                            layer.context.config.pkgs[moduleName];
+                            getOwn(layer.context.config.pkgs, moduleName);
             if (packageConfig) {
                 moduleName += '/' + packageConfig.main;
             }
@@ -1253,9 +1257,9 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
             //Figure out if the module is a result of a build plugin, and if so,
             //then delegate to that plugin.
             parts = context.makeModuleMap(moduleName);
-            builder = parts.prefix && context.defined[parts.prefix];
+            builder = parts.prefix && getOwn(context.defined, parts.prefix);
             if (builder) {
-                if (builder.onLayerEnd && !onLayerEndAdded[parts.prefix]) {
+                if (builder.onLayerEnd && falseProp(onLayerEndAdded, parts.prefix)) {
                     onLayerEnds.push(builder);
                     onLayerEndAdded[parts.prefix] = true;
                 }
@@ -1279,11 +1283,11 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
                     builder.write(parts.prefix, parts.name, writeApi);
                 }
             } else {
-                if (stubModulesByName.hasOwnProperty(moduleName)) {
+                if (hasProp(stubModulesByName, moduleName)) {
                     //Just want to insert a simple module definition instead
                     //of the source module. Useful for plugins that inline
                     //all their resources.
-                    if (layer.context.plugins.hasOwnProperty(moduleName)) {
+                    if (hasProp(layer.context.plugins, moduleName)) {
                         //Slightly different content for plugins, to indicate
                         //that dynamic loading will not work.
                         currContents = 'define({load: function(id){throw new Error("Dynamic load not allowed: " + id);}});';
@@ -1331,8 +1335,8 @@ define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
             //put in a placeholder call so the require does not try to load them
             //after the module is processed.
             //If we have a name, but no defined module, then add in the placeholder.
-            if (moduleName && !layer.modulesWithNames[moduleName] && !config.skipModuleInsertion) {
-                shim = config.shim && config.shim[moduleName];
+            if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
+                shim = config.shim && getOwn(config.shim, moduleName);
                 if (shim) {
                     fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                      (shim.deps && shim.deps.length ?
