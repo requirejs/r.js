@@ -33,7 +33,8 @@ var requirejs, require, define;
         console.log('See https://github.com/jrburke/r.js for usage.');
     }
 
-    if (typeof navigator !== 'undefined' && typeof document !== 'undefined') {
+    if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
 
         readFile = function (path) {

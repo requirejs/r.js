@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Thu, 18 Oct 2012 22:14:39 GMTinbrowser Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+-inbrowser Sat, 10 Nov 2012 06:10:00 GMTinbrowser Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Thu, 18 Oct 2012 22:14:39 GMTinbrowser',
+        version = '2.1.1+-inbrowser Sat, 10 Nov 2012 06:10:00 GMTinbrowser',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -33,7 +33,8 @@ var requirejs, require, define;
         console.log('See https://github.com/jrburke/r.js for usage.');
     }
 
-    if (typeof navigator !== 'undefined' && typeof document !== 'undefined') {
+    if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
 
         readFile = function (path) {
@@ -2342,7 +2343,8 @@ var requirejs, require, define;
         env = 'rhino';
     } else if (typeof process !== 'undefined') {
         env = 'node';
-    } else if (typeof window !== "undefined" && navigator && document) {
+    } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
     }
 
