@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Thu, 08 Nov 2012 04:08:50 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Sun, 11 Nov 2012 02:07:28 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -13,14 +13,15 @@
 
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
-console: false, java: false, module: false, requirejsVars */
+console: false, java: false, module: false, requirejsVars, navigator,
+document */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Thu, 08 Nov 2012 04:08:50 GMT',
+        version = '2.1.1+ Sun, 11 Nov 2012 02:07:28 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -32,7 +33,24 @@ var requirejs, require, define;
         console.log('See https://github.com/jrburke/r.js for usage.');
     }
 
-    if (typeof Packages !== 'undefined') {
+    if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
+        env = 'browser';
+
+        readFile = function (path) {
+            return fs.readFileSync(path, 'utf8');
+        };
+
+        exec = function (string, name) {
+            return eval(string);
+        };
+
+        exists = function (fileName) {
+            console.log('x.js exists not applicable in browser env');
+            return false;
+        };
+
+    } else if (typeof Packages !== 'undefined') {
         env = 'rhino';
 
         fileName = args[0];
@@ -2091,7 +2109,35 @@ var requirejs, require, define;
 }(this));
 
 
-    if (env === 'rhino') {
+    if (env === 'browser') {
+        /**
+ * @license RequireJS rhino Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+//sloppy since eval enclosed with use strict causes problems if the source
+//text is not strict-compliant.
+/*jslint sloppy: true, evil: true */
+/*global require, XMLHttpRequest */
+
+(function () {
+    require.load = function (context, moduleName, url) {
+        var xhr = new XMLHttpRequest();
+
+        //Oh yeah, that is right SYNC IO. Behold its glory
+        //and horrible blocking behavior.
+        xhr.open('GET', url, false);
+        xhr.send();
+
+        eval(xhr.responseText);
+
+        //Support anonymous modules.
+        context.completeLoad(moduleName);
+    };
+
+}());
+    } else if (env === 'rhino') {
         /**
  * @license RequireJS rhino Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
@@ -2306,7 +2352,8 @@ var requirejs, require, define;
         env = 'rhino';
     } else if (typeof process !== 'undefined') {
         env = 'node';
-    } else if (typeof window !== "undefined" && navigator && document) {
+    } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
     }
 
@@ -2331,6 +2378,23 @@ var requirejs, require, define;
         }
     });
 }());
+if(env === 'browser') {
+/**
+ * @license RequireJS Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, load: false */
+
+//Just a stub for use with uglify's consolidator.js
+define('browser/assert', function () {
+    return {};
+});
+
+}
+
 if(env === 'node') {
 /**
  * @license RequireJS Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
@@ -2361,6 +2425,23 @@ if(env === 'rhino') {
 //Just a stub for use with uglify's consolidator.js
 define('rhino/assert', function () {
     return {};
+});
+
+}
+
+if(env === 'browser') {
+/**
+ * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, process: false */
+
+define('browser/args', function () {
+    //Always expect config via an API call
+    return [];
 });
 
 }
@@ -2414,6 +2495,26 @@ define('rhino/args', function () {
 
 }
 
+if(env === 'browser') {
+/**
+ * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, console: false */
+
+define('browser/load', ['./file'], function (file) {
+    function load(fileName) {
+        eval(file.readFile(fileName));
+    }
+
+    return load;
+});
+
+}
+
 if(env === 'node') {
 /**
  * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
@@ -2447,6 +2548,146 @@ if(env === 'rhino') {
 
 define('rhino/load', function () {
     return load;
+});
+
+}
+
+if(env === 'browser') {
+/**
+ * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint sloppy: true */
+/*global define, console, XMLHttpRequest, requirejs */
+
+define('browser/file', function () {
+
+    var file;
+
+    function frontSlash(path) {
+        return path.replace(/\\/g, '/');
+    }
+
+    function exists(path) {
+        var status, xhr = new XMLHttpRequest();
+
+        //Oh yeah, that is right SYNC IO. Behold its glory
+        //and horrible blocking behavior.
+        xhr.open('HEAD', path, false);
+        xhr.send();
+        status = xhr.status;
+
+        return status === 200 || status === 304;
+    }
+
+    function mkDir(dir) {
+        console.log('mkDir is no-op in browser');
+    }
+
+    function mkFullDir(dir) {
+        console.log('mkFullDir is no-op in browser');
+    }
+
+    file = {
+        backSlashRegExp: /\\/g,
+        exclusionRegExp: /^\./,
+        getLineSeparator: function () {
+            return '/';
+        },
+
+        exists: function (fileName) {
+            return exists(fileName);
+        },
+
+        parent: function (fileName) {
+            var parts = fileName.split('/');
+            parts.pop();
+            return parts.join('/');
+        },
+
+        /**
+         * Gets the absolute file path as a string, normalized
+         * to using front slashes for path separators.
+         * @param {String} fileName
+         */
+        absPath: function (fileName) {
+            return fileName;
+        },
+
+        normalize: function (fileName) {
+            return fileName;
+        },
+
+        isFile: function (path) {
+            return true;
+        },
+
+        isDirectory: function (path) {
+            return false;
+        },
+
+        getFilteredFileList: function (startDir, regExpFilters, makeUnixPaths) {
+            console.log('file.getFilteredFileList is no-op in browser');
+        },
+
+        copyDir: function (srcDir, destDir, regExpFilter, onlyCopyNew) {
+            console.log('file.copyDir is no-op in browser');
+
+        },
+
+        copyFile: function (srcFileName, destFileName, onlyCopyNew) {
+            console.log('file.copyFile is no-op in browser');
+        },
+
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            console.log('file.renameFile is no-op in browser');
+        },
+
+        /**
+         * Reads a *text* file.
+         */
+        readFile: function (path, encoding) {
+            var text,
+                xhr = new XMLHttpRequest();
+
+            //Oh yeah, that is right SYNC IO. Behold its glory
+            //and horrible blocking behavior.
+            xhr.open('GET', path, false);
+            xhr.send();
+
+            text = xhr.responseText;
+
+            return text;
+        },
+
+        saveUtf8File: function (fileName, fileContents) {
+            //summary: saves a *text* file using UTF-8 encoding.
+            file.saveFile(fileName, fileContents, "utf8");
+        },
+
+        saveFile: function (fileName, fileContents, encoding) {
+            requirejs.browser.saveFile(fileName, fileContents, encoding);
+        },
+
+        deleteFile: function (fileName) {
+            console.log('file.deleteFile is no-op in browser');
+        },
+
+        /**
+         * Deletes any empty directories under the given directory.
+         */
+        deleteEmptyDirs: function (startDir) {
+            console.log('file.deleteEmptyDirs is no-op in browser');
+        }
+    };
+
+    return file;
+
 });
 
 }
@@ -3035,6 +3276,15 @@ define('rhino/file', function () {
 
 }
 
+if(env === 'browser') {
+/*global process */
+define('browser/quit', function () {
+    'use strict';
+    return function (code) {
+    };
+});
+}
+
 if(env === 'node') {
 /*global process */
 define('node/quit', function () {
@@ -3201,6 +3451,26 @@ define('lang', function () {
     };
     return lang;
 });
+
+if(env === 'browser') {
+/**
+ * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, console: false */
+
+define('browser/print', function () {
+    function print(msg) {
+        console.log(msg);
+    }
+
+    return print;
+});
+
+}
 
 if(env === 'node') {
 /**
@@ -12994,6 +13264,20 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
 
     return pragma;
 });
+if(env === 'browser') {
+/**
+ * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false */
+
+define('browser/optimize', {});
+
+}
+
 if(env === 'node') {
 /**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
@@ -15477,11 +15761,7 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
         }
     }
 
-    //If in Node, and included via a require('requirejs'), just export and
-    //THROW IT ON THE GROUND!
-    if (env === 'node' && reqMain !== module) {
-        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
-
+    function createRjsApi() {
         //Create a method that will run the optimzer given an object
         //config.
         requirejs.optimize = function (config, callback) {
@@ -15547,8 +15827,21 @@ define('build', [ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma
         };
 
         requirejs.define = define;
+    }
+
+    //If in Node, and included via a require('requirejs'), just export and
+    //THROW IT ON THE GROUND!
+    if (env === 'node' && reqMain !== module) {
+        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
+
+        createRjsApi();
 
         module.exports = requirejs;
+        return;
+    } else if (env === 'browser') {
+        //Only option is to use the API.
+        setBaseUrl(location.href);
+        createRjsApi();
         return;
     }
 
