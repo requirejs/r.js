@@ -13,7 +13,8 @@
 
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
-console: false, java: false, module: false, requirejsVars */
+console: false, java: false, module: false, requirejsVars, navigator,
+document */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
@@ -32,7 +33,24 @@ var requirejs, require, define;
         console.log('See https://github.com/jrburke/r.js for usage.');
     }
 
-    if (typeof Packages !== 'undefined') {
+    if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
+        env = 'browser';
+
+        readFile = function (path) {
+            return fs.readFileSync(path, 'utf8');
+        };
+
+        exec = function (string, name) {
+            return eval(string);
+        };
+
+        exists = function (fileName) {
+            console.log('x.js exists not applicable in browser env');
+            return false;
+        };
+
+    } else if (typeof Packages !== 'undefined') {
         env = 'rhino';
 
         fileName = args[0];
@@ -106,7 +124,9 @@ var requirejs, require, define;
 
     //INSERT require.js
 
-    if (env === 'rhino') {
+    if (env === 'browser') {
+        //INSERT build/jslib/browser.js
+    } else if (env === 'rhino') {
         //INSERT build/jslib/rhino.js
     } else if (env === 'node') {
         this.requirejsVars = {
@@ -152,11 +172,7 @@ var requirejs, require, define;
         }
     }
 
-    //If in Node, and included via a require('requirejs'), just export and
-    //THROW IT ON THE GROUND!
-    if (env === 'node' && reqMain !== module) {
-        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
-
+    function createRjsApi() {
         //Create a method that will run the optimzer given an object
         //config.
         requirejs.optimize = function (config, callback) {
@@ -222,8 +238,21 @@ var requirejs, require, define;
         };
 
         requirejs.define = define;
+    }
+
+    //If in Node, and included via a require('requirejs'), just export and
+    //THROW IT ON THE GROUND!
+    if (env === 'node' && reqMain !== module) {
+        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
+
+        createRjsApi();
 
         module.exports = requirejs;
+        return;
+    } else if (env === 'browser') {
+        //Only option is to use the API.
+        setBaseUrl(location.href);
+        createRjsApi();
         return;
     }
 
