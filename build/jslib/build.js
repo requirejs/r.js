@@ -5,21 +5,34 @@
  */
 
 /*jslint plusplus: true, nomen: true, regexp: true  */
-/*global define, require */
+/*global define, require, requirejs */
 
 
-define([ 'lang', 'logger', 'env!env/file', 'parse', 'optimize', 'pragma',
-         'transform', 'env!env/load', 'requirePatch', 'env!env/quit',
-         'commonJs'], function (lang, logger, file,  parse, optimize, pragma,
-          transform,   load,           requirePatch,   quit,
-          commonJs) {
+define(function (require) {
     'use strict';
 
     var build, buildBaseConfig,
+        lang = require('lang'),
+        prim = require('prim'),
+        logger = require('logger'),
+        file = require('env!env/file'),
+        parse = require('parse'),
+        optimize = require('optimize'),
+        pragma = require('pragma'),
+        transform = require('transform'),
+        load = require('env!env/load'),
+        requirePatch = require('requirePatch'),
+        quit = require('env!env/quit'),
+        commonJs = require('commonJs'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
         endsWithSemiColonRegExp = /;\s*$/;
+
+    //Now map require to the outermost requirejs, now that we have
+    //local dependencies for this module. The rest of the require use is
+    //manipulating the requirejs loader.
+    require = requirejs;
 
     buildBaseConfig = {
         appDir: "",
