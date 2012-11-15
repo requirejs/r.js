@@ -14,7 +14,7 @@
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false, requirejsVars, navigator,
-document */
+document, importScripts, self, location */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
@@ -175,7 +175,7 @@ var requirejs, require, define;
     function createRjsApi() {
         //Create a method that will run the optimzer given an object
         //config.
-        requirejs.optimize = function (config, callback) {
+        requirejs.optimize = function (config, callback, errback) {
             if (!loadedOptimizedLib) {
                 loadLib();
                 loadedOptimizedLib = true;
@@ -198,16 +198,16 @@ var requirejs, require, define;
                     requirejs._cacheReset();
                 }
 
-                var result = build(config);
+                function done(result) {
+                    //And clean up, in case something else triggers
+                    //a build in another pathway.
+                    requirejs._buildReset();
+                    requirejs._cacheReset();
 
-                //And clean up, in case something else triggers
-                //a build in another pathway.
-                requirejs._buildReset();
-                requirejs._cacheReset();
-
-                if (callback) {
-                    callback(result);
+                    return result;
                 }
+
+                build(config).then(done, done).then(callback, errback);
             };
 
             requirejs({
@@ -268,19 +268,19 @@ var requirejs, require, define;
         loadLib();
 
         this.requirejsVars.require(['env!env/args', 'commonJs', 'env!env/print'],
-        function (args,           commonJs,   print) {
+            function (args, commonJs, print) {
 
-            var srcDir, outDir;
-            srcDir = args[0];
-            outDir = args[1];
+                var srcDir, outDir;
+                srcDir = args[0];
+                outDir = args[1];
 
-            if (!srcDir || !outDir) {
-                print('Usage: path/to/commonjs/modules output/dir');
-                return;
-            }
+                if (!srcDir || !outDir) {
+                    print('Usage: path/to/commonjs/modules output/dir');
+                    return;
+                }
 
-            commonJs.convertDir(args[0], args[1]);
-        });
+                commonJs.convertDir(args[0], args[1]);
+            });
     } else {
         //Just run an app
 
@@ -299,5 +299,5 @@ var requirejs, require, define;
     }
 
 }((typeof console !== 'undefined' ? console : undefined),
-  (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
-  (typeof readFile !== 'undefined' ? readFile : undefined)));
+    (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
+    (typeof readFile !== 'undefined' ? readFile : undefined)));

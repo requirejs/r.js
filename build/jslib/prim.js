@@ -92,12 +92,14 @@ var prim;
                     p.v = v;
                     notify(ok, v);
                 }
+                return p;
             },
             reject: function (e) {
                 if (check(p)) {
                     p.e = e;
                     notify(fail, e);
                 }
+                return p;
             },
 
             start: function (fn) {
@@ -153,6 +155,16 @@ var prim;
                 }
             }
         });
+    };
+
+    prim.serial = function (ary) {
+        var result = prim().resolve().promise;
+        each(ary, function (item) {
+            result = result.then(function () {
+                return item();
+            });
+        });
+        return result;
     };
 
     prim.nextTick = typeof process !== 'undefined' && process.nextTick ?
