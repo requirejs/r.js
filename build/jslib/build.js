@@ -29,9 +29,9 @@ define(function (require) {
         falseProp = lang.falseProp,
         endsWithSemiColonRegExp = /;\s*$/;
 
-    //prim.nextTick = function (fn) {
-    //    fn();
-    //};
+    prim.nextTick = function (fn) {
+        fn();
+    };
 
     //Now map require to the outermost requirejs, now that we have
     //local dependencies for this module. The rest of the require use is
@@ -1159,6 +1159,9 @@ define(function (require) {
         }
 
         //Figure out module layer dependencies by calling require to do the work.
+        //Configure the callbacks to be called.
+        deferred.resolve.__requireJsBuild = true;
+        deferred.reject.__requireJsBuild = true;
         require(include, deferred.resolve, deferred.reject);
 
         return deferred.promise.then(function () {
@@ -1265,14 +1268,16 @@ define(function (require) {
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
+        var fileContents,
+            buildFileContents = '';
+
         return prim().start(function () {
-            var path, reqIndex, fileContents, currContents,
+            var path, reqIndex, currContents,
                 i, moduleName, shim, packageConfig,
                 parts, builder, writeApi, tempPragmas,
                 namespace, namespaceWithDot, stubModulesByName,
                 newConfig = {},
                 context = layer.context,
-                buildFileContents = "",
                 onLayerEnds = [],
                 onLayerEndAdded = {};
 
@@ -1302,137 +1307,145 @@ define(function (require) {
 
             //Write the built module to disk, and build up the build output.
             fileContents = "";
-            for (i = 0; i < layer.buildFilePaths.length; i++) {
-                path = layer.buildFilePaths[i];
-                moduleName = layer.buildFileToModule[path];
+            prim.serial(layer.buildFilePaths.map(function (path) {
+                return function () {
+                    moduleName = layer.buildFileToModule[path];
 
-                //If the moduleName is for a package main, then update it to the
-                //real main value.
-                packageConfig = layer.context.config.pkgs &&
-                                getOwn(layer.context.config.pkgs, moduleName);
-                if (packageConfig) {
-                    moduleName += '/' + packageConfig.main;
-                }
-
-                //Figure out if the module is a result of a build plugin, and if so,
-                //then delegate to that plugin.
-                parts = context.makeModuleMap(moduleName);
-                builder = parts.prefix && getOwn(context.defined, parts.prefix);
-                if (builder) {
-                    if (builder.onLayerEnd && falseProp(onLayerEndAdded, parts.prefix)) {
-                        onLayerEnds.push(builder);
-                        onLayerEndAdded[parts.prefix] = true;
-                    }
-
-                    if (builder.write) {
-                        writeApi = function (input) {
-                            fileContents += "\n" + addSemiColon(input);
-                            if (config.onBuildWrite) {
-                                fileContents = config.onBuildWrite(moduleName, path, fileContents);
-                            }
-                        };
-                        writeApi.asModule = function (moduleName, input) {
-                            fileContents += "\n" +
-                                addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
-                                    useSourceUrl: layer.context.config.useSourceUrl
-                                }));
-                            if (config.onBuildWrite) {
-                                fileContents = config.onBuildWrite(moduleName, path, fileContents);
-                            }
-                        };
-                        builder.write(parts.prefix, parts.name, writeApi);
-                    }
-                } else {
-                    if (hasProp(stubModulesByName, moduleName)) {
-                        //Just want to insert a simple module definition instead
-                        //of the source module. Useful for plugins that inline
-                        //all their resources.
-                        if (hasProp(layer.context.plugins, moduleName)) {
-                            //Slightly different content for plugins, to indicate
-                            //that dynamic loading will not work.
-                            currContents = 'define({load: function(id){throw new Error("Dynamic load not allowed: " + id);}});';
-                        } else {
-                            currContents = 'define({});';
-                        }
-                    } else {
-                        currContents = file.readFile(path);
-                    }
-
-                    if (config.cjsTranslate) {
-                        currContents = commonJs.convert(path, currContents);
-                    }
-
-                    if (config.onBuildRead) {
-                        currContents = config.onBuildRead(moduleName, path, currContents);
-                    }
-
-                    if (namespace) {
-                        currContents = pragma.namespace(currContents, namespace);
-                    }
-
-                    currContents = build.toTransport(namespace, moduleName, path, currContents, layer, {
-                        useSourceUrl: config.useSourceUrl
-                    });
-
+                    //If the moduleName is for a package main, then update it to the
+                    //real main value.
+                    packageConfig = layer.context.config.pkgs &&
+                                    getOwn(layer.context.config.pkgs, moduleName);
                     if (packageConfig) {
-                        currContents = addSemiColon(currContents) + '\n';
-                        currContents += namespaceWithDot + "define('" +
-                                        packageConfig.name + "', ['" + moduleName +
-                                        "'], function (main) { return main; });\n";
+                        moduleName += '/' + packageConfig.main;
                     }
 
-                    if (config.onBuildWrite) {
-                        currContents = config.onBuildWrite(moduleName, path, currContents);
-                    }
+                    return prim().start(function () {
+                        //Figure out if the module is a result of a build plugin, and if so,
+                        //then delegate to that plugin.
+                        parts = context.makeModuleMap(moduleName);
+                        builder = parts.prefix && getOwn(context.defined, parts.prefix);
+                        if (builder) {
+                            if (builder.onLayerEnd && falseProp(onLayerEndAdded, parts.prefix)) {
+                                onLayerEnds.push(builder);
+                                onLayerEndAdded[parts.prefix] = true;
+                            }
 
-                    //Semicolon is for files that are not well formed when
-                    //concatenated with other content.
-                    fileContents += "\n" + addSemiColon(currContents);
-                }
+                            if (builder.write) {
+                                writeApi = function (input) {
+                                    fileContents += "\n" + addSemiColon(input);
+                                    if (config.onBuildWrite) {
+                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                                    }
+                                };
+                                writeApi.asModule = function (moduleName, input) {
+                                    fileContents += "\n" +
+                                        addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
+                                            useSourceUrl: layer.context.config.useSourceUrl
+                                        }));
+                                    if (config.onBuildWrite) {
+                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                                    }
+                                };
+                                builder.write(parts.prefix, parts.name, writeApi);
+                            }
+                            return;
+                        } else {
+                            return prim().start(function () {
+                                if (hasProp(stubModulesByName, moduleName)) {
+                                    //Just want to insert a simple module definition instead
+                                    //of the source module. Useful for plugins that inline
+                                    //all their resources.
+                                    if (hasProp(layer.context.plugins, moduleName)) {
+                                        //Slightly different content for plugins, to indicate
+                                        //that dynamic loading will not work.
+                                        return 'define({load: function(id){throw new Error("Dynamic load not allowed: " + id);}});';
+                                    } else {
+                                        return 'define({});';
+                                    }
+                                } else {
+                                    return file.readFileAsync(path);
+                                }
+                            }).then(function (text) {
+                                currContents = text;
 
-                buildFileContents += path.replace(config.dir, "") + "\n";
-                //Some files may not have declared a require module, and if so,
-                //put in a placeholder call so the require does not try to load them
-                //after the module is processed.
-                //If we have a name, but no defined module, then add in the placeholder.
-                if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
-                    shim = config.shim && getOwn(config.shim, moduleName);
-                    if (shim) {
-                        fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
-                                         (shim.deps && shim.deps.length ?
-                                                build.makeJsArrayString(shim.deps) + ', ' : '') +
-                                         (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
-                                         ');\n';
-                    } else {
-                        fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
-                    }
-                }
-            }
+                                if (config.cjsTranslate) {
+                                    currContents = commonJs.convert(path, currContents);
+                                }
 
-            if (onLayerEnds.length) {
-                onLayerEnds.forEach(function (builder) {
-                    var path;
-                    if (typeof module.out === 'string') {
-                        path = module.out;
-                    } else if (typeof module._buildPath === 'string') {
-                        path = module._buildPath;
-                    }
-                    builder.onLayerEnd(function (input) {
-                        fileContents += "\n" + addSemiColon(input);
-                    }, {
-                        name: module.name,
-                        path: path
+                                if (config.onBuildRead) {
+                                    currContents = config.onBuildRead(moduleName, path, currContents);
+                                }
+
+                                if (namespace) {
+                                    currContents = pragma.namespace(currContents, namespace);
+                                }
+
+                                currContents = build.toTransport(namespace, moduleName, path, currContents, layer, {
+                                    useSourceUrl: config.useSourceUrl
+                                });
+
+                                if (packageConfig) {
+                                    currContents = addSemiColon(currContents) + '\n';
+                                    currContents += namespaceWithDot + "define('" +
+                                                    packageConfig.name + "', ['" + moduleName +
+                                                    "'], function (main) { return main; });\n";
+                                }
+
+                                if (config.onBuildWrite) {
+                                    currContents = config.onBuildWrite(moduleName, path, currContents);
+                                }
+
+                                //Semicolon is for files that are not well formed when
+                                //concatenated with other content.
+                                fileContents += "\n" + addSemiColon(currContents);
+                            });
+                        }
+                    }).then(function () {
+                        buildFileContents += path.replace(config.dir, "") + "\n";
+                        //Some files may not have declared a require module, and if so,
+                        //put in a placeholder call so the require does not try to load them
+                        //after the module is processed.
+                        //If we have a name, but no defined module, then add in the placeholder.
+                        if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
+                            shim = config.shim && getOwn(config.shim, moduleName);
+                            if (shim) {
+                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                                 (shim.deps && shim.deps.length ?
+                                                        build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                                 (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
+                                                 ');\n';
+                            } else {
+                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
+                            }
+                        }
                     });
-                });
-            }
+                };
+            })).then(function () {
+                if (onLayerEnds.length) {
+                    onLayerEnds.forEach(function (builder) {
+                        var path;
+                        if (typeof module.out === 'string') {
+                            path = module.out;
+                        } else if (typeof module._buildPath === 'string') {
+                            path = module._buildPath;
+                        }
+                        builder.onLayerEnd(function (input) {
+                            fileContents += "\n" + addSemiColon(input);
+                        }, {
+                            name: module.name,
+                            path: path
+                        });
+                    });
+                }
 
-            //Add a require at the end to kick start module execution, if that
-            //was desired. Usually this is only specified when using small shim
-            //loaders like almond.
-            if (module.insertRequire) {
-                fileContents += '\n' + namespaceWithDot + 'require(["' + module.insertRequire.join('", "') + '"]);\n';
-            }
-
+                //Add a require at the end to kick start module execution, if that
+                //was desired. Usually this is only specified when using small shim
+                //loaders like almond.
+                if (module.insertRequire) {
+                    fileContents += '\n' + namespaceWithDot + 'require(["' + module.insertRequire.join('", "') + '"]);\n';
+                }
+            });
+        }).then(function () {
             return {
                 text: config.wrap ?
                         config.wrap.start + fileContents + config.wrap.end :

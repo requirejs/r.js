@@ -152,6 +152,12 @@ var prim;
 
                 fail: function (no) {
                     return p.promise.then(null, no);
+                },
+
+                end: function () {
+                    p.errback(function (e) {
+                        throw e;
+                    });
                 }
             }
         });

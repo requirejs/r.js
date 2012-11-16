@@ -201,8 +201,10 @@ var requirejs, require, define;
                 function done(result) {
                     //And clean up, in case something else triggers
                     //a build in another pathway.
-                    requirejs._buildReset();
-                    requirejs._cacheReset();
+                    if (requirejs._buildReset) {
+                        requirejs._buildReset();
+                        requirejs._cacheReset();
+                    }
 
                     return result;
                 }

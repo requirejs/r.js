@@ -15,8 +15,15 @@
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
-define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs'],
-function (file,           pragma,   parse,   lang,   logger,   commonJs) {
+define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'], function (
+    file,
+    pragma,
+    parse,
+    lang,
+    logger,
+    commonJs,
+    prim
+) {
 
     var allowRun = true,
         hasProp = lang.hasProp,
@@ -67,7 +74,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
             if (url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
-                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0) {
+                    url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0) {
                 return true;
             } else {
                 if (!layer.ignoredUrls[url]) {
@@ -114,14 +121,14 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 context.makeShimExports = function (value) {
                     function fn() {
                         return '(function (global) {\n' +
-                        '    return function () {\n' +
-                        '        var ret, fn;\n' +
-                        (value.init ?
-                        ('       fn = ' + value.init.toString() + ';\n' +
-                        '        ret = fn.apply(global, arguments);\n') : '') +
-                        '        return ret || global.' + value.exports + ';\n' +
-                        '    };\n' +
-                        '}(this))';
+                            '    return function () {\n' +
+                            '        var ret, fn;\n' +
+                            (value.init ?
+                                    ('       fn = ' + value.init.toString() + ';\n' +
+                                    '        ret = fn.apply(global, arguments);\n') : '') +
+                            '        return ret || global.' + value.exports + ';\n' +
+                            '    };\n' +
+                            '}(this))';
                     }
 
                     return fn;
@@ -180,7 +187,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             context.needFullExec[moduleName] = true;
                         }
 
-                        try {
+                        prim().start(function () {
                             if (hasProp(require._cachedFileContents, url) &&
                                     (falseProp(context.needFullExec, moduleName) ||
                                     getOwn(context.fullExec, moduleName))) {
@@ -196,65 +203,70 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             } else {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
-                                contents = file.readFile(url);
+                                return file.readFileAsync(url).then(function (text) {
+                                    contents = text;
 
-                                if (context.config.cjsTranslate) {
-                                    contents = commonJs.convert(url, contents);
-                                }
-
-                                //If there is a read filter, run it now.
-                                if (context.config.onBuildRead) {
-                                    contents = context.config.onBuildRead(moduleName, url, contents);
-                                }
-
-                                contents = pragma.process(url, contents, context.config, 'OnExecute');
-
-                                //Find out if the file contains a require() definition. Need to know
-                                //this so we can inject plugins right after it, but before they are needed,
-                                //and to make sure this file is first, so that define calls work.
-                                try {
-                                    if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                                        layer.existingRequireUrl = url;
-                                        require._cachedDefinesRequireUrls[url] = true;
+                                    if (context.config.cjsTranslate) {
+                                        contents = commonJs.convert(url, contents);
                                     }
-                                } catch (e1) {
-                                    throw new Error('Parse error using esprima ' +
-                                                    'for file: ' + url + '\n' + e1);
-                                }
 
-                                if (hasProp(context.plugins, moduleName)) {
-                                    //This is a loader plugin, check to see if it has a build extension,
-                                    //otherwise the plugin will act as the plugin builder too.
-                                    pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
-                                    if (pluginBuilderMatch) {
-                                        //Load the plugin builder for the plugin contents.
-                                        builderName = context.makeModuleMap(pluginBuilderMatch[3],
-                                                                            context.makeModuleMap(moduleName),
-                                                                            null,
-                                                                            true).id;
-                                        contents = file.readFile(context.nameToUrl(builderName));
+                                    //If there is a read filter, run it now.
+                                    if (context.config.onBuildRead) {
+                                        contents = context.config.onBuildRead(moduleName, url, contents);
                                     }
-                                }
 
-                                //Parse out the require and define calls.
-                                //Do this even for plugins in case they have their own
-                                //dependencies that may be separate to how the pluginBuilder works.
-                                try {
-                                    if (falseProp(context.needFullExec, moduleName)) {
-                                        contents = parse(moduleName, url, contents, {
-                                            insertNeedsDefine: true,
-                                            has: context.config.has,
-                                            findNestedDependencies: context.config.findNestedDependencies
-                                        });
+                                    contents = pragma.process(url, contents, context.config, 'OnExecute');
+
+                                    //Find out if the file contains a require() definition. Need to know
+                                    //this so we can inject plugins right after it, but before they are needed,
+                                    //and to make sure this file is first, so that define calls work.
+                                    try {
+                                        if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                                            layer.existingRequireUrl = url;
+                                            require._cachedDefinesRequireUrls[url] = true;
+                                        }
+                                    } catch (e1) {
+                                        throw new Error('Parse error using esprima ' +
+                                                        'for file: ' + url + '\n' + e1);
                                     }
-                                } catch (e2) {
-                                    throw new Error('Parse error using esprima ' +
-                                                    'for file: ' + url + '\n' + e2);
-                                }
+                                }).then(function () {
+                                    if (hasProp(context.plugins, moduleName)) {
+                                        //This is a loader plugin, check to see if it has a build extension,
+                                        //otherwise the plugin will act as the plugin builder too.
+                                        pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
+                                        if (pluginBuilderMatch) {
+                                            //Load the plugin builder for the plugin contents.
+                                            builderName = context.makeModuleMap(pluginBuilderMatch[3],
+                                                                                context.makeModuleMap(moduleName),
+                                                                                null,
+                                                                                true).id;
+                                            return file.readFileAsync(context.nameToUrl(builderName));
+                                        }
+                                    }
+                                    return contents;
+                                }).then(function (text) {
+                                    contents = text;
 
-                                require._cachedFileContents[url] = contents;
+                                    //Parse out the require and define calls.
+                                    //Do this even for plugins in case they have their own
+                                    //dependencies that may be separate to how the pluginBuilder works.
+                                    try {
+                                        if (falseProp(context.needFullExec, moduleName)) {
+                                            contents = parse(moduleName, url, contents, {
+                                                insertNeedsDefine: true,
+                                                has: context.config.has,
+                                                findNestedDependencies: context.config.findNestedDependencies
+                                            });
+                                        }
+                                    } catch (e2) {
+                                        throw new Error('Parse error using esprima ' +
+                                                        'for file: ' + url + '\n' + e2);
+                                    }
+
+                                    require._cachedFileContents[url] = contents;
+                                });
                             }
-
+                        }).then(function () {
                             if (contents) {
                                 eval(contents);
                             }
@@ -284,13 +296,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 e.moduleTree.push(moduleName);
                                 throw e;
                             }
+                        }).then(null, function (eOuter) {
 
-                        } catch (eOuter) {
                             if (!eOuter.fileName) {
                                 eOuter.fileName = url;
                             }
                             throw eOuter;
-                        }
+                        }).end();
                     } else {
                         //With unsupported URLs still need to call completeLoad to
                         //finish loading.
@@ -315,7 +327,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                     return undefined;
                 };
 
-                moduleProto.init = function(depMaps) {
+                moduleProto.init = function (depMaps) {
                     if (context.needFullExec[this.map.id]) {
                         lang.each(depMaps, lang.bind(this, function (depMap) {
                             if (typeof depMap === 'string') {

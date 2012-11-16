@@ -7,7 +7,7 @@
 /*jslint plusplus: false, octal:false, strict: false */
 /*global define: false, process: false */
 
-define(['fs', 'path'], function (fs, path) {
+define(['fs', 'path', 'prim'], function (fs, path, prim) {
 
     var isWindows = process.platform === 'win32',
         windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
@@ -221,6 +221,16 @@ define(['fs', 'path'], function (fs, path) {
             }
 
             return text;
+        },
+
+        readFileAsync: function (path, encoding) {
+            var d = prim();
+            try {
+                d.resolve(file.readFile(path, encoding));
+            } catch (e) {
+                d.reject(e);
+            }
+            return d.promise;
         },
 
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {

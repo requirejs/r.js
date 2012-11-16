@@ -7,7 +7,7 @@
 /*jslint sloppy: true */
 /*global define, console, XMLHttpRequest, requirejs */
 
-define(function () {
+define(['prim'], function (prim) {
 
     var file;
 
@@ -108,6 +108,26 @@ define(function () {
             text = xhr.responseText;
 
             return text;
+        },
+
+        readFileAsync: function (path, encoding) {
+            var xhr = new XMLHttpRequest(),
+                d = prim();
+
+            xhr.open('GET', path, true);
+            xhr.send();
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status > 400) {
+                        d.reject(new Error('Status: ' + xhr.status + ': ' + xhr.statusText));
+                    } else {
+                        d.resolve(xhr.responseText);
+                    }
+                }
+            };
+
+            return d.promise;
         },
 
         saveUtf8File: function (fileName, fileContents) {

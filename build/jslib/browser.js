@@ -13,15 +13,16 @@
     require.load = function (context, moduleName, url) {
         var xhr = new XMLHttpRequest();
 
-        //Oh yeah, that is right SYNC IO. Behold its glory
-        //and horrible blocking behavior.
-        xhr.open('GET', url, false);
+        xhr.open('GET', url, true);
         xhr.send();
 
-        eval(xhr.responseText);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                eval(xhr.responseText);
 
-        //Support anonymous modules.
-        context.completeLoad(moduleName);
+                //Support anonymous modules.
+                context.completeLoad(moduleName);
+            }
+        };
     };
-
 }());
