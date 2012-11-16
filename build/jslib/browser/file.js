@@ -1,13 +1,13 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint sloppy: true */
-/*global define, console, XMLHttpRequest, requirejs */
+/*jslint sloppy: true, nomen: true */
+/*global require, define, console, XMLHttpRequest, requirejs */
 
-define(['prim'], function (prim) {
+define(['prim', 'lang'], function (prim, lang) {
 
     var file;
 
@@ -97,35 +97,47 @@ define(['prim'], function (prim) {
          * Reads a *text* file.
          */
         readFile: function (path, encoding) {
-            var text,
-                xhr = new XMLHttpRequest();
+            var text, xhr;
+
+            if (lang.hasProp(require._cachedRawText, path)) {
+                return require._cachedRawText[path];
+            }
 
             //Oh yeah, that is right SYNC IO. Behold its glory
             //and horrible blocking behavior.
+            xhr = new XMLHttpRequest();
             xhr.open('GET', path, false);
             xhr.send();
 
             text = xhr.responseText;
 
+            require._cachedRawText[path] = text;
+
             return text;
         },
 
         readFileAsync: function (path, encoding) {
-            var xhr = new XMLHttpRequest(),
+            var xhr,
                 d = prim();
 
-            xhr.open('GET', path, true);
-            xhr.send();
+            if (lang.hasProp(require._cachedRawText, path)) {
+                d.resolve(require._cachedRawText[path]);
+            } else {
+                xhr = new XMLHttpRequest();
+                xhr.open('GET', path, true);
+                xhr.send();
 
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    if (xhr.status > 400) {
-                        d.reject(new Error('Status: ' + xhr.status + ': ' + xhr.statusText));
-                    } else {
-                        d.resolve(xhr.responseText);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status > 400) {
+                            d.reject(new Error('Status: ' + xhr.status + ': ' + xhr.statusText));
+                        } else {
+                            require._cachedRawText[path] = xhr.responseText;
+                            d.resolve(xhr.responseText);
+                        }
                     }
-                }
-            };
+                };
+            }
 
             return d.promise;
         },

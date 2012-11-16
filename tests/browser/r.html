@@ -9,18 +9,11 @@
     </style>
     <script src="../../r.js"></script>
     <script>
-    //Add in optional adapters
-    requirejs.browser = {
-        saveFile: function (fileName, fileContents, encoding) {
-            console.log('saveFile called: ' + fileName + ':\n' + fileContents);
-        }
-    };
-
     document.addEventListener('DOMContentLoaded', function (evt) {
         document.getElementById('build').addEventListener('click', function (evt) {
             requirejs.optimize({
                 baseUrl: '.',
-                name: 'a',
+                include: ['a'],
                 out: function (text) {
                     document.getElementById('output').value = text;
                 }

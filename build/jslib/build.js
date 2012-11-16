@@ -1307,10 +1307,9 @@ define(function (require) {
 
             //Write the built module to disk, and build up the build output.
             fileContents = "";
-            prim.serial(layer.buildFilePaths.map(function (path) {
+            return prim.serial(layer.buildFilePaths.map(function (path) {
                 return function () {
                     moduleName = layer.buildFileToModule[path];
-
                     //If the moduleName is for a package main, then update it to the
                     //real main value.
                     packageConfig = layer.context.config.pkgs &&

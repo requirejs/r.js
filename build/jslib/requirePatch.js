@@ -54,6 +54,8 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
          * top level requirejs.optimize() calls.
          */
         require._cacheReset = function () {
+            //Stored raw text caches, used by browser use.
+            require._cachedRawText = {};
             //Stored cached file contents for reuse in other layers.
             require._cachedFileContents = {};
             //Store which cached files contain a require definition.

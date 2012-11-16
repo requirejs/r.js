@@ -6,7 +6,7 @@ self.onmessage = function (evt) {
     if (evt.data === 'run') {
         requirejs.optimize({
             baseUrl: '.',
-            name: 'a',
+            include: ['a'],
             out: function (text) {
                 out = text;
             }
