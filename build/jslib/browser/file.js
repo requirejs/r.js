@@ -7,7 +7,7 @@
 /*jslint sloppy: true, nomen: true */
 /*global require, define, console, XMLHttpRequest, requirejs */
 
-define(['prim', 'lang'], function (prim, lang) {
+define(['prim'], function (prim) {
 
     var file;
 
@@ -97,47 +97,32 @@ define(['prim', 'lang'], function (prim, lang) {
          * Reads a *text* file.
          */
         readFile: function (path, encoding) {
-            var text, xhr;
-
-            if (lang.hasProp(require._cachedRawText, path)) {
-                return require._cachedRawText[path];
-            }
+            var xhr = new XMLHttpRequest();
 
             //Oh yeah, that is right SYNC IO. Behold its glory
             //and horrible blocking behavior.
-            xhr = new XMLHttpRequest();
             xhr.open('GET', path, false);
             xhr.send();
 
-            text = xhr.responseText;
-
-            require._cachedRawText[path] = text;
-
-            return text;
+            return xhr.responseText;
         },
 
         readFileAsync: function (path, encoding) {
-            var xhr,
+            var xhr = new XMLHttpRequest(),
                 d = prim();
 
-            if (lang.hasProp(require._cachedRawText, path)) {
-                d.resolve(require._cachedRawText[path]);
-            } else {
-                xhr = new XMLHttpRequest();
-                xhr.open('GET', path, true);
-                xhr.send();
+            xhr.open('GET', path, true);
+            xhr.send();
 
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status > 400) {
-                            d.reject(new Error('Status: ' + xhr.status + ': ' + xhr.statusText));
-                        } else {
-                            require._cachedRawText[path] = xhr.responseText;
-                            d.resolve(xhr.responseText);
-                        }
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status > 400) {
+                        d.reject(new Error('Status: ' + xhr.status + ': ' + xhr.statusText));
+                    } else {
+                        d.resolve(xhr.responseText);
                     }
-                };
-            }
+                }
+            };
 
             return d.promise;
         },

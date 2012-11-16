@@ -38,6 +38,24 @@ define(function (require) {
     //manipulating the requirejs loader.
     require = requirejs;
 
+    //Caching function for performance. Attached to
+    //require so it can be reused in requirePatch.js. _cachedRawText
+    //set up by requirePatch.js
+    require._cacheReadAsync = function (path, encoding) {
+        var d;
+
+        if (lang.hasProp(require._cachedRawText, path)) {
+            d = prim();
+            d.resolve(require._cachedRawText[path]);
+            return d.promise;
+        } else {
+            return file.readFileAsync(path, encoding).then(function (text) {
+                require._cachedRawText[path] = text;
+                return text;
+            });
+        }
+    };
+
     buildBaseConfig = {
         appDir: "",
         pragmas: {},
@@ -1362,7 +1380,7 @@ define(function (require) {
                                         return 'define({});';
                                     }
                                 } else {
-                                    return file.readFileAsync(path);
+                                    return require._cacheReadAsync(path);
                                 }
                             }).then(function (text) {
                                 currContents = text;

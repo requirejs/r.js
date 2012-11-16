@@ -205,7 +205,7 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                             } else {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
-                                return file.readFileAsync(url).then(function (text) {
+                                return require._cacheReadAsync(url).then(function (text) {
                                     contents = text;
 
                                     if (context.config.cjsTranslate) {
@@ -242,7 +242,7 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                                                                                 context.makeModuleMap(moduleName),
                                                                                 null,
                                                                                 true).id;
-                                            return file.readFileAsync(context.nameToUrl(builderName));
+                                            return require._cacheReadAsync(context.nameToUrl(builderName));
                                         }
                                     }
                                     return contents;
