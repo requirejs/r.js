@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Fri, 16 Nov 2012 05:33:04 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Fri, 16 Nov 2012 19:22:11 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Fri, 16 Nov 2012 05:33:04 GMT',
+        version = '2.1.1+ Fri, 16 Nov 2012 19:22:11 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2898,7 +2898,7 @@ if(env === 'browser') {
 /*jslint sloppy: true, nomen: true */
 /*global require, define, console, XMLHttpRequest, requirejs */
 
-define('browser/file', ['prim', 'lang'], function (prim, lang) {
+define('browser/file', ['prim'], function (prim) {
 
     var file;
 
@@ -2988,47 +2988,32 @@ define('browser/file', ['prim', 'lang'], function (prim, lang) {
          * Reads a *text* file.
          */
         readFile: function (path, encoding) {
-            var text, xhr;
-
-            if (lang.hasProp(require._cachedRawText, path)) {
-                return require._cachedRawText[path];
-            }
+            var xhr = new XMLHttpRequest();
 
             //Oh yeah, that is right SYNC IO. Behold its glory
             //and horrible blocking behavior.
-            xhr = new XMLHttpRequest();
             xhr.open('GET', path, false);
             xhr.send();
 
-            text = xhr.responseText;
-
-            require._cachedRawText[path] = text;
-
-            return text;
+            return xhr.responseText;
         },
 
         readFileAsync: function (path, encoding) {
-            var xhr,
+            var xhr = new XMLHttpRequest(),
                 d = prim();
 
-            if (lang.hasProp(require._cachedRawText, path)) {
-                d.resolve(require._cachedRawText[path]);
-            } else {
-                xhr = new XMLHttpRequest();
-                xhr.open('GET', path, true);
-                xhr.send();
+            xhr.open('GET', path, true);
+            xhr.send();
 
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status > 400) {
-                            d.reject(new Error('Status: ' + xhr.status + ': ' + xhr.statusText));
-                        } else {
-                            require._cachedRawText[path] = xhr.responseText;
-                            d.resolve(xhr.responseText);
-                        }
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status > 400) {
+                        d.reject(new Error('Status: ' + xhr.status + ': ' + xhr.statusText));
+                    } else {
+                        d.resolve(xhr.responseText);
                     }
-                };
-            }
+                }
+            };
 
             return d.promise;
         },
@@ -14210,7 +14195,7 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                             } else {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
-                                return file.readFileAsync(url).then(function (text) {
+                                return require._cacheReadAsync(url).then(function (text) {
                                     contents = text;
 
                                     if (context.config.cjsTranslate) {
@@ -14247,7 +14232,7 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                                                                                 context.makeModuleMap(moduleName),
                                                                                 null,
                                                                                 true).id;
-                                            return file.readFileAsync(context.nameToUrl(builderName));
+                                            return require._cacheReadAsync(context.nameToUrl(builderName));
                                         }
                                     }
                                     return contents;
@@ -14619,6 +14604,24 @@ define('build', function (require) {
     //local dependencies for this module. The rest of the require use is
     //manipulating the requirejs loader.
     require = requirejs;
+
+    //Caching function for performance. Attached to
+    //require so it can be reused in requirePatch.js. _cachedRawText
+    //set up by requirePatch.js
+    require._cacheReadAsync = function (path, encoding) {
+        var d;
+
+        if (lang.hasProp(require._cachedRawText, path)) {
+            d = prim();
+            d.resolve(require._cachedRawText[path]);
+            return d.promise;
+        } else {
+            return file.readFileAsync(path, encoding).then(function (text) {
+                require._cachedRawText[path] = text;
+                return text;
+            });
+        }
+    };
 
     buildBaseConfig = {
         appDir: "",
@@ -15944,7 +15947,7 @@ define('build', function (require) {
                                         return 'define({});';
                                     }
                                 } else {
-                                    return file.readFileAsync(path);
+                                    return require._cacheReadAsync(path);
                                 }
                             }).then(function (text) {
                                 currContents = text;
