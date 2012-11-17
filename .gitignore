@@ -1,4 +1,5 @@
 .DS_Store
+.idea/
 /r.js
 build/tests/builds
 build/tests/lib/amdefine/built.js
