@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Sat, 17 Nov 2012 01:51:20 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Sat, 17 Nov 2012 02:00:39 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Sat, 17 Nov 2012 01:51:20 GMT',
+        version = '2.1.1+ Sat, 17 Nov 2012 02:00:39 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15538,8 +15538,14 @@ define('build', function (require) {
             throw new Error('Missing either a "name", "include" or "modules" ' +
                             'option');
         }
-        if (config.cssIn && !config.out) {
-            throw new Error("ERROR: 'out' option missing.");
+        if (config.cssIn) {
+            if (config.dir || config.appDir) {
+                throw new Error('cssIn is only for the output of single file ' +
+                    'CSS optimizations and is not compatible with "dir" or "appDir" configuration.');
+            }
+            if (!config.out) {
+                throw new Error('"out" option missing.');
+            }
         }
         if (!config.cssIn && !config.baseUrl) {
             //Just use the current directory as the baseUrl
