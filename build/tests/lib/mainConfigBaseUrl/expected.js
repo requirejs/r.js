@@ -11,4 +11,4 @@ require(['sub'], function (sub) {
     console.log(sub.name);
 });
 
-define("main",[], function(){});
+define("main", function(){});

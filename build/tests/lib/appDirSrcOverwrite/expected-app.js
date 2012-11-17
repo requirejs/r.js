@@ -8,4 +8,4 @@ require(['somelib'], function (somelib) {
 
 });
 
-define("app",[], function(){});
+define("app", function(){});

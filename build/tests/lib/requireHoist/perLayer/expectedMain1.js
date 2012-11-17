@@ -2041,7 +2041,7 @@ var requirejs, require, define;
     req(cfg);
 }(this));
 
-define("requireLib",[], function(){});
+define("requireLib", function(){});
 
 define('main1',{
     name: 'main1'

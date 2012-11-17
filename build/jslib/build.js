@@ -508,7 +508,7 @@ define(function (require) {
                 //JS optimizations.
                 fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
                 fileNames.forEach(function (fileName, i) {
-                    var cfg, moduleIndex, override;
+                    var cfg, override, moduleIndex;
 
                     //Generate the module name from the config.dir root.
                     moduleName = fileName.replace(config.dir, '');
@@ -527,16 +527,23 @@ define(function (require) {
                         fileContents = commonJs.convert(fileName, fileContents);
                     }
 
-                    fileContents = build.toTransport(config.namespace,
-                                                     null,
-                                                     fileName,
-                                                     fileContents);
-
                     //If there is an override for a specific layer build module,
                     //and this file is that module, mix in the override for use
                     //by optimize.jsFile.
                     moduleIndex = getOwn(config._buildPathToModuleIndex, fileName);
-                    override = moduleIndex === 0 || moduleIndex > 0 ?
+                    //Normalize, since getOwn could have returned undefined
+                    moduleIndex = moduleIndex === 0 || moduleIndex > 0 ? moduleIndex : -1;
+
+                    //Only do transport normalization if this is not a build layer
+                    //and if normalizeDefines indicated all should be done.
+                    if (moduleIndex === -1 && config.normalizeDefines === "all") {
+                        fileContents = build.toTransport(config.namespace,
+                                                     null,
+                                                     fileName,
+                                                     fileContents);
+                    }
+
+                    override = moduleIndex > -1 ?
                                config.modules[moduleIndex].override : null;
                     if (override) {
                         cfg = build.createOverrideConfig(config, override);
@@ -1069,6 +1076,16 @@ define(function (require) {
             throw new Error('The build argument "context" is not supported' +
                             ' in a build. It should only be used in web' +
                             ' pages.');
+        }
+
+        //Set up normalizeDefines. If not explicitly set, if optimize "none",
+        //set to "skip" otherwise set to "all".
+        if (!hasProp(config, 'normalizeDefines')) {
+            if (config.optimize === 'none') {
+                config.normalizeDefines = 'skip';
+            } else {
+                config.normalizeDefines = 'all';
+            }
         }
 
         //Set file.fileExclusionRegExp if desired
