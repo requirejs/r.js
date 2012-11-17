@@ -107,6 +107,7 @@
     //Finally, all build layers (specified in the "modules" or "out" setting)
     //automatically get normalization, so this setting does not apply to those
     //files.
+    //Works in r.js 2.1.2+
     normalizeDefines: "skip",
 
     //If using UglifyJS for script optimization, these config options can be
