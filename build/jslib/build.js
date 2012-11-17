@@ -973,8 +973,14 @@ define(function (require) {
             throw new Error('Missing either a "name", "include" or "modules" ' +
                             'option');
         }
-        if (config.cssIn && !config.out) {
-            throw new Error("ERROR: 'out' option missing.");
+        if (config.cssIn) {
+            if (config.dir || config.appDir) {
+                throw new Error('cssIn is only for the output of single file ' +
+                    'CSS optimizations and is not compatible with "dir" or "appDir" configuration.');
+            }
+            if (!config.out) {
+                throw new Error('"out" option missing.');
+            }
         }
         if (!config.cssIn && !config.baseUrl) {
             //Just use the current directory as the baseUrl
