@@ -90,16 +90,26 @@
     //- "none": no minification will be done.
     optimize: "uglify",
 
-    //If a full directory optimization via "dir", and optimize is not "none",
-    //then normally all JS files in the directory will be minifized, and this
-    //value is automatically set to "all". For JS files to properly work after a
-    //minification, the optimizer will parse for define() calls and insert any
-    //dependency arrays that are missing. However, this can be a bit slow if
-    //there are many/larger JS files. So this transport normalization is not
-    //done (automatically set to "skip") if optimize is set to "none". Cases
-    //where you may want to manually set this value:
+    //If using "dir" for an output directory, normally the optimize setting is
+    //used to optimize the build layers (the "modules" section of the config)
+    //and any other JS file in the directory. However, if the non-build layer
+    //JS files will not be loaded after a build, you can skip the optimization
+    //of those files, to speed up builds. Set this value to true if you want
+    //to skip optimizing those other non-build layer JS files.
+    skipDirOptimize: false,
+
+    //If a full directory optimization ("dir" is used), and optimize is not "none",
+    //and skipDirOptimize is false, then normally all JS files in the directory
+    //will be minified, and this value is automatically set to "all". For JS
+    //files to properly work after a minification, the optimizer will parse for
+    //define() calls and insert any dependency arrays that are missing. However,
+    //this can be a bit slow if there are many/larger JS files. So this
+    //transport normalization is not done (automatically set to "skip") if
+    //optimize is set to "none". Cases where you may want to manually set this
+    //value:
     //1) Optimizing later: if you plan on minifying the non-build layer JS files
-    //after the optimizer runs, then you should explicitly this value to "all".
+    //after the optimizer runs (so not as part of running the optimizer), then
+    //you should explicitly this value to "all".
     //2) Optimizing, but not dynamically loading later: you want to do a full
     //project optimization, but do not plan on dynamically loading non-build
     //layer JS files later. In this case, the normalization just slows down
@@ -108,7 +118,7 @@
     //automatically get normalization, so this setting does not apply to those
     //files.
     //Works in r.js 2.1.2+
-    normalizeDefines: "skip",
+    normalizeDirDefines: "skip",
 
     //If using UglifyJS for script optimization, these config options can be
     //used to pass configuration values to UglifyJS.

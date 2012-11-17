@@ -515,18 +515,6 @@ define(function (require) {
                     //Get rid of the extension
                     moduleName = moduleName.substring(0, moduleName.length - 3);
 
-                    //Convert the file to transport format, but without a name
-                    //inserted (by passing null for moduleName) since the files are
-                    //standalone, one module per file.
-                    fileContents = file.readFile(fileName);
-
-                    //For builds, if wanting cjs translation, do it now, so that
-                    //the individual modules can be loaded cross domain via
-                    //plain script tags.
-                    if (config.cjsTranslate) {
-                        fileContents = commonJs.convert(fileName, fileContents);
-                    }
-
                     //If there is an override for a specific layer build module,
                     //and this file is that module, mix in the override for use
                     //by optimize.jsFile.
@@ -534,24 +522,46 @@ define(function (require) {
                     //Normalize, since getOwn could have returned undefined
                     moduleIndex = moduleIndex === 0 || moduleIndex > 0 ? moduleIndex : -1;
 
-                    //Only do transport normalization if this is not a build layer
-                    //and if normalizeDefines indicated all should be done.
-                    if (moduleIndex === -1 && config.normalizeDefines === "all") {
-                        fileContents = build.toTransport(config.namespace,
-                                                     null,
-                                                     fileName,
-                                                     fileContents);
-                    }
+                    //Try to avoid extra work if the other files do not need to
+                    //be read. Build layers should be processed at the very
+                    //least for optimization.
+                    if (moduleIndex > -1 || !config.skipDirOptimize ||
+                            config.normalizeDirDefines === "all" ||
+                            config.cjsTranslate) {
+                        //Convert the file to transport format, but without a name
+                        //inserted (by passing null for moduleName) since the files are
+                        //standalone, one module per file.
+                        fileContents = file.readFile(fileName);
 
-                    override = moduleIndex > -1 ?
-                               config.modules[moduleIndex].override : null;
-                    if (override) {
-                        cfg = build.createOverrideConfig(config, override);
-                    } else {
-                        cfg = config;
-                    }
+                        //For builds, if wanting cjs translation, do it now, so that
+                        //the individual modules can be loaded cross domain via
+                        //plain script tags.
+                        if (config.cjsTranslate) {
+                            fileContents = commonJs.convert(fileName, fileContents);
+                        }
 
-                    optimize.jsFile(fileName, fileContents, fileName, cfg, pluginCollector);
+                        //Only do transport normalization if this is not a build
+                        //layer (since it was already normalized) and if
+                        //normalizeDirDefines indicated all should be done.
+                        if (moduleIndex === -1 && config.normalizeDirDefines === "all") {
+                            fileContents = build.toTransport(config.namespace,
+                                                         null,
+                                                         fileName,
+                                                         fileContents);
+                        }
+
+                        override = moduleIndex > -1 ?
+                                   config.modules[moduleIndex].override : null;
+                        if (override) {
+                            cfg = build.createOverrideConfig(config, override);
+                        } else {
+                            cfg = config;
+                        }
+
+                        if (moduleIndex > -1 || !config.skipDirOptimize) {
+                            optimize.jsFile(fileName, fileContents, fileName, cfg, pluginCollector);
+                        }
+                    }
                 });
 
                 //Normalize all the plugin resources.
@@ -1084,13 +1094,13 @@ define(function (require) {
                             ' pages.');
         }
 
-        //Set up normalizeDefines. If not explicitly set, if optimize "none",
+        //Set up normalizeDirDefines. If not explicitly set, if optimize "none",
         //set to "skip" otherwise set to "all".
-        if (!hasProp(config, 'normalizeDefines')) {
-            if (config.optimize === 'none') {
-                config.normalizeDefines = 'skip';
+        if (!hasProp(config, 'normalizeDirDefines')) {
+            if (config.optimize === 'none' || config.skipDirOptimize) {
+                config.normalizeDirDefines = 'skip';
             } else {
-                config.normalizeDefines = 'all';
+                config.normalizeDirDefines = 'all';
             }
         }
 
