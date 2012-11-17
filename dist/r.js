@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Fri, 16 Nov 2012 19:22:11 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Sat, 17 Nov 2012 00:42:08 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Fri, 16 Nov 2012 19:22:11 GMT',
+        version = '2.1.1+ Sat, 17 Nov 2012 00:42:08 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15075,7 +15075,7 @@ define('build', function (require) {
                 //JS optimizations.
                 fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
                 fileNames.forEach(function (fileName, i) {
-                    var cfg, moduleIndex, override;
+                    var cfg, override, moduleIndex;
 
                     //Generate the module name from the config.dir root.
                     moduleName = fileName.replace(config.dir, '');
@@ -15094,16 +15094,23 @@ define('build', function (require) {
                         fileContents = commonJs.convert(fileName, fileContents);
                     }
 
-                    fileContents = build.toTransport(config.namespace,
-                                                     null,
-                                                     fileName,
-                                                     fileContents);
-
                     //If there is an override for a specific layer build module,
                     //and this file is that module, mix in the override for use
                     //by optimize.jsFile.
                     moduleIndex = getOwn(config._buildPathToModuleIndex, fileName);
-                    override = moduleIndex === 0 || moduleIndex > 0 ?
+                    //Normalize, since getOwn could have returned undefined
+                    moduleIndex = moduleIndex === 0 || moduleIndex > 0 ? moduleIndex : -1;
+
+                    //Only do transport normalization if this is not a build layer
+                    //and if normalizeDefines indicated all should be done.
+                    if (moduleIndex === -1 && config.normalizeDefines === "all") {
+                        fileContents = build.toTransport(config.namespace,
+                                                     null,
+                                                     fileName,
+                                                     fileContents);
+                    }
+
+                    override = moduleIndex > -1 ?
                                config.modules[moduleIndex].override : null;
                     if (override) {
                         cfg = build.createOverrideConfig(config, override);
@@ -15636,6 +15643,16 @@ define('build', function (require) {
             throw new Error('The build argument "context" is not supported' +
                             ' in a build. It should only be used in web' +
                             ' pages.');
+        }
+
+        //Set up normalizeDefines. If not explicitly set, if optimize "none",
+        //set to "skip" otherwise set to "all".
+        if (!hasProp(config, 'normalizeDefines')) {
+            if (config.optimize === 'none') {
+                config.normalizeDefines = 'skip';
+            } else {
+                config.normalizeDefines = 'all';
+            }
         }
 
         //Set file.fileExclusionRegExp if desired
