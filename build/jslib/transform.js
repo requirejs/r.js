@@ -297,8 +297,6 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                     } else {
                         contentInsertion +=  depString;
                     }
-                } else if (info.depAction === 'empty') {
-                    contentInsertion += '[],';
                 }
 
                 if (contentInsertion) {

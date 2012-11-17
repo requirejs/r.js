@@ -15,7 +15,7 @@ define(['build'], function (build) {
                             '    define(definition);\n' +
                             '}',
                     goodExpected1 = 'if (typeof define === "function" && define.amd) {\n' +
-                            '    define(\'good/1\',[],definition);\n' +
+                            '    define(\'good/1\',definition);\n' +
                             '}',
                     good2 = '//    define([\'bad\'], function () {});\n' +
                             'define([\'foo\'], function () {});',
@@ -67,7 +67,7 @@ define(['build'], function (build) {
                             '    ],\nfunction (dep) {});',
 
                     good4 = 'define(this.key)',
-                    goodExpected4 = 'define(\'good/4\',[],this.key)';
+                    goodExpected4 = 'define(\'good/4\',this.key)';
 
                 t.is(bad1, build.toTransport('', 'bad/1', 'bad1', bad1));
                 t.is(bad2, build.toTransport('', 'bad/2', 'bad2', bad2));
