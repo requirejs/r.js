@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Sun, 18 Nov 2012 20:22:44 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Sun, 18 Nov 2012 23:15:48 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Sun, 18 Nov 2012 20:22:44 GMT',
+        version = '2.1.1+ Sun, 18 Nov 2012 23:15:48 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13521,8 +13521,8 @@ if(env === 'rhino') {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint strict: false, plusplus: false */
-/*global define: false, java: false, Packages: false */
+/*jslint sloppy: true, plusplus: true */
+/*global define, java, Packages, com */
 
 define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
 
@@ -13569,18 +13569,38 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
         return JSSourceFilefromCode.invoke(null, [filename, content]);
     }
 
+
+    function getFileWriter(fileName, encoding) {
+        var outFile = new java.io.File(fileName), outWriter, parentDir;
+
+        parentDir = outFile.getAbsoluteFile().getParentFile();
+        if (!parentDir.exists()) {
+            if (!parentDir.mkdirs()) {
+                throw "Could not create directory: " + parentDir.getAbsolutePath();
+            }
+        }
+
+        if (encoding) {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
+        } else {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
+        }
+
+        return new java.io.BufferedWriter(outWriter);
+    }
+
     optimize = {
-        closure: function (fileName, fileContents, keepLines, config) {
+        closure: function (fileName, fileContents, outFileName, keepLines, config) {
             config = config || {};
-            var jscomp = Packages.com.google.javascript.jscomp,
+            var result, mappings, optimized, compressed, baseName, writer,
+                jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
                 //Fake extern
                 externSourceFile = closurefromCode("fakeextern.js", " "),
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
                 options, option, FLAG_compilation_level, compiler,
-                Compiler = Packages.com.google.javascript.jscomp.Compiler,
-                result, mappings, baseName;
+                Compiler = Packages.com.google.javascript.jscomp.Compiler;
 
             logger.trace("Minifying file: " + fileName);
 
@@ -13614,9 +13634,22 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
             if (result.success) {
-                fileContents = String(compiler.toSource());
+                optimized = String(compiler.toSource());
 
-                return config.generateSourceMaps ? {sourceMap: result.sourceMap, toSource: function() { return fileContents; }} : fileContents;
+                if (config.generateSourceMaps && result.sourceMap && outFileName) {
+                    baseName = (new java.io.File(outFileName)).getName();
+
+                    file.saveUtf8File(outFileName + ".src", fileContents);
+
+                    writer = getFileWriter(outFileName + ".map", "utf-8");
+                    result.sourceMap.appendTo(writer, outFileName);
+                    writer.close();
+
+                    fileContents = optimized + "\n//@ sourceMappingURL=" + baseName + ".map";
+                } else {
+                    fileContents = optimized;
+                }
+                return fileContents;
             } else {
                 logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }
@@ -13791,25 +13824,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
         };
     }
 
-    function getFileWriter(fileName, encoding) {
-        var outFile = new java.io.File(fileName), outWriter, parentDir;
-
-        parentDir = outFile.getAbsoluteFile().getParentFile();
-        if (!parentDir.exists()) {
-            if (!parentDir.mkdirs()) {
-                throw "Could not create directory: " + parentDir.getAbsolutePath();
-            }
-        }
-
-        if (encoding) {
-            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
-        } else {
-            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
-        }
-
-        return new java.io.BufferedWriter(outWriter);
-    }
-
     optimize = {
         /**
          * Optimizes a file that contains JavaScript content. Optionally collects
@@ -13826,29 +13840,13 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * found.
          */
         jsFile: function (fileName, fileContents, outFileName, config, pluginCollector) {
-            var optimized, compressed, baseName, writer;
-
             if (!fileContents) {
                 fileContents = file.readFile(fileName);
             }
 
-            optimized = optimize.js(fileName, fileContents, config, pluginCollector);
+            fileContents = optimize.js(fileName, fileContents, outFileName, config, pluginCollector);
 
-            compressed = typeof optimized =='string' ? optimized : optimized.toSource();
-
-            if (config.generateSourceMaps && optimized.sourceMap) {
-                baseName = (new java.io.File(outFileName)).getName();
-
-                file.saveUtf8File(outFileName + ".src", fileContents);
-
-                writer = getFileWriter(outFileName + ".map", "utf-8");
-                optimized.sourceMap.appendTo(writer, outFileName);
-                writer.close();
-
-                compressed += "\n//@ sourceMappingURL=" + baseName + ".map";
-            }
-
-            file.saveUtf8File(outFileName, compressed);
+            file.saveUtf8File(outFileName, fileContents);
         },
 
         /**
@@ -13863,12 +13861,12 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * @param {Array} [pluginCollector] storage for any plugin resources
          * found.
          */
-        js: function (fileName, fileContents, config, pluginCollector) {
-            var parts = (String(config.optimize)).split('.'),
+        js: function (fileName, fileContents, outFileName, config, pluginCollector) {
+            var optFunc, optConfig,
+                parts = (String(config.optimize)).split('.'),
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
-                licenseContents = '',
-                optFunc, optResult;
+                licenseContents = '';
 
             config = config || {};
 
@@ -13884,6 +13882,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
+                optConfig = config[optimizerName] || {}
+                if (config.generateSourceMaps) {
+                    optConfig.generateSourceMaps = !!config.generateSourceMaps;
+                }
+
                 if (config.preserveLicenseComments) {
                     //Pull out any license comments for prepending after optimization.
                     try {
@@ -13893,13 +13896,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     }
                 }
 
-                config[optimizerName] = config[optimizerName] || {};
-
-                config[optimizerName].generateSourceMaps = !!config.generateSourceMaps;
-
-                optResult = optFunc(fileName, fileContents, keepLines, config[optimizerName]);
-
-                return config.generateSourceMaps ? optResult : licenseContents + (typeof optResult == 'string' ? optResult : optResult.toSource());
+                fileContents = licenseContents + optFunc(fileName,
+                                                         fileContents,
+                                                         outFileName,
+                                                         keepLines,
+                                                         optConfig);
             }
 
             return fileContents;
@@ -15116,6 +15117,7 @@ define('build', function (require) {
                 if (fileName === 'FUNCTION') {
                     config.modules[0]._buildText = optimize.js(fileName,
                                                                config.modules[0]._buildText,
+                                                               null,
                                                                config);
                 } else {
                     optimize.jsFile(fileName, null, fileName, config);
