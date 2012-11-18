@@ -498,6 +498,7 @@ define(function (require) {
                 if (fileName === 'FUNCTION') {
                     config.modules[0]._buildText = optimize.js(fileName,
                                                                config.modules[0]._buildText,
+                                                               null,
                                                                config);
                 } else {
                     optimize.jsFile(fileName, null, fileName, config);

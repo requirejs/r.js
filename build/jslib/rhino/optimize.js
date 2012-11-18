@@ -4,8 +4,8 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint strict: false, plusplus: false */
-/*global define: false, java: false, Packages: false */
+/*jslint sloppy: true, plusplus: true */
+/*global define, java, Packages, com */
 
 define(['logger', 'env!env/file'], function (logger, file) {
 
@@ -52,18 +52,38 @@ define(['logger', 'env!env/file'], function (logger, file) {
         return JSSourceFilefromCode.invoke(null, [filename, content]);
     }
 
+
+    function getFileWriter(fileName, encoding) {
+        var outFile = new java.io.File(fileName), outWriter, parentDir;
+
+        parentDir = outFile.getAbsoluteFile().getParentFile();
+        if (!parentDir.exists()) {
+            if (!parentDir.mkdirs()) {
+                throw "Could not create directory: " + parentDir.getAbsolutePath();
+            }
+        }
+
+        if (encoding) {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
+        } else {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
+        }
+
+        return new java.io.BufferedWriter(outWriter);
+    }
+
     optimize = {
-        closure: function (fileName, fileContents, keepLines, config) {
+        closure: function (fileName, fileContents, outFileName, keepLines, config) {
             config = config || {};
-            var jscomp = Packages.com.google.javascript.jscomp,
+            var result, mappings, optimized, compressed, baseName, writer,
+                jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
                 //Fake extern
                 externSourceFile = closurefromCode("fakeextern.js", " "),
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
                 options, option, FLAG_compilation_level, compiler,
-                Compiler = Packages.com.google.javascript.jscomp.Compiler,
-                result, mappings, baseName;
+                Compiler = Packages.com.google.javascript.jscomp.Compiler;
 
             logger.trace("Minifying file: " + fileName);
 
@@ -97,9 +117,22 @@ define(['logger', 'env!env/file'], function (logger, file) {
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
             if (result.success) {
-                fileContents = String(compiler.toSource());
+                optimized = String(compiler.toSource());
 
-                return config.generateSourceMaps ? {sourceMap: result.sourceMap, toSource: function() { return fileContents; }} : fileContents;
+                if (config.generateSourceMaps && result.sourceMap && outFileName) {
+                    baseName = (new java.io.File(outFileName)).getName();
+
+                    file.saveUtf8File(outFileName + ".src", fileContents);
+
+                    writer = getFileWriter(outFileName + ".map", "utf-8");
+                    result.sourceMap.appendTo(writer, outFileName);
+                    writer.close();
+
+                    fileContents = optimized + "\n//@ sourceMappingURL=" + baseName + ".map";
+                } else {
+                    fileContents = optimized;
+                }
+                return fileContents;
             } else {
                 logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }

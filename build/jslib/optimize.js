@@ -161,25 +161,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
         };
     }
 
-    function getFileWriter(fileName, encoding) {
-        var outFile = new java.io.File(fileName), outWriter, parentDir;
-
-        parentDir = outFile.getAbsoluteFile().getParentFile();
-        if (!parentDir.exists()) {
-            if (!parentDir.mkdirs()) {
-                throw "Could not create directory: " + parentDir.getAbsolutePath();
-            }
-        }
-
-        if (encoding) {
-            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
-        } else {
-            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
-        }
-
-        return new java.io.BufferedWriter(outWriter);
-    }
-
     optimize = {
         /**
          * Optimizes a file that contains JavaScript content. Optionally collects
@@ -196,29 +177,13 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * found.
          */
         jsFile: function (fileName, fileContents, outFileName, config, pluginCollector) {
-            var optimized, compressed, baseName, writer;
-
             if (!fileContents) {
                 fileContents = file.readFile(fileName);
             }
 
-            optimized = optimize.js(fileName, fileContents, config, pluginCollector);
+            fileContents = optimize.js(fileName, fileContents, outFileName, config, pluginCollector);
 
-            compressed = typeof optimized =='string' ? optimized : optimized.toSource();
-
-            if (config.generateSourceMaps && optimized.sourceMap) {
-                baseName = (new java.io.File(outFileName)).getName();
-
-                file.saveUtf8File(outFileName + ".src", fileContents);
-
-                writer = getFileWriter(outFileName + ".map", "utf-8");
-                optimized.sourceMap.appendTo(writer, outFileName);
-                writer.close();
-
-                compressed += "\n//@ sourceMappingURL=" + baseName + ".map";
-            }
-
-            file.saveUtf8File(outFileName, compressed);
+            file.saveUtf8File(outFileName, fileContents);
         },
 
         /**
@@ -233,12 +198,12 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * @param {Array} [pluginCollector] storage for any plugin resources
          * found.
          */
-        js: function (fileName, fileContents, config, pluginCollector) {
-            var parts = (String(config.optimize)).split('.'),
+        js: function (fileName, fileContents, outFileName, config, pluginCollector) {
+            var optFunc, optConfig,
+                parts = (String(config.optimize)).split('.'),
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
-                licenseContents = '',
-                optFunc, optResult;
+                licenseContents = '';
 
             config = config || {};
 
@@ -254,6 +219,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
+                optConfig = config[optimizerName] || {}
+                if (config.generateSourceMaps) {
+                    optConfig.generateSourceMaps = !!config.generateSourceMaps;
+                }
+
                 if (config.preserveLicenseComments) {
                     //Pull out any license comments for prepending after optimization.
                     try {
@@ -263,13 +233,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     }
                 }
 
-                config[optimizerName] = config[optimizerName] || {};
-
-                config[optimizerName].generateSourceMaps = !!config.generateSourceMaps;
-
-                optResult = optFunc(fileName, fileContents, keepLines, config[optimizerName]);
-
-                return config.generateSourceMaps ? optResult : licenseContents + (typeof optResult == 'string' ? optResult : optResult.toSource());
+                fileContents = licenseContents + optFunc(fileName,
+                                                         fileContents,
+                                                         outFileName,
+                                                         keepLines,
+                                                         optConfig);
             }
 
             return fileContents;
