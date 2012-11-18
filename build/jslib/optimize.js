@@ -242,11 +242,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
             config = config || {};
 
-            if (config.preserveLicenseComments && config.generateSourceMaps) {
-                logger.warn("Can't set preserveLicenseComments and generateSourceMaps at same time; disabling the former");
-                config.preserveLicenseComments = false;
-            }
-
             //Apply pragmas/namespace renaming
             fileContents = pragma.process(fileName, fileContents, config, 'OnSave', pluginCollector);
 

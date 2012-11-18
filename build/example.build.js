@@ -90,23 +90,33 @@
     //- "none": no minification will be done.
     optimize: "uglify",
 
-    //If using "dir" for an output directory, normally the optimize setting is
-    //used to optimize the build layers (the "modules" section of the config)
-    //and any other JS file in the directory. However, if the non-build layer
-    //JS files will not be loaded after a build, you can skip the optimization
-    //of those files, to speed up builds. Set this value to true if you want
-    //to skip optimizing those other non-build layer JS files.
+    //Introduced in 2.1.2: If using "dir" for an output directory, normally the
+    //optimize setting is used to optimize the build layers (the "modules"
+    //section of the config) and any other JS file in the directory. However, if
+    //the non-build layer JS files will not be loaded after a build, you can
+    //skip the optimization of those files, to speed up builds. Set this value
+    //to true if you want to skip optimizing those other non-build layer JS
+    //files.
     skipDirOptimize: false,
 
-    //If a full directory optimization ("dir" is used), and optimize is not "none",
-    //and skipDirOptimize is false, then normally all JS files in the directory
-    //will be minified, and this value is automatically set to "all". For JS
-    //files to properly work after a minification, the optimizer will parse for
-    //define() calls and insert any dependency arrays that are missing. However,
-    //this can be a bit slow if there are many/larger JS files. So this
-    //transport normalization is not done (automatically set to "skip") if
-    //optimize is set to "none". Cases where you may want to manually set this
-    //value:
+    //Introduced in 2.1.2: If the minifier specified in the "optimize" option
+    //supports generating source maps for the minfied code, then generate them.
+    //The source maps generated only translate minified JS to non-minified
+    //JS, it does not do anything magical for translating minfied JS to
+    //transpiled source code.
+    //Currently only optimize: "closure" when running under Java is supported,
+    //and only with a closure compiler jar build after r1592 (20111114 release).
+    generateSourceMaps: false,
+
+    //Introduced in 2.1.1: If a full directory optimization ("dir" is used), and
+    //optimize is not "none", and skipDirOptimize is false, then normally all JS
+    //files in the directory will be minified, and this value is automatically
+    //set to "all". For JS files to properly work after a minification, the
+    //optimizer will parse for define() calls and insert any dependency arrays
+    //that are missing. However, this can be a bit slow if there are many/larger
+    //JS files. So this transport normalization is not done (automatically set
+    //to "skip") if optimize is set to "none". Cases where you may want to
+    //manually set this value:
     //1) Optimizing later: if you plan on minifying the non-build layer JS files
     //after the optimizer runs (so not as part of running the optimizer), then
     //you should explicitly this value to "all".
@@ -117,7 +127,6 @@
     //Finally, all build layers (specified in the "modules" or "out" setting)
     //automatically get normalization, so this setting does not apply to those
     //files.
-    //Works in r.js 2.1.2+
     normalizeDirDefines: "skip",
 
     //If using UglifyJS for script optimization, these config options can be

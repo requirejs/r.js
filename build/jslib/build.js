@@ -1019,6 +1019,23 @@ define(function (require) {
                             ' to insert in to a require([]) call.');
         }
 
+        if (config.generateSourceMaps) {
+            if (config.preserveLicenseComments) {
+                throw new Error('Cannot use preserveLicenseComments and ' +
+                    'generateSourceMaps together. Either explcitly set ' +
+                    'preserveLicenseComments to false (default is true) or ' +
+                    'turn off generateSourceMaps. If you want source maps with ' +
+                    'license comments, see: ' +
+                    'http://requirejs.org/docs/errors.html#sourcemapcomments');
+            } else if (config.optimize !== 'none' && config.optimize !== 'closure') {
+                //Allow optimize: none to pass, since it is useful when toggling
+                //minification on and off to debug something, and it implicitly
+                //works, since it does not need a source map.
+                throw new Error('optimize: "' + config.optimize +
+                    '" does not support generateSourceMaps.');
+            }
+        }
+
         if ((config.name || config.include) && !config.modules) {
             //Just need to build one file, but may be part of a whole appDir/
             //baseUrl copy, but specified on the command line, so cannot do

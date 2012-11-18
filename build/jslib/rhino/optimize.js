@@ -97,7 +97,7 @@ define(['logger', 'env!env/file'], function (logger, file) {
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
             if (result.success) {
-                fileContents = compiler.toSource();
+                fileContents = String(compiler.toSource());
 
                 return config.generateSourceMaps ? {sourceMap: result.sourceMap, toSource: function() { return fileContents; }} : fileContents;
             } else {
