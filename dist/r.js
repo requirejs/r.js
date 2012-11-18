@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Sat, 17 Nov 2012 23:32:03 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Sun, 18 Nov 2012 19:55:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Sat, 17 Nov 2012 23:32:03 GMT',
+        version = '2.1.1+ Sun, 18 Nov 2012 19:55:34 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13523,7 +13523,7 @@ if(env === 'rhino') {
 /*jslint strict: false, plusplus: false */
 /*global define: false, java: false, Packages: false */
 
-define('rhino/optimize', ['logger'], function (logger) {
+define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
 
     //Add .reduce to Rhino so UglifyJS can run in Rhino,
     //inspired by https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/reduce
@@ -13579,9 +13579,11 @@ define('rhino/optimize', ['logger'], function (logger) {
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
                 options, option, FLAG_compilation_level, compiler,
                 Compiler = Packages.com.google.javascript.jscomp.Compiler,
-                result;
+                result, mappings, baseName;
 
             logger.trace("Minifying file: " + fileName);
+
+            baseName = (new java.io.File(fileName)).getName();
 
             //Set up options
             options = new jscomp.CompilerOptions();
@@ -13597,15 +13599,25 @@ define('rhino/optimize', ['logger'], function (logger) {
             FLAG_compilation_level = jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS'];
             FLAG_compilation_level.setOptionsForCompilationLevel(options);
 
+            if (config.generateSourceMaps) {
+                mappings = new java.util.ArrayList();
+
+                mappings.add(new com.google.javascript.jscomp.SourceMap.LocationMapping(fileName, baseName + ".src"));
+                options.setSourceMapLocationMappings(mappings);
+                options.setSourceMapOutputPath(fileName + ".map");
+            }
+
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
-            if (!result.success) {
-                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
+            if (result.success) {
+                fileContents = String(compiler.toSource());
+
+                return config.generateSourceMaps ? {sourceMap: result.sourceMap, toSource: function() { return fileContents; }} : fileContents;
             } else {
-                fileContents = compiler.toSource();
+                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }
 
             return fileContents;
@@ -13778,6 +13790,25 @@ function (lang,   logger,   envOptimize,        file,           parse,
         };
     }
 
+    function getFileWriter(fileName, encoding) {
+        var outFile = new java.io.File(fileName), outWriter, parentDir;
+
+        parentDir = outFile.getAbsoluteFile().getParentFile();
+        if (!parentDir.exists()) {
+            if (!parentDir.mkdirs()) {
+                throw "Could not create directory: " + parentDir.getAbsolutePath();
+            }
+        }
+
+        if (encoding) {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
+        } else {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
+        }
+
+        return new java.io.BufferedWriter(outWriter);
+    }
+
     optimize = {
         /**
          * Optimizes a file that contains JavaScript content. Optionally collects
@@ -13794,13 +13825,29 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * found.
          */
         jsFile: function (fileName, fileContents, outFileName, config, pluginCollector) {
+            var optimized, compressed, baseName, writer;
+
             if (!fileContents) {
                 fileContents = file.readFile(fileName);
             }
 
-            fileContents = optimize.js(fileName, fileContents, config, pluginCollector);
+            optimized = optimize.js(fileName, fileContents, config, pluginCollector);
 
-            file.saveUtf8File(outFileName, fileContents);
+            compressed = typeof optimized =='string' ? optimized : optimized.toSource();
+
+            if (config.generateSourceMaps && optimized.sourceMap) {
+                baseName = (new java.io.File(outFileName)).getName();
+
+                file.saveUtf8File(outFileName + ".src", fileContents);
+
+                writer = getFileWriter(outFileName + ".map", "utf-8");
+                optimized.sourceMap.appendTo(writer, outFileName);
+                writer.close();
+
+                compressed += "\n//@ sourceMappingURL=" + baseName + ".map";
+            }
+
+            file.saveUtf8File(outFileName, compressed);
         },
 
         /**
@@ -13820,7 +13867,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
                 licenseContents = '',
-                optFunc;
+                optFunc, optResult;
 
             config = config || {};
 
@@ -13845,8 +13892,13 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     }
                 }
 
-                fileContents = licenseContents + optFunc(fileName, fileContents, keepLines,
-                                        config[optimizerName]);
+                config[optimizerName] = config[optimizerName] || {};
+
+                config[optimizerName].generateSourceMaps = !!config.generateSourceMaps;
+
+                optResult = optFunc(fileName, fileContents, keepLines, config[optimizerName]);
+
+                return config.generateSourceMaps ? optResult : licenseContents + (typeof optResult == 'string' ? optResult : optResult.toSource());
             }
 
             return fileContents;
@@ -15582,6 +15634,23 @@ define('build', function (require) {
         if (config.insertRequire && !lang.isArray(config.insertRequire)) {
             throw new Error('insertRequire should be a list of module IDs' +
                             ' to insert in to a require([]) call.');
+        }
+
+        if (config.generateSourceMaps) {
+            if (config.preserveLicenseComments) {
+                throw new Error('Cannot use preserveLicenseComments and ' +
+                    'generateSourceMaps together. Either explcitly set ' +
+                    'preserveLicenseComments to false (default is true) or ' +
+                    'turn off generateSourceMaps. If you want source maps with ' +
+                    'license comments, see: ' +
+                    'http://requirejs.org/docs/errors.html#sourcemapcomments');
+            } else if (config.optimize !== 'none' && config.optimize !== 'closure') {
+                //Allow optimize: none to pass, since it is useful when toggling
+                //minification on and off to debug something, and it implicitly
+                //works, since it does not need a source map.
+                throw new Error('optimize: "' + config.optimize +
+                    '" does not support generateSourceMaps.');
+            }
         }
 
         if ((config.name || config.include) && !config.modules) {
