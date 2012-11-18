@@ -7,7 +7,7 @@
 /*jslint strict: false, plusplus: false */
 /*global define: false, java: false, Packages: false */
 
-define(['logger'], function (logger) {
+define(['logger', 'env!env/file'], function (logger, file) {
 
     //Add .reduce to Rhino so UglifyJS can run in Rhino,
     //inspired by https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/reduce
@@ -63,9 +63,11 @@ define(['logger'], function (logger) {
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
                 options, option, FLAG_compilation_level, compiler,
                 Compiler = Packages.com.google.javascript.jscomp.Compiler,
-                result;
+                result, mappings, baseName;
 
             logger.trace("Minifying file: " + fileName);
+
+            baseName = (new java.io.File(fileName)).getName();
 
             //Set up options
             options = new jscomp.CompilerOptions();
@@ -81,15 +83,25 @@ define(['logger'], function (logger) {
             FLAG_compilation_level = jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS'];
             FLAG_compilation_level.setOptionsForCompilationLevel(options);
 
+            if (config.generateSourceMaps) {
+                mappings = new java.util.ArrayList();
+
+                mappings.add(new com.google.javascript.jscomp.SourceMap.LocationMapping(fileName, baseName + ".src"));
+                options.setSourceMapLocationMappings(mappings);
+                options.setSourceMapOutputPath(fileName + ".map");
+            }
+
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
-            if (!result.success) {
-                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
-            } else {
+            if (result.success) {
                 fileContents = compiler.toSource();
+
+                return config.generateSourceMaps ? {sourceMap: result.sourceMap, toSource: function() { return fileContents; }} : fileContents;
+            } else {
+                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }
 
             return fileContents;

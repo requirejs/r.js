@@ -161,6 +161,25 @@ function (lang,   logger,   envOptimize,        file,           parse,
         };
     }
 
+    function getFileWriter(fileName, encoding) {
+        var outFile = new java.io.File(fileName), outWriter, parentDir;
+
+        parentDir = outFile.getAbsoluteFile().getParentFile();
+        if (!parentDir.exists()) {
+            if (!parentDir.mkdirs()) {
+                throw "Could not create directory: " + parentDir.getAbsolutePath();
+            }
+        }
+
+        if (encoding) {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
+        } else {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
+        }
+
+        return new java.io.BufferedWriter(outWriter);
+    }
+
     optimize = {
         /**
          * Optimizes a file that contains JavaScript content. Optionally collects
@@ -177,13 +196,29 @@ function (lang,   logger,   envOptimize,        file,           parse,
          * found.
          */
         jsFile: function (fileName, fileContents, outFileName, config, pluginCollector) {
+            var optimized, compressed, baseName, writer;
+
             if (!fileContents) {
                 fileContents = file.readFile(fileName);
             }
 
-            fileContents = optimize.js(fileName, fileContents, config, pluginCollector);
+            optimized = optimize.js(fileName, fileContents, config, pluginCollector);
 
-            file.saveUtf8File(outFileName, fileContents);
+            compressed = typeof optimized =='string' ? optimized : optimized.toSource();
+
+            if (config.generateSourceMaps && optimized.sourceMap) {
+                baseName = (new java.io.File(outFileName)).getName();
+
+                file.saveUtf8File(outFileName + ".src", fileContents);
+
+                writer = getFileWriter(outFileName + ".map", "utf-8");
+                optimized.sourceMap.appendTo(writer, outFileName);
+                writer.close();
+
+                compressed += "\n//@ sourceMappingURL=" + baseName + ".map";
+            }
+
+            file.saveUtf8File(outFileName, compressed);
         },
 
         /**
@@ -203,9 +238,14 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
                 licenseContents = '',
-                optFunc;
+                optFunc, optResult;
 
             config = config || {};
+
+            if (config.preserveLicenseComments && config.generateSourceMaps) {
+                logger.warn("Can't set preserveLicenseComments and generateSourceMaps at same time; disabling the former");
+                config.preserveLicenseComments = false;
+            }
 
             //Apply pragmas/namespace renaming
             fileContents = pragma.process(fileName, fileContents, config, 'OnSave', pluginCollector);
@@ -228,8 +268,13 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     }
                 }
 
-                fileContents = licenseContents + optFunc(fileName, fileContents, keepLines,
-                                        config[optimizerName]);
+                config[optimizerName] = config[optimizerName] || {};
+
+                config[optimizerName].generateSourceMaps = !!config.generateSourceMaps;
+
+                optResult = optFunc(fileName, fileContents, keepLines, config[optimizerName]);
+
+                return config.generateSourceMaps ? optResult : licenseContents + (typeof optResult == 'string' ? optResult : optResult.toSource());
             }
 
             return fileContents;
