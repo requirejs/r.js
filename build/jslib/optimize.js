@@ -8,9 +8,9 @@
 /*global define: false */
 
 define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
-         'pragma', 'uglifyjs/index'],
+         'pragma', 'uglifyjs/index', 'uglifyjs2'],
 function (lang,   logger,   envOptimize,        file,           parse,
-          pragma, uglify) {
+          pragma, uglify,             uglify2) {
     'use strict';
 
     var optimize,
@@ -341,7 +341,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
         },
 
         optimizers: {
-            uglify: function (fileName, fileContents, keepLines, config) {
+            uglify: function (fileName, fileContents, outFileName, keepLines, config) {
                 var parser = uglify.parser,
                     processor = uglify.uglify,
                     ast, errMessage, errMatch;
@@ -369,6 +369,38 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         errMessage = errMessage.substring(0, errMatch.index);
                     }
                     logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
+                }
+                return fileContents;
+            },
+            uglify2: function (fileName, fileContents, outFileName, keepLines, config) {
+                var result,
+                    uconfig = {},
+                    baseName = fileName && fileName.split('/').pop();
+
+                config = config || {};
+
+                lang.mixin(uconfig, config, true);
+
+                uconfig.fromString = true;
+
+                if (config.generateSourceMaps && outFileName) {
+                    uconfig.outSourceMap = baseName + '.src';
+                }
+
+                logger.trace("Uglify2 file: " + fileName);
+
+                try {
+                    result = uglify2.minify(fileContents, uconfig);
+
+                    if (uconfig.outSourceMap && result.map) {
+                        file.saveFile(outFileName + '.src', fileContents);
+                        file.saveFile(outFileName + '.map', result.map);
+                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".map";
+                    } else {
+                        fileContents = result.code;
+                    }
+                } catch (e) {
+                    logger.error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
                 return fileContents;
             }

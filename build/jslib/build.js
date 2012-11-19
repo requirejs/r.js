@@ -1028,7 +1028,9 @@ define(function (require) {
                     'turn off generateSourceMaps. If you want source maps with ' +
                     'license comments, see: ' +
                     'http://requirejs.org/docs/errors.html#sourcemapcomments');
-            } else if (config.optimize !== 'none' && config.optimize !== 'closure') {
+            } else if (config.optimize !== 'none' &&
+                       config.optimize !== 'closure' &&
+                       config.optimize !== 'uglify2') {
                 //Allow optimize: none to pass, since it is useful when toggling
                 //minification on and off to debug something, and it implicitly
                 //works, since it does not need a source map.

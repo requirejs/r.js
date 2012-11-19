@@ -1,6 +1,7 @@
 .DS_Store
 .idea/
 /r.js
+build/jslib/uglifyjs2/temp
 build/tests/builds
 build/tests/lib/amdefine/built.js
 build/tests/lib/appDirSrcOverwrite/www-built
