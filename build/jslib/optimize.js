@@ -384,13 +384,13 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 uconfig.fromString = true;
 
                 if (config.generateSourceMaps && outFileName) {
-                    uconfig.outSourceMap = baseName + '.src';
+                    uconfig.outSourceMap = baseName;
                 }
 
                 logger.trace("Uglify2 file: " + fileName);
 
                 try {
-                    result = uglify2.minify(fileContents, uconfig);
+                    result = uglify2.minify(fileContents, uconfig, baseName + '.src');
 
                     if (uconfig.outSourceMap && result.map) {
                         file.saveFile(outFileName + '.src', fileContents);

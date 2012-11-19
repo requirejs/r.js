@@ -4,9 +4,7 @@
  * Licensed under the New BSD license. See LICENSE or:
  * http://opensource.org/licenses/BSD-3-Clause
  */
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
+
 define(function (require, exports, module) {
 
   var SourceMapGenerator = require('./source-map-generator').SourceMapGenerator;

@@ -6,7 +6,9 @@ UglifyJS.AST_Node.warn_function = function(txt) {
     logger.error("uglifyjs2 WARN: " + txt);
 };
 
-exports.minify = function(files, options) {
+//JRB: MODIFIED FROM UGLIFY SOURCE
+//to take a name for the file, and then set toplevel.filename to be that name.
+exports.minify = function(files, options, name) {
     options = UglifyJS.defaults(options, {
         outSourceMap : null,
         sourceRoot   : null,
@@ -24,7 +26,7 @@ exports.minify = function(files, options) {
             ? file
             : fs.readFileSync(file, "utf8");
         toplevel = UglifyJS.parse(code, {
-            filename: options.fromString ? "?" : file,
+            filename: options.fromString ? name : file,
             toplevel: toplevel
         });
     });
