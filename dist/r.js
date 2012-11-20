@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Tue, 20 Nov 2012 01:24:24 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Tue, 20 Nov 2012 03:36:45 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Tue, 20 Nov 2012 01:24:24 GMT',
+        version = '2.1.1+ Tue, 20 Nov 2012 03:36:45 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -20533,13 +20533,12 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
             if (arguments.length >= 2) {
                 accumulator = arguments[1];
             } else {
-                do {
-                    if (i in this) {
-                        accumulator = this[i++];
-                        break;
+                if (length) {
+                    while (!(i in this)) {
+                        i++;
                     }
+                    accumulator = this[i++];
                 }
-                while (true);
             }
 
             for (; i < length; i++) {
@@ -20973,7 +20972,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
             buildText += flat.importList.map(function(path){
                 return path.replace(config.dir, "");
             }).join("\n");
-            return buildText +"\n";
+
+            return {
+                importList: flat.importList,
+                buildText: buildText +"\n"
+            };
         },
 
         /**
@@ -20985,15 +20988,30 @@ function (lang,   logger,   envOptimize,        file,           parse,
          */
         css: function (startDir, config) {
             var buildText = "",
-                i, fileName, fileList;
+                importList = [],
+                shouldRemove = config.dir && config.removeCombined,
+                i, fileName, result, fileList;
             if (config.optimizeCss.indexOf("standard") !== -1) {
                 fileList = file.getFilteredFileList(startDir, /\.css$/, true);
                 if (fileList) {
                     for (i = 0; i < fileList.length; i++) {
                         fileName = fileList[i];
                         logger.trace("Optimizing (" + config.optimizeCss + ") CSS file: " + fileName);
-                        buildText += optimize.cssFile(fileName, fileName, config);
+                        result = optimize.cssFile(fileName, fileName, config);
+                        buildText += result.buildText;
+                        if (shouldRemove) {
+                            result.importList.pop();
+                            importList = importList.concat(result.importList);
+                        }
                     }
+                }
+
+                if (shouldRemove) {
+                    importList.forEach(function (path) {
+                        if (file.exists(path)) {
+                            file.deleteFile(path);
+                        }
+                    });
                 }
             }
             return buildText;
@@ -22280,7 +22298,7 @@ define('build', function (require) {
 
             //If just have one CSS file to optimize, do that here.
             if (config.cssIn) {
-                buildFileContents += optimize.cssFile(config.cssIn, config.out, config);
+                buildFileContents += optimize.cssFile(config.cssIn, config.out, config).buildText;
             }
 
             if (typeof config.out === 'function') {
