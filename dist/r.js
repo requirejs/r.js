@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Tue, 20 Nov 2012 04:37:03 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Tue, 20 Nov 2012 20:29:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Tue, 20 Nov 2012 04:37:03 GMT',
+        version = '2.1.1+ Tue, 20 Nov 2012 20:29:53 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1367,7 +1367,7 @@ var requirejs, require, define;
                                 deps: value
                             };
                         }
-                        if (value.exports && !value.exportsFn) {
+                        if ((value.exports || value.init) && !value.exportsFn) {
                             value.exportsFn = context.makeShimExports(value);
                         }
                         shim[id] = value;
@@ -1429,7 +1429,7 @@ var requirejs, require, define;
                     if (value.init) {
                         ret = value.init.apply(global, arguments);
                     }
-                    return ret || getGlobal(value.exports);
+                    return ret || (value.exports && getGlobal(value.exports));
                 }
                 return fn;
             },
@@ -21237,7 +21237,9 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                             (value.init ?
                                     ('       fn = ' + value.init.toString() + ';\n' +
                                     '        ret = fn.apply(global, arguments);\n') : '') +
-                            '        return ret || global.' + value.exports + ';\n' +
+                            (value.exports ?
+                                    '        return ret || global.' + value.exports + ';\n' :
+                                    '        return ret;\n') +
                             '    };\n' +
                             '}(this))';
                     }
