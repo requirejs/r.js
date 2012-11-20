@@ -1052,9 +1052,11 @@ define(function (require) {
                     include: config.include,
                     exclude: config.exclude,
                     excludeShallow: config.excludeShallow,
-                    insertRequire: config.insertRequire
+                    insertRequire: config.insertRequire,
+                    stubModules: config.stubModules
                 }
             ];
+            delete config.stubModules;
         } else if (config.modules && config.out) {
             throw new Error('If the "modules" option is used, then there ' +
                             'should be a "dir" option set and "out" should ' +
@@ -1079,12 +1081,22 @@ define(function (require) {
             }
         }
 
-        //Create a hash lookup for the stubModules config to make lookup
-        //cheaper later.
-        if (config.stubModules) {
-            config.stubModules._byName = {};
-            config.stubModules.forEach(function (id) {
-                config.stubModules._byName[id] = true;
+        //Cycle through modules and combine any local stubModules with
+        //global values.
+        if (config.modules && config.modules.length) {
+            config.modules.forEach(function (mod) {
+                if (config.stubModules) {
+                    mod.stubModules = config.stubModules.concat(mod.stubModules || []);
+                }
+
+                //Create a hash lookup for the stubModules config to make lookup
+                //cheaper later.
+                if (mod.stubModules) {
+                    mod.stubModules._byName = {};
+                    mod.stubModules.forEach(function (id) {
+                        mod.stubModules._byName[id] = true;
+                    });
+                }
             });
         }
 
@@ -1360,7 +1372,7 @@ define(function (require) {
 
             namespace = config.namespace || '';
             namespaceWithDot = namespace ? namespace + '.' : '';
-            stubModulesByName = (config.stubModules && config.stubModules._byName) || {};
+            stubModulesByName = (module.stubModules && module.stubModules._byName) || {};
 
             //Start build output for the module.
             buildFileContents += "\n" +

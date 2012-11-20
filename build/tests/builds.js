@@ -1292,6 +1292,27 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    //Tests https://github.com/jrburke/r.js/issues/291 per layer stub modules
+    doh.register("stubModulesPerModule",
+        [
+            function stubModulesPerModule(t) {
+                file.deleteFile("lib/stubModules/perModule/built");
+
+                build(["lib/stubModules/perModule/build.js"]);
+
+                t.is(noSlashRn(nol(c("lib/stubModules/perModule/expected-first.js"))),
+                     noSlashRn(nol(c("lib/stubModules/perModule/built/first.js"))));
+                t.is(noSlashRn(nol(c("lib/stubModules/perModule/expected-second.js"))),
+                     noSlashRn(nol(c("lib/stubModules/perModule/built/second.js"))));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/155 no copy of paths
     doh.register("pathsNoCopy",
         [
