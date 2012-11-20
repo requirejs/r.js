@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Tue, 20 Nov 2012 03:36:45 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Tue, 20 Nov 2012 04:04:09 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Tue, 20 Nov 2012 03:36:45 GMT',
+        version = '2.1.1+ Tue, 20 Nov 2012 04:04:09 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -19506,15 +19506,33 @@ define('parse', ['./esprima'], function (esprima) {
 
                 if (arg && arg.type === 'ObjectExpression') {
                     jsConfig = parse.nodeToString(fileContents, arg);
-                    foundConfig = eval('(' + jsConfig + ')');
+                    return false;
+                }
+            } else {
+                arg = parse.getRequireObjectLiteral(node);
+                if (arg) {
+                    jsConfig = parse.nodeToString(fileContents, arg);
                     return false;
                 }
             }
-
-
         });
 
+        if (jsConfig) {
+            foundConfig = eval('(' + jsConfig + ')');
+        }
+
         return foundConfig;
+    };
+
+    /** Returns the node for the object literal assigned to require/requirejs,
+     * for holding a declarative config.
+     */
+    parse.getRequireObjectLiteral = function (node) {
+        if (node.id && node.id.type === 'Identifier' &&
+                (node.id.name === 'require' || node.id.name === 'requirejs') &&
+                node.init && node.init.type === 'ObjectExpression') {
+            return node.init;
+        }
     };
 
     /**
