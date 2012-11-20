@@ -128,7 +128,9 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                             (value.init ?
                                     ('       fn = ' + value.init.toString() + ';\n' +
                                     '        ret = fn.apply(global, arguments);\n') : '') +
-                            '        return ret || global.' + value.exports + ';\n' +
+                            (value.exports ?
+                                    '        return ret || global.' + value.exports + ';\n' :
+                                    '        return ret;\n') +
                             '    };\n' +
                             '}(this))';
                     }
