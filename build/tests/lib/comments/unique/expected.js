@@ -18,4 +18,4 @@
  * sdf sdf
  */
 
-define("main",function(){})
+define("main",function(){});

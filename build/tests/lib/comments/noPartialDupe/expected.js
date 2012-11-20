@@ -6,4 +6,4 @@
 //     For all details and documentation:
 //     http://documentcloud.github.com/underscore
 
-(function(){})()
+(function(){})();

@@ -16,7 +16,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
-        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g;
+        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
+        endSemicolonRegExp = /;\s*$/;
 
     /**
      * If an URL from a CSS url value contains start/end quotes, remove them.
@@ -362,6 +363,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     if (config.max_line_length) {
                         fileContents = processor.split_lines(fileContents, config.max_line_length);
                     }
+
+                    //Add trailing semicolon to match uglifyjs command line version
+                    fileContents += ';';
                 } catch (e) {
                     errMessage = e.toString();
                     errMatch = /\nError(\r)?\n/.exec(errMessage);
