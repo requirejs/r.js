@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Mon, 19 Nov 2012 07:26:43 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Tue, 20 Nov 2012 01:24:24 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Mon, 19 Nov 2012 07:26:43 GMT',
+        version = '2.1.1+ Tue, 20 Nov 2012 01:24:24 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -20674,7 +20674,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
-        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g;
+        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
+        endSemicolonRegExp = /;\s*$/;
 
     /**
      * If an URL from a CSS url value contains start/end quotes, remove them.
@@ -21020,6 +21021,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     if (config.max_line_length) {
                         fileContents = processor.split_lines(fileContents, config.max_line_length);
                     }
+
+                    //Add trailing semicolon to match uglifyjs command line version
+                    fileContents += ';';
                 } catch (e) {
                     errMessage = e.toString();
                     errMatch = /\nError(\r)?\n/.exec(errMessage);
