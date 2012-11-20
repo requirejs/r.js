@@ -21,13 +21,12 @@ define(['logger', 'env!env/file'], function (logger, file) {
             if (arguments.length >= 2) {
                 accumulator = arguments[1];
             } else {
-                do {
-                    if (i in this) {
-                        accumulator = this[i++];
-                        break;
+                if (length) {
+                    while (!(i in this)) {
+                        i++;
                     }
+                    accumulator = this[i++];
                 }
-                while (true);
             }
 
             for (; i < length; i++) {
