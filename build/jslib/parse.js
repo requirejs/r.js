@@ -332,15 +332,33 @@ define(['./esprima'], function (esprima) {
 
                 if (arg && arg.type === 'ObjectExpression') {
                     jsConfig = parse.nodeToString(fileContents, arg);
-                    foundConfig = eval('(' + jsConfig + ')');
+                    return false;
+                }
+            } else {
+                arg = parse.getRequireObjectLiteral(node);
+                if (arg) {
+                    jsConfig = parse.nodeToString(fileContents, arg);
                     return false;
                 }
             }
-
-
         });
 
+        if (jsConfig) {
+            foundConfig = eval('(' + jsConfig + ')');
+        }
+
         return foundConfig;
+    };
+
+    /** Returns the node for the object literal assigned to require/requirejs,
+     * for holding a declarative config.
+     */
+    parse.getRequireObjectLiteral = function (node) {
+        if (node.id && node.id.type === 'Identifier' &&
+                (node.id.name === 'require' || node.id.name === 'requirejs') &&
+                node.init && node.init.type === 'ObjectExpression') {
+            return node.init;
+        }
     };
 
     /**

@@ -12,6 +12,7 @@ define(['parse', 'env!env/file'], function (parse, file) {
                 t.is('rjsconfig', parse.findConfig('rjsconfig.js', file.readFile('parse/rjsconfig.js')).baseUrl);
                 t.is('requirec', parse.findConfig('requirec.js', file.readFile('parse/requirec.js')).baseUrl);
                 t.is('requirejsc', parse.findConfig('requirejsc.js', file.readFile('parse/requirejsc.js')).baseUrl);
+                t.is('requireObject', parse.findConfig('requireObject.js', file.readFile('parse/requireObject.js')).baseUrl);
                 t.is(null, parse.findConfig('missing1.js', file.readFile('parse/missing1.js')));
                 t.is(null, parse.findConfig('missing1.js', file.readFile('parse/missing1.js')));
 
