@@ -82,6 +82,7 @@
     //Right now only the following values
     //are supported:
     //- "uglify": (default) uses UglifyJS to minify the code.
+    //- "uglify2": in version 2.1.2+. Uses UglifyJS2.
     //- "closure": uses Google's Closure Compiler in simple optimization
     //mode to minify the code. Only available if running the optimizer using
     //Java.
@@ -99,13 +100,16 @@
     //files.
     skipDirOptimize: false,
 
-    //Introduced in 2.1.2: If the minifier specified in the "optimize" option
-    //supports generating source maps for the minfied code, then generate them.
-    //The source maps generated only translate minified JS to non-minified
-    //JS, it does not do anything magical for translating minfied JS to
-    //transpiled source code.
-    //Currently only optimize: "closure" when running under Java is supported,
-    //and only with a closure compiler jar build after r1592 (20111114 release).
+    //Introduced in 2.1.2 and considered experimental.
+    //If the minifier specified in the "optimize" option supports generating
+    //source maps for the minfied code, then generate them. The source maps
+    //generated only translate minified JS to non-minified JS, it does not do
+    //anything magical for translating minfied JS to transpiled source code.
+    //Currently only optimize: "uglify2" is supported when running in node or
+    //rhino, and if running in rhino, "closure" with a closure compiler jar
+    //build after r1592 (20111114 release).
+    //The source files will show up in a browser developer tool that supports
+    //source maps as ".js.src" files.
     generateSourceMaps: false,
 
     //Introduced in 2.1.1: If a full directory optimization ("dir" is used), and
@@ -149,6 +153,11 @@
         //Skip the processor.ast_mangle() part of the uglify call (r.js 2.0.5+)
         no_mangle: true
     },
+
+    //If using UglifyJS for script optimization, these config options can be
+    //used to pass configuration values to UglifyJS.
+    //See https://github.com/mishoo/UglifyJS2 for possible values.
+    uglify2: {},
 
     //If using Closure Compiler for script optimization, these config options
     //can be used to configure Closure Compiler. See the documentation for
