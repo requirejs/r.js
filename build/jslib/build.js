@@ -630,7 +630,7 @@ define(function (require) {
 
             //If just have one CSS file to optimize, do that here.
             if (config.cssIn) {
-                buildFileContents += optimize.cssFile(config.cssIn, config.out, config);
+                buildFileContents += optimize.cssFile(config.cssIn, config.out, config).buildText;
             }
 
             if (typeof config.out === 'function') {

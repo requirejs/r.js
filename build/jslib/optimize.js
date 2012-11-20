@@ -315,7 +315,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
             buildText += flat.importList.map(function(path){
                 return path.replace(config.dir, "");
             }).join("\n");
-            return buildText +"\n";
+
+            return {
+                importList: flat.importList,
+                buildText: buildText +"\n"
+            };
         },
 
         /**
@@ -327,15 +331,30 @@ function (lang,   logger,   envOptimize,        file,           parse,
          */
         css: function (startDir, config) {
             var buildText = "",
-                i, fileName, fileList;
+                importList = [],
+                shouldRemove = config.dir && config.removeCombined,
+                i, fileName, result, fileList;
             if (config.optimizeCss.indexOf("standard") !== -1) {
                 fileList = file.getFilteredFileList(startDir, /\.css$/, true);
                 if (fileList) {
                     for (i = 0; i < fileList.length; i++) {
                         fileName = fileList[i];
                         logger.trace("Optimizing (" + config.optimizeCss + ") CSS file: " + fileName);
-                        buildText += optimize.cssFile(fileName, fileName, config);
+                        result = optimize.cssFile(fileName, fileName, config);
+                        buildText += result.buildText;
+                        if (shouldRemove) {
+                            result.importList.pop();
+                            importList = importList.concat(result.importList);
+                        }
                     }
+                }
+
+                if (shouldRemove) {
+                    importList.forEach(function (path) {
+                        if (file.exists(path)) {
+                            file.deleteFile(path);
+                        }
+                    });
                 }
             }
             return buildText;

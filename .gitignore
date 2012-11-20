@@ -15,6 +15,7 @@ build/tests/lib/cssKeepComments/main-built.css
 build/tests/lib/cssKeepLicense/main-license-built.css
 build/tests/lib/cssKeepLicense/main-built.css
 build/tests/lib/cssMediaQuery/main-built.css
+build/tests/lib/cssRemoveCombined/www-built
 build/tests/lib/depsConfig/main-built.js
 build/tests/lib/dormant213/main-built.js
 build/tests/lib/dotpackage/built

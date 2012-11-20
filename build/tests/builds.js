@@ -981,6 +981,29 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/r.js/issues/296 removeCombined should
+    //remove files that have been inlined.
+    doh.register("cssRemoveCombined",
+        [
+            function cssRemoveCombined(t) {
+                file.deleteFile("lib/cssRemoveCombined/main-built.css");
+
+                build(["lib/cssRemoveCombined/build.js"]);
+
+                t.is(false, file.exists("lib/cssRemoveCombined/www-built/css/two.css"));
+                t.is(false, file.exists("lib/cssRemoveCombined/www-built/css/sub/one.css"));
+                t.is(false, file.exists("lib/cssRemoveCombined/www-built/css/sub/misc.css"));
+
+                t.is(nol(c("lib/cssRemoveCombined/expected.css")),
+                     nol(c("lib/cssRemoveCombined/www-built/css/main.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/150
     doh.register("appDirSrcOverwrite",
         [
