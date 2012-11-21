@@ -39,7 +39,8 @@ define(['logger', 'env!env/file'], function (logger, file) {
         };
     }
 
-    var JSSourceFilefromCode, optimize;
+    var JSSourceFilefromCode, optimize,
+        mapRegExp = /"file":"[^"]+"/;
 
     //Bind to Closure compiler, but if it is not available, do not sweat it.
     try {
@@ -75,6 +76,7 @@ define(['logger', 'env!env/file'], function (logger, file) {
         closure: function (fileName, fileContents, outFileName, keepLines, config) {
             config = config || {};
             var result, mappings, optimized, compressed, baseName, writer,
+                outBaseName, outFileNameMap, outFileNameMapContent,
                 jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
                 //Fake extern
@@ -119,15 +121,22 @@ define(['logger', 'env!env/file'], function (logger, file) {
                 optimized = String(compiler.toSource());
 
                 if (config.generateSourceMaps && result.sourceMap && outFileName) {
-                    baseName = (new java.io.File(outFileName)).getName();
+                    outBaseName = (new java.io.File(outFileName)).getName();
 
                     file.saveUtf8File(outFileName + ".src", fileContents);
 
-                    writer = getFileWriter(outFileName + ".map", "utf-8");
+                    outFileNameMap = outFileName + ".map";
+                    writer = getFileWriter(outFileNameMap, "utf-8");
                     result.sourceMap.appendTo(writer, outFileName);
                     writer.close();
 
-                    fileContents = optimized + "\n//@ sourceMappingURL=" + baseName + ".map";
+                    //Not sure how better to do this, but right now the .map file
+                    //leaks the full OS path in the "file" property. Manually
+                    //modify it to not do that.
+                    file.saveFile(outFileNameMap,
+                        file.readFile(outFileNameMap).replace(mapRegExp, '"file":"' + baseName + '"'));
+
+                    fileContents = optimized + "\n//@ sourceMappingURL=" + outBaseName + ".map";
                 } else {
                     fileContents = optimized;
                 }
