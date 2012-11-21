@@ -48,7 +48,6 @@
 
     //Configure CommonJS packages. See http://requirejs.org/docs/api.html#packages
     //for more information.
-    packagePaths: [],
     packages: [],
 
     //The directory path to save the output. If not specified, then

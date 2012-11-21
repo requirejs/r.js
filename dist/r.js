@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.1+ Tue, 20 Nov 2012 20:29:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.1+ Wed, 21 Nov 2012 21:49:04 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.1+ Tue, 20 Nov 2012 20:29:53 GMT',
+        version = '2.1.1+ Wed, 21 Nov 2012 21:49:04 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1133,6 +1133,11 @@ var requirejs, require, define;
                         //it.
                         getModule(moduleMap);
 
+                        //Transfer any config to this other module.
+                        if (hasProp(config.config, id)) {
+                            config.config[moduleName] = config.config[id];
+                        }
+
                         try {
                             req.exec(text);
                         } catch (e) {
@@ -1254,7 +1259,10 @@ var requirejs, require, define;
         };
 
         function callGetModule(args) {
-            getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
+            //Skip modules already defined.
+            if (!hasProp(defined, args[0])) {
+                getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
+            }
         }
 
         function removeListener(node, func, name, ieName) {
@@ -20569,7 +20577,8 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
         };
     }
 
-    var JSSourceFilefromCode, optimize;
+    var JSSourceFilefromCode, optimize,
+        mapRegExp = /"file":"[^"]+"/;
 
     //Bind to Closure compiler, but if it is not available, do not sweat it.
     try {
@@ -20605,6 +20614,7 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
         closure: function (fileName, fileContents, outFileName, keepLines, config) {
             config = config || {};
             var result, mappings, optimized, compressed, baseName, writer,
+                outBaseName, outFileNameMap, outFileNameMapContent,
                 jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
                 //Fake extern
@@ -20649,15 +20659,22 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
                 optimized = String(compiler.toSource());
 
                 if (config.generateSourceMaps && result.sourceMap && outFileName) {
-                    baseName = (new java.io.File(outFileName)).getName();
+                    outBaseName = (new java.io.File(outFileName)).getName();
 
                     file.saveUtf8File(outFileName + ".src", fileContents);
 
-                    writer = getFileWriter(outFileName + ".map", "utf-8");
+                    outFileNameMap = outFileName + ".map";
+                    writer = getFileWriter(outFileNameMap, "utf-8");
                     result.sourceMap.appendTo(writer, outFileName);
                     writer.close();
 
-                    fileContents = optimized + "\n//@ sourceMappingURL=" + baseName + ".map";
+                    //Not sure how better to do this, but right now the .map file
+                    //leaks the full OS path in the "file" property. Manually
+                    //modify it to not do that.
+                    file.saveFile(outFileNameMap,
+                        file.readFile(outFileNameMap).replace(mapRegExp, '"file":"' + baseName + '"'));
+
+                    fileContents = optimized + "\n//@ sourceMappingURL=" + outBaseName + ".map";
                 } else {
                     fileContents = optimized;
                 }

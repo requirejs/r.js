@@ -1009,6 +1009,11 @@ var requirejs, require, define;
                         //it.
                         getModule(moduleMap);
 
+                        //Transfer any config to this other module.
+                        if (hasProp(config.config, id)) {
+                            config.config[moduleName] = config.config[id];
+                        }
+
                         try {
                             req.exec(text);
                         } catch (e) {
@@ -1130,7 +1135,10 @@ var requirejs, require, define;
         };
 
         function callGetModule(args) {
-            getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
+            //Skip modules already defined.
+            if (!hasProp(defined, args[0])) {
+                getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
+            }
         }
 
         function removeListener(node, func, name, ieName) {
