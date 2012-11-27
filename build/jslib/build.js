@@ -1202,7 +1202,7 @@ define(function (require) {
      */
     build.traceDependencies = function (module, config) {
         var include, override, layer, context, baseConfig, oldContext,
-            registry, id, idParts, pluginId, mod, errUrl,
+            registry, id, idParts, pluginId, mod, errUrl, rawTextByIds,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
@@ -1239,6 +1239,16 @@ define(function (require) {
             override = lang.mixin({}, baseConfig, true);
             lang.mixin(override, module.override, true);
             require(override);
+        }
+
+        //Now, populate the rawText cache with any values explicitly passed in
+        //via config.
+        rawTextByIds = require.s.contexts._.config.rawText;
+        if (rawTextByIds) {
+            lang.eachProp(rawTextByIds, function (contents, id) {
+                var url = require.toUrl(id);
+                require._cachedRawText[url] = contents;
+            });
         }
 
         //Figure out module layer dependencies by calling require to do the work.

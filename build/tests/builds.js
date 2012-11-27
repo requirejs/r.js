@@ -1661,4 +1661,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("rawText",
+        [
+            function rawText(t) {
+                file.deleteFile("lib/rawText/built.js");
+
+                build(["lib/rawText/build.js"]);
+
+                t.is(nol(c("lib/rawText/expected.js")),
+                     nol(c("lib/rawText/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

@@ -483,6 +483,14 @@
         return contents.replace(/bar/g, 'foo');
     },
 
+    //Introduced in 2.1.3: Seed raw text contents for the listed module IDs.
+    //These text contents will be used instead of doing a file IO call for
+    //those modules. Useful is some module ID contents are dynamically
+    //based on user input, which is common in web build tools.
+    rawText: {
+        'some/id': 'define(["another/id"], function () {});'
+    },
+
     //Introduced in 2.0.2: if set to true, then the optimizer will add a
     //define(require, exports, module) {}); wrapper around any file that seems
     //to use commonjs/node module syntax (require, exports) without already
