@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Tue, 27 Nov 2012 18:45:47 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2',
+        version = '2.1.2+ Tue, 27 Nov 2012 18:45:47 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22907,7 +22907,7 @@ define('build', function (require) {
      */
     build.traceDependencies = function (module, config) {
         var include, override, layer, context, baseConfig, oldContext,
-            registry, id, idParts, pluginId, mod, errUrl,
+            registry, id, idParts, pluginId, mod, errUrl, rawTextByIds,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
@@ -22944,6 +22944,16 @@ define('build', function (require) {
             override = lang.mixin({}, baseConfig, true);
             lang.mixin(override, module.override, true);
             require(override);
+        }
+
+        //Now, populate the rawText cache with any values explicitly passed in
+        //via config.
+        rawTextByIds = require.s.contexts._.config.rawText;
+        if (rawTextByIds) {
+            lang.eachProp(rawTextByIds, function (contents, id) {
+                var url = require.toUrl(id);
+                require._cachedRawText[url] = contents;
+            });
         }
 
         //Figure out module layer dependencies by calling require to do the work.
