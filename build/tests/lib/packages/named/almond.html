@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../../../../../../almond/almond.js"></script>
+    <script src="main-built.js"></script>
+    <script>
+        require(['foo'], function (foo) {
+            console.log('foo === ' + foo.name);
+        });
+    </script>
+</head>
+<body>
+    <h1>Hello World</h1>
+</body>
+</html>

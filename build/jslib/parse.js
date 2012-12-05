@@ -454,6 +454,26 @@ define(['./esprima'], function (esprima) {
     };
 
     /**
+     * If there is a named define in the file, returns the name. Does not
+     * scan for mulitple names, just the first one.
+     */
+    parse.getNamedDefine = function (fileContents) {
+        var name;
+        traverse(esprima.parse(fileContents), function (node) {
+            if (node && node.type === 'CallExpression' && node.callee &&
+            node.callee.type === 'Identifier' &&
+            node.callee.name === 'define' &&
+            node[argPropName] && node[argPropName][0] &&
+            node[argPropName][0].type === 'Literal') {
+                name = node[argPropName][0].value;
+                return false;
+            }
+        });
+
+        return name;
+    };
+
+    /**
      * Determines if define(), require({}|[]) or requirejs was called in the
      * file. Also finds out if define() is declared and if define.amd is called.
      */

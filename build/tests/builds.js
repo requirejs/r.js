@@ -1389,6 +1389,26 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Confirm package adapter module is skipped if the main package
+    //module names itself.
+    //https://github.com/jrburke/r.js/issues/328
+    doh.register("packagesNamed",
+        [
+            function packagesNamed(t) {
+                file.deleteFile("lib/packages/named/main-built.js");
+
+                build(["lib/packages/named/build.js"]);
+
+                t.is(nol(c("lib/packages/named/expected.js")),
+                     nol(c("lib/packages/named/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Make sure pluginBuilder works.
     //https://github.com/jrburke/r.js/issues/175
     doh.register("pluginBuilder",

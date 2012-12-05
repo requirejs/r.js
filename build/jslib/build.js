@@ -1366,7 +1366,7 @@ define(function (require) {
 
         return prim().start(function () {
             var path, reqIndex, currContents,
-                i, moduleName, shim, packageConfig,
+                i, moduleName, shim, packageConfig, nonPackageName,
                 parts, builder, writeApi, tempPragmas,
                 namespace, namespaceWithDot, stubModulesByName,
                 newConfig = {},
@@ -1408,6 +1408,7 @@ define(function (require) {
                     packageConfig = layer.context.config.pkgs &&
                                     getOwn(layer.context.config.pkgs, moduleName);
                     if (packageConfig) {
+                        nonPackageName = moduleName;
                         moduleName += '/' + packageConfig.main;
                     }
 
@@ -1458,6 +1459,8 @@ define(function (require) {
                                     return require._cacheReadAsync(path);
                                 }
                             }).then(function (text) {
+                                var hasPackageName;
+
                                 currContents = text;
 
                                 if (config.cjsTranslate) {
@@ -1468,6 +1471,10 @@ define(function (require) {
                                     currContents = config.onBuildRead(moduleName, path, currContents);
                                 }
 
+                                if (packageConfig) {
+                                    hasPackageName = (nonPackageName === parse.getNamedDefine(currContents));
+                                }
+
                                 if (namespace) {
                                     currContents = pragma.namespace(currContents, namespace);
                                 }
@@ -1476,7 +1483,7 @@ define(function (require) {
                                     useSourceUrl: config.useSourceUrl
                                 });
 
-                                if (packageConfig) {
+                                if (packageConfig && !hasPackageName) {
                                     currContents = addSemiColon(currContents) + '\n';
                                     currContents += namespaceWithDot + "define('" +
                                                     packageConfig.name + "', ['" + moduleName +
