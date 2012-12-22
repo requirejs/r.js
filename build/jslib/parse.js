@@ -10,10 +10,9 @@
 define(['./esprima'], function (esprima) {
     'use strict';
 
-    var ostring = Object.prototype.toString,
-        //This string is saved off because JSLint complains
-        //about obj.arguments use, as 'reserved word'
-        argPropName = 'arguments';
+    //This string is saved off because JSLint complains
+    //about obj.arguments use, as 'reserved word'
+    var argPropName = 'arguments';
 
     //From an esprima example for traversing its ast.
     function traverse(object, visitor) {
@@ -362,6 +361,41 @@ define(['./esprima'], function (esprima) {
     };
 
     /**
+     * Renames require/requirejs/define calls to be ns + '.' + require/requirejs/define
+     * Does *not* do .config calls though. See pragma.namespace for the complete
+     * set of namespace transforms. This function is used because require calls
+     * inside a define() call should not be renamed, so a simple regexp is not
+     * good enough.
+     * @param  {String} fileContents the contents to transform.
+     * @param  {String} ns the namespace, *not* including trailing dot.
+     * @return {String} the fileContents with the namespace applied
+     */
+    parse.renameNamespace = function (fileContents, ns) {
+        var ranges = [],
+            astRoot = esprima.parse(fileContents, {
+                range: true
+            });
+
+        parse.recurse(astRoot, function (callName, config, name, deps, node) {
+            ranges.push(node.range);
+            //Do not recurse into define functions, they should be using
+            //local defines.
+            return callName !== 'define';
+        }, {});
+
+        //Go backwards through the found ranges, adding in the namespace name
+        //in front.
+        ranges.reverse();
+        ranges.forEach(function (range) {
+            fileContents = fileContents.substring(0, range[0]) +
+                           ns + '.' +
+                           fileContents.substring(range[0]);
+        });
+
+        return fileContents;
+    };
+
+    /**
      * Finds all dependencies specified in dependency arrays and inside
      * simplified commonjs wrappers.
      * @param {String} fileName
@@ -619,7 +653,7 @@ define(['./esprima'], function (esprima) {
                 return;
             }
 
-            return onMatch("require", null, null, deps);
+            return onMatch("require", null, null, deps, node);
         } else if (parse.hasDefine(node) && args && args.length) {
             name = args[0];
             deps = args[1];
@@ -669,7 +703,7 @@ define(['./esprima'], function (esprima) {
                 name = name.value;
             }
 
-            return onMatch("define", null, name, deps);
+            return onMatch("define", null, name, deps, node);
         }
     };
 
