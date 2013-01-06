@@ -1,11 +1,10 @@
-
 /**
- * prim 0.0.0 Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * prim 0.0.1 Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/requirejs/prim for details
  */
 
-/*global process, setTimeout, define, module */
+/*global setImmediate, process, setTimeout, define, module */
 
 //Set prime.hideResolutionConflict = true to allow "resolution-races"
 //in promise-tests to pass.
@@ -17,7 +16,6 @@ var prim;
 (function () {
     'use strict';
     var op = Object.prototype,
-        ostring = op.toString,
         hasOwn = op.hasOwnProperty;
 
     function hasProp(obj, prop) {
@@ -87,6 +85,14 @@ var prim;
                 }
             },
 
+            finished: function () {
+                return hasProp(p, 'e') || hasProp(p, 'v');
+            },
+
+            rejected: function () {
+                return hasProp(p, 'e');
+            },
+
             resolve: function (v) {
                 if (check(p)) {
                     p.v = v;
@@ -113,7 +119,9 @@ var prim;
 
                     p.callback(function (v) {
                         try {
-                            v = yes ? yes(v) : v;
+                            if (yes && typeof yes === 'function') {
+                                v = yes(v);
+                            }
 
                             if (v && v.then) {
                                 v.then(next.resolve, next.reject);
@@ -127,19 +135,15 @@ var prim;
                         var err;
 
                         try {
-                            if (!no) {
+                            if (!no || typeof no !== 'function') {
                                 next.reject(e);
                             } else {
                                 err = no(e);
 
-                                if (err instanceof Error) {
-                                    next.reject(err);
+                                if (err && err.then) {
+                                    err.then(next.resolve, next.reject);
                                 } else {
-                                    if (err && err.then) {
-                                        err.then(next.resolve, next.reject);
-                                    } else {
-                                        next.resolve(err);
-                                    }
+                                    next.resolve(err);
                                 }
                             }
                         } catch (e2) {
@@ -173,13 +177,14 @@ var prim;
         return result;
     };
 
-    prim.nextTick = typeof process !== 'undefined' && process.nextTick ?
+    prim.nextTick = typeof setImmediate === 'function' ? setImmediate :
+        (typeof process !== 'undefined' && process.nextTick ?
             process.nextTick : (typeof setTimeout !== 'undefined' ?
                 function (fn) {
                 setTimeout(fn, 0);
             } : function (fn) {
         fn();
-    });
+    }));
 
     if (typeof define === 'function' && define.amd) {
         define(function () { return prim; });
