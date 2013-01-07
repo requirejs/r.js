@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Wed, 05 Dec 2012 21:49:23 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Mon, 07 Jan 2013 00:42:37 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Wed, 05 Dec 2012 21:49:23 GMT',
+        version = '2.1.2+ Mon, 07 Jan 2013 00:42:37 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2532,14 +2532,13 @@ define('lang', function () {
     };
     return lang;
 });
-
 /**
- * prim 0.0.0 Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * prim 0.0.1 Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/requirejs/prim for details
  */
 
-/*global process, setTimeout, define, module */
+/*global setImmediate, process, setTimeout, define, module */
 
 //Set prime.hideResolutionConflict = true to allow "resolution-races"
 //in promise-tests to pass.
@@ -2551,7 +2550,6 @@ var prim;
 (function () {
     'use strict';
     var op = Object.prototype,
-        ostring = op.toString,
         hasOwn = op.hasOwnProperty;
 
     function hasProp(obj, prop) {
@@ -2621,6 +2619,14 @@ var prim;
                 }
             },
 
+            finished: function () {
+                return hasProp(p, 'e') || hasProp(p, 'v');
+            },
+
+            rejected: function () {
+                return hasProp(p, 'e');
+            },
+
             resolve: function (v) {
                 if (check(p)) {
                     p.v = v;
@@ -2647,7 +2653,9 @@ var prim;
 
                     p.callback(function (v) {
                         try {
-                            v = yes ? yes(v) : v;
+                            if (yes && typeof yes === 'function') {
+                                v = yes(v);
+                            }
 
                             if (v && v.then) {
                                 v.then(next.resolve, next.reject);
@@ -2661,19 +2669,15 @@ var prim;
                         var err;
 
                         try {
-                            if (!no) {
+                            if (!no || typeof no !== 'function') {
                                 next.reject(e);
                             } else {
                                 err = no(e);
 
-                                if (err instanceof Error) {
-                                    next.reject(err);
+                                if (err && err.then) {
+                                    err.then(next.resolve, next.reject);
                                 } else {
-                                    if (err && err.then) {
-                                        err.then(next.resolve, next.reject);
-                                    } else {
-                                        next.resolve(err);
-                                    }
+                                    next.resolve(err);
                                 }
                             }
                         } catch (e2) {
@@ -2707,13 +2711,14 @@ var prim;
         return result;
     };
 
-    prim.nextTick = typeof process !== 'undefined' && process.nextTick ?
+    prim.nextTick = typeof setImmediate === 'function' ? setImmediate :
+        (typeof process !== 'undefined' && process.nextTick ?
             process.nextTick : (typeof setTimeout !== 'undefined' ?
                 function (fn) {
                 setTimeout(fn, 0);
             } : function (fn) {
         fn();
-    });
+    }));
 
     if (typeof define === 'function' && define.amd) {
         define('prim', function () { return prim; });
@@ -2721,7 +2726,6 @@ var prim;
         module.exports = prim;
     }
 }());
-
 if(env === 'browser') {
 /**
  * @license RequireJS Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
@@ -19192,10 +19196,9 @@ exports.describe_ast = function() {
 define('parse', ['./esprima'], function (esprima) {
     'use strict';
 
-    var ostring = Object.prototype.toString,
-        //This string is saved off because JSLint complains
-        //about obj.arguments use, as 'reserved word'
-        argPropName = 'arguments';
+    //This string is saved off because JSLint complains
+    //about obj.arguments use, as 'reserved word'
+    var argPropName = 'arguments';
 
     //From an esprima example for traversing its ast.
     function traverse(object, visitor) {
@@ -19544,6 +19547,41 @@ define('parse', ['./esprima'], function (esprima) {
     };
 
     /**
+     * Renames require/requirejs/define calls to be ns + '.' + require/requirejs/define
+     * Does *not* do .config calls though. See pragma.namespace for the complete
+     * set of namespace transforms. This function is used because require calls
+     * inside a define() call should not be renamed, so a simple regexp is not
+     * good enough.
+     * @param  {String} fileContents the contents to transform.
+     * @param  {String} ns the namespace, *not* including trailing dot.
+     * @return {String} the fileContents with the namespace applied
+     */
+    parse.renameNamespace = function (fileContents, ns) {
+        var ranges = [],
+            astRoot = esprima.parse(fileContents, {
+                range: true
+            });
+
+        parse.recurse(astRoot, function (callName, config, name, deps, node) {
+            ranges.push(node.range);
+            //Do not recurse into define functions, they should be using
+            //local defines.
+            return callName !== 'define';
+        }, {});
+
+        //Go backwards through the found ranges, adding in the namespace name
+        //in front.
+        ranges.reverse();
+        ranges.forEach(function (range) {
+            fileContents = fileContents.substring(0, range[0]) +
+                           ns + '.' +
+                           fileContents.substring(range[0]);
+        });
+
+        return fileContents;
+    };
+
+    /**
      * Finds all dependencies specified in dependency arrays and inside
      * simplified commonjs wrappers.
      * @param {String} fileName
@@ -19801,7 +19839,7 @@ define('parse', ['./esprima'], function (esprima) {
                 return;
             }
 
-            return onMatch("require", null, null, deps);
+            return onMatch("require", null, null, deps, node);
         } else if (parse.hasDefine(node) && args && args.length) {
             name = args[0];
             deps = args[1];
@@ -19851,7 +19889,7 @@ define('parse', ['./esprima'], function (esprima) {
                 name = name.value;
             }
 
-            return onMatch("define", null, name, deps);
+            return onMatch("define", null, name, deps, node);
         }
     };
 
@@ -20303,7 +20341,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
         useStrictRegExp: /['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-        nsRegExp: /(^|[^\.])(requirejs|require|define)(\.config)?\s*\(/g,
+        configRegExp: /(^|[^\.])(requirejs|require)(\.config)\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
@@ -20320,7 +20358,10 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         namespace: function (fileContents, ns, onLifecycleName) {
             if (ns) {
                 //Namespace require/define calls
-                fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2$3(');
+                fileContents = fileContents.replace(pragma.configRegExp, '$1' + ns + '.$2$3(');
+
+
+                fileContents = parse.renameNamespace(fileContents, ns);
 
                 //Namespace define ternary use:
                 fileContents = fileContents.replace(pragma.defineTernaryRegExp,
@@ -21703,11 +21744,11 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
 
                 if (commonJsProps.dirname || commonJsProps.filename) {
                     preamble = 'var __filename = module.uri || "", ' +
-                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n';
+                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);';
                 }
 
                 //Construct the wrapper boilerplate.
-                fileContents = 'define(function (require, exports, module) {\n' +
+                fileContents = 'define(function (require, exports, module) {' +
                     preamble +
                     fileContents +
                     '\n});\n';
