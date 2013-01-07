@@ -740,6 +740,10 @@ define(function (require) {
     };
 
     build.makeAbsPath = function (path, absFilePath) {
+        if (!absFilePath) {
+            return path;
+        }
+
         //Add abspath if necessary. If path starts with a slash or has a colon,
         //then already is an abolute path.
         if (path.indexOf('/') !== 0 && path.indexOf(':') === -1) {
