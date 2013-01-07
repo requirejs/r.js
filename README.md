@@ -17,7 +17,7 @@ that combines scripts for optimal browser delivery.
 
 ## Node
 
-    npm -g requirejs
+    npm install -g requirejs
 
 From then on, you can use `r.js` on the command line to run the optimizer.
 
