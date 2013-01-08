@@ -1,5 +1,5 @@
 /*jslint */
-/*global load: false, doh: false, define:false */
+/*global doh, define */
 
 define(['parse', 'env!env/file'], function (parse, file) {
     'use strict';
@@ -8,16 +8,16 @@ define(['parse', 'env!env/file'], function (parse, file) {
         [
             function parseConfig(t) {
                 var hasError = false;
-                t.is('rconfig', parse.findConfig('rconfig.js', file.readFile('parse/rconfig.js')).baseUrl);
-                t.is('rjsconfig', parse.findConfig('rjsconfig.js', file.readFile('parse/rjsconfig.js')).baseUrl);
-                t.is('requirec', parse.findConfig('requirec.js', file.readFile('parse/requirec.js')).baseUrl);
-                t.is('requirejsc', parse.findConfig('requirejsc.js', file.readFile('parse/requirejsc.js')).baseUrl);
-                t.is('requireObject', parse.findConfig('requireObject.js', file.readFile('parse/requireObject.js')).baseUrl);
-                t.is(null, parse.findConfig('missing1.js', file.readFile('parse/missing1.js')));
-                t.is(null, parse.findConfig('missing1.js', file.readFile('parse/missing1.js')));
+                t.is('rconfig', parse.findConfig(file.readFile('parse/rconfig.js')).config.baseUrl);
+                t.is('rjsconfig', parse.findConfig(file.readFile('parse/rjsconfig.js')).config.baseUrl);
+                t.is('requirec', parse.findConfig(file.readFile('parse/requirec.js')).config.baseUrl);
+                t.is('requirejsc', parse.findConfig(file.readFile('parse/requirejsc.js')).config.baseUrl);
+                t.is('requireObject', parse.findConfig(file.readFile('parse/requireObject.js')).config.baseUrl);
+                t.is(undefined, parse.findConfig(file.readFile('parse/missing1.js')).config);
+                t.is(undefined, parse.findConfig(file.readFile('parse/missing1.js')).config);
 
                 try {
-                    parse.findConfig('bad1.js', file.readFile('parse/bad1.js'));
+                    parse.findConfig(file.readFile('parse/bad1.js'));
                 } catch (e) {
                     hasError = true;
                 }
@@ -120,7 +120,7 @@ define(['parse', 'env!env/file'], function (parse, file) {
                         '      c(a, b);\n' +
                         '    });\n' +
                         '  });\n' +
-                        '}).call(this);\n'
+                        '}).call(this);\n';
 
                 t.is('define("good1",["require","a","b","c"]);', parse("good1", "good1", good1, {
                     findNestedDependencies: true

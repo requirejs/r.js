@@ -34,6 +34,7 @@ require({
     'env!../../tests/doh/_{env}Runner.js',
     'tests/convert',
     'tests/parse',
+    'tests/transform',
     'tests/buildUtils',
 
     //Build tests should be last in case they alter the environment

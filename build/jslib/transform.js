@@ -9,7 +9,8 @@
 
 define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, logger, lang) {
     'use strict';
-    var transform;
+    var transform,
+        indentRegExp = /\{[\r\n]+([ \t]+)/;
 
     return (transform = {
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
@@ -329,6 +330,139 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
             }
 
             return contents;
+        },
+
+        /**
+         * Modify the contents of a require.config/requirejs.config call. This
+         * call will LOSE any existing comments that are in the config string.
+         *
+         * @param  {String} fileContents String that may contain a config call
+         * @param  {Function} onConfig Function called when the first config
+         * call is found. It will be passed an Object which is the current
+         * config, and the onConfig function should return an Object to use
+         * as the config.
+         * @return {String} the fileContents with the config changes applied.
+         */
+        modifyConfig: function (fileContents, onConfig) {
+            var details = parse.findConfig(fileContents),
+                config = details.config;
+
+            if (config) {
+                config = onConfig(config);
+                if (config) {
+                    return transform.serializeConfig(config,
+                                              fileContents,
+                                              details.range[0],
+                                              details.range[1]);
+                }
+            }
+
+            return fileContents;
+        },
+
+        serializeConfig: function (config, fileContents, start, end) {
+            //Calculate base level of indent
+            var baseIndent, indent, match, configString,
+                startString = fileContents.substring(0, start),
+                existingConfigString = fileContents.substring(start, end),
+                lineReturn = existingConfigString.indexOf('\r') === -1 ? '\n' : '\r\n',
+                lastReturnIndex = startString.lastIndexOf('\n');
+
+            if (lastReturnIndex === -1) {
+                lastReturnIndex = 0;
+            }
+            baseIndent = start - lastReturnIndex;
+
+            //Calculate internal indentation for config
+            match = indentRegExp.match(existingConfigString);
+            if (match && match[1]) {
+                indent = match[1];
+            }
+
+            if (!indent || indent.length < baseIndent) {
+                indent = '  ';
+            } else {
+                indent = indent - baseIndent;
+            }
+
+            configString = transform.objectToString(config,
+                                                    baseIndent,
+                                                    indent,
+                                                    lineReturn);
+
+            return startString + configString + fileContents.substring(end);
+        },
+
+        /**
+         * Tries converting a JS object to a string. This will likely suck, and
+         * is tailored to the type of config expected in a loader config call.
+         * So, hasOwnProperty fields, strings, numbers, arrays and functions,
+         * no weird recursively referenced stuff.
+         * @param  {Object} obj        the object to convert
+         * @param  {String} baseIndent what string to use for base indentation
+         * @param  {String} indent     the indentation to use for each level
+         * @return {String}            a string representation of the object.
+         */
+        objectToString: function (obj, baseIndent, indent, lineReturn, level) {
+            var startBrace, endBrace, i,
+                value = '',
+                finalIndent = '';
+
+            level = level || 0;
+
+            if (indent && level) {
+                for (i = 0; i < level; i++) {
+                    finalIndent += indent;
+                }
+            }
+
+            if (obj === null) {
+                value = 'null';
+            } else if (obj === undefined) {
+                value = 'undefined';
+            } else if (typeof obj === 'number') {
+                value = obj;
+            } else if (typeof obj === 'string') {
+                //Use double quotes in case the config may also work as JSON.
+                value = '"' + lang.jsEscape(obj) + '"';
+            } else if (lang.isArray(obj)) {
+                lang.each(obj, function (item, i) {
+                    value += (i !== 0 ? ',' + lineReturn : '' ) +
+                        transform.objectToString(item,
+                                                 baseIndent,
+                                                 indent,
+                                                 lineReturn,
+                                                 level + 1);
+                });
+
+                startBrace = '[';
+                endBrace = ']';
+            } else if (lang.isFunction(obj) || lang.isRegExp(obj)) {
+                value = obj.toString();
+            } else {
+                //An object
+                lang.eachProp(obj, function (value, prop) {
+                    value += (i !== 0 ? ',' + lineReturn : '' ) +
+                        '"' + lang.jsEscape(prop) + '": ' +
+                        transform.objectToString(value,
+                                                 baseIndent,
+                                                 indent,
+                                                 lineReturn,
+                                                 level + 1);
+                });
+                startBrace = '{';
+                endBrace = '}';
+            }
+
+            if (startBrace) {
+                value = baseIndent + startBrace + lineReturn +
+                        baseIndent + indent + value + lineReturn +
+                        baseIndent + endBrace;
+            } else {
+                value = baseIndent + finalIndent + value;
+            }
+
+            return value;
         }
     });
 });

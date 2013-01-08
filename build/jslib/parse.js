@@ -305,21 +305,23 @@ define(['./esprima'], function (esprima) {
      * @param {String} fileName
      * @param {String} fileContents
      *
-     * @returns {Object} a config object. Will be null if no config.
+     * @returns {Object} a config details object with the following properties:
+     * - config: {Object} the config object found. Can be undefined if no
+     * config found.
+     * - range: {Array} the start index and end index in the contents where
+     * the config was found. Can be undefined if no config found.
      * Can throw an error if the config in the file cannot be evaluated in
      * a build context to valid JavaScript.
      */
     parse.findConfig = function (fileName, fileContents) {
         /*jslint evil: true */
-        var jsConfig,
-            foundConfig = null,
+        var jsConfig, foundRange, foundConfig,
             astRoot = esprima.parse(fileContents, {
                 range: true
             });
 
         traverse(astRoot, function (node) {
             var arg,
-                c = node && node.callee,
                 requireType = parse.hasRequire(node);
 
             if (requireType && (requireType === 'require' ||
@@ -331,12 +333,14 @@ define(['./esprima'], function (esprima) {
 
                 if (arg && arg.type === 'ObjectExpression') {
                     jsConfig = parse.nodeToString(fileContents, arg);
+                    foundRange = arg.range;
                     return false;
                 }
             } else {
                 arg = parse.getRequireObjectLiteral(node);
                 if (arg) {
                     jsConfig = parse.nodeToString(fileContents, arg);
+                    foundRange = arg.range;
                     return false;
                 }
             }
@@ -346,7 +350,10 @@ define(['./esprima'], function (esprima) {
             foundConfig = eval('(' + jsConfig + ')');
         }
 
-        return foundConfig;
+        return {
+            config: foundConfig,
+            range: foundRange
+        };
     };
 
     /** Returns the node for the object literal assigned to require/requirejs,

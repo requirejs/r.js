@@ -917,7 +917,7 @@ define(function (require) {
                 throw new Error(mainConfigFile + ' does not exist.');
             }
             try {
-                mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
+                mainConfig = parse.findConfig(file.readFile(mainConfigFile)).config;
             } catch (configError) {
                 throw new Error('The config in mainConfigFile ' +
                         mainConfigFile +
