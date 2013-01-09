@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Wed, 09 Jan 2013 20:31:06 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Wed, 09 Jan 2013 20:45:05 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Wed, 09 Jan 2013 20:31:06 GMT',
+        version = '2.1.2+ Wed, 09 Jan 2013 20:45:05 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -21907,11 +21907,11 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
 
                 if (commonJsProps.dirname || commonJsProps.filename) {
                     preamble = 'var __filename = module.uri || "", ' +
-                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n';
+                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1); ';
                 }
 
                 //Construct the wrapper boilerplate.
-                fileContents = 'define(function (require, exports, module) {\n' +
+                fileContents = 'define(function (require, exports, module) {' +
                     preamble +
                     fileContents +
                     '\n});\n';
