@@ -10,7 +10,7 @@
 define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, logger, lang) {
     'use strict';
     var transform,
-        baseIndentRegExp = /\^([ \t]+)/,
+        baseIndentRegExp = /^([ \t]+)/,
         indentRegExp = /\{[\r\n]+([ \t]+)/,
         bulkIndentRegExps = {
             '\n': /\n/g,
@@ -371,9 +371,8 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
         },
 
         serializeConfig: function (config, fileContents, start, end) {
-debugger;
             //Calculate base level of indent
-            var indent, match, configString,
+            var indent, match, configString, outDentRegExp,
                 baseIndent = '',
                 startString = fileContents.substring(0, start),
                 existingConfigString = fileContents.substring(start, end),
@@ -384,6 +383,7 @@ debugger;
             if (lastReturnIndex === -1) {
                 lastReturnIndex = 0;
             }
+
             match = baseIndentRegExp.exec(startString.substring(lastReturnIndex + 1, start));
             if (match && match[1]) {
                 baseIndent = match[1];
@@ -398,13 +398,18 @@ debugger;
             if (!indent || indent.length < baseIndent) {
                 indent = '  ';
             } else {
-                indent = indent.substring(baseIndent.length - 1);
+                indent = indent.substring(baseIndent.length);
             }
 
+            outDentRegExp = new RegExp('(' + lineReturn + ')' + indent, 'g');
+
             configString = transform.objectToString(config,
-                                                    baseIndent,
                                                     indent,
-                                                    lineReturn);
+                                                    lineReturn,
+                                                    outDentRegExp);
+
+            //Add in the base indenting level.
+            configString = applyIndent(configString, baseIndent, lineReturn);
 
             return startString + configString + fileContents.substring(end);
         },
@@ -415,23 +420,19 @@ debugger;
          * So, hasOwnProperty fields, strings, numbers, arrays and functions,
          * no weird recursively referenced stuff.
          * @param  {Object} obj        the object to convert
-         * @param  {String} baseIndent what string to use for base indentation
          * @param  {String} indent     the indentation to use for each level
+         * @param  {String} lineReturn the type of line return to use
+         * @param  {outDentRegExp} outDentRegExp the regexp to use to outdent functions
+         * @param  {String} totalIndent the total indent to print for this level
          * @return {String}            a string representation of the object.
          */
-        objectToString: function (obj, baseIndent, indent, lineReturn, level) {
-            var startBrace, endBrace, i,
+        objectToString: function (obj, indent, lineReturn, outDentRegExp, totalIndent) {
+            var startBrace, endBrace, nextIndent,
                 first = true,
-                value = '',
-                finalIndent = '';
+                value = '';
 
-            level = level || 0;
-
-            if (indent && level) {
-                for (i = 0; i < level; i++) {
-                    finalIndent += indent;
-                }
-            }
+            totalIndent = totalIndent || '';
+            nextIndent = totalIndent + indent;
 
             if (obj === null) {
                 value = 'null';
@@ -445,29 +446,33 @@ debugger;
             } else if (lang.isArray(obj)) {
                 lang.each(obj, function (item, i) {
                     value += (i !== 0 ? ',' + lineReturn : '' ) +
-                        finalIndent + indent +
+                        nextIndent +
                         transform.objectToString(item,
-                                                 baseIndent,
                                                  indent,
                                                  lineReturn,
-                                                 level + 1);
+                                                 outDentRegExp,
+                                                 nextIndent);
                 });
 
                 startBrace = '[';
                 endBrace = ']';
             } else if (lang.isFunction(obj) || lang.isRegExp(obj)) {
-                value = obj.toString();
+                //The outdent regexp just helps pretty up the conversion
+                //just in node. Rhino strips comments and does a different
+                //indent scheme for Function toString, so not really helpful
+                //there.
+                value = obj.toString().replace(outDentRegExp, '$1');
             } else {
                 //An object
                 lang.eachProp(obj, function (v, prop) {
                     value += (first ? '': ',' + lineReturn) +
-                        finalIndent + indent +
+                        nextIndent +
                         '"' + lang.jsEscape(prop) + '": ' +
                         transform.objectToString(v,
-                                                 baseIndent,
                                                  indent,
                                                  lineReturn,
-                                                 level + 1);
+                                                 outDentRegExp,
+                                                 nextIndent);
                     first = false;
                 });
                 startBrace = '{';
@@ -477,10 +482,8 @@ debugger;
             if (startBrace) {
                 value = startBrace +
                         lineReturn +
-                        applyIndent(value,
-                                   (level ? indent : baseIndent + indent),
-                                   lineReturn) +
-                        lineReturn +
+                        value +
+                        lineReturn + totalIndent +
                         endBrace;
             }
 
