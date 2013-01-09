@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Mon, 07 Jan 2013 07:44:45 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Wed, 09 Jan 2013 20:31:06 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Mon, 07 Jan 2013 07:44:45 GMT',
+        version = '2.1.2+ Wed, 09 Jan 2013 20:31:06 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -19488,24 +19488,25 @@ define('parse', ['./esprima'], function (esprima) {
      * Finds any config that is passed to requirejs. That includes calls to
      * require/requirejs.config(), as well as require({}, ...) and
      * requirejs({}, ...)
-     * @param {String} fileName
      * @param {String} fileContents
      *
-     * @returns {Object} a config object. Will be null if no config.
+     * @returns {Object} a config details object with the following properties:
+     * - config: {Object} the config object found. Can be undefined if no
+     * config found.
+     * - range: {Array} the start index and end index in the contents where
+     * the config was found. Can be undefined if no config found.
      * Can throw an error if the config in the file cannot be evaluated in
      * a build context to valid JavaScript.
      */
-    parse.findConfig = function (fileName, fileContents) {
+    parse.findConfig = function (fileContents) {
         /*jslint evil: true */
-        var jsConfig,
-            foundConfig = null,
+        var jsConfig, foundRange, foundConfig,
             astRoot = esprima.parse(fileContents, {
                 range: true
             });
 
         traverse(astRoot, function (node) {
             var arg,
-                c = node && node.callee,
                 requireType = parse.hasRequire(node);
 
             if (requireType && (requireType === 'require' ||
@@ -19517,12 +19518,14 @@ define('parse', ['./esprima'], function (esprima) {
 
                 if (arg && arg.type === 'ObjectExpression') {
                     jsConfig = parse.nodeToString(fileContents, arg);
+                    foundRange = arg.range;
                     return false;
                 }
             } else {
                 arg = parse.getRequireObjectLiteral(node);
                 if (arg) {
                     jsConfig = parse.nodeToString(fileContents, arg);
+                    foundRange = arg.range;
                     return false;
                 }
             }
@@ -19532,7 +19535,10 @@ define('parse', ['./esprima'], function (esprima) {
             foundConfig = eval('(' + jsConfig + ')');
         }
 
-        return foundConfig;
+        return {
+            config: foundConfig,
+            range: foundRange
+        };
     };
 
     /** Returns the node for the object literal assigned to require/requirejs,
@@ -19607,7 +19613,7 @@ define('parse', ['./esprima'], function (esprima) {
      * Finds only CJS dependencies, ones that are the form
      * require('stringLiteral')
      */
-    parse.findCjsDependencies = function (fileName, fileContents, options) {
+    parse.findCjsDependencies = function (fileName, fileContents) {
         var dependencies = [];
 
         traverse(esprima.parse(fileContents), function (node) {
@@ -19697,7 +19703,7 @@ define('parse', ['./esprima'], function (esprima) {
      * Determines if define(), require({}|[]) or requirejs was called in the
      * file. Also finds out if define() is declared and if define.amd is called.
      */
-    parse.usesAmdOrRequireJs = function (fileName, fileContents, options) {
+    parse.usesAmdOrRequireJs = function (fileName, fileContents) {
         var uses;
 
         traverse(esprima.parse(fileContents), function (node) {
@@ -19737,7 +19743,7 @@ define('parse', ['./esprima'], function (esprima) {
      * __dirname, __filename are used. So, not strictly traditional CommonJS,
      * also checks for Node variants.
      */
-    parse.usesCommonJs = function (fileName, fileContents, options) {
+    parse.usesCommonJs = function (fileName, fileContents) {
         var uses = null,
             assignsExports = false;
 
@@ -19790,8 +19796,6 @@ define('parse', ['./esprima'], function (esprima) {
 
 
     parse.findRequireDepNames = function (node, deps) {
-        var moduleName, i, n, call, args;
-
         traverse(node, function (node) {
             var arg;
 
@@ -19984,7 +19988,18 @@ define('parse', ['./esprima'], function (esprima) {
 
 define('transform', [ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, logger, lang) {
     'use strict';
-    var transform;
+    var transform,
+        baseIndentRegExp = /^([ \t]+)/,
+        indentRegExp = /\{[\r\n]+([ \t]+)/,
+        bulkIndentRegExps = {
+            '\n': /\n/g,
+            '\r\n': /\r\n/g
+        };
+
+    function applyIndent(str, indent, lineReturn) {
+        var regExp = bulkIndentRegExps[lineReturn];
+        return str.replace(regExp, '$&' + indent);
+    }
 
     return (transform = {
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
@@ -20304,6 +20319,154 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
             }
 
             return contents;
+        },
+
+        /**
+         * Modify the contents of a require.config/requirejs.config call. This
+         * call will LOSE any existing comments that are in the config string.
+         *
+         * @param  {String} fileContents String that may contain a config call
+         * @param  {Function} onConfig Function called when the first config
+         * call is found. It will be passed an Object which is the current
+         * config, and the onConfig function should return an Object to use
+         * as the config.
+         * @return {String} the fileContents with the config changes applied.
+         */
+        modifyConfig: function (fileContents, onConfig) {
+            var details = parse.findConfig(fileContents),
+                config = details.config;
+
+            if (config) {
+                config = onConfig(config);
+                if (config) {
+                    return transform.serializeConfig(config,
+                                              fileContents,
+                                              details.range[0],
+                                              details.range[1]);
+                }
+            }
+
+            return fileContents;
+        },
+
+        serializeConfig: function (config, fileContents, start, end) {
+            //Calculate base level of indent
+            var indent, match, configString, outDentRegExp,
+                baseIndent = '',
+                startString = fileContents.substring(0, start),
+                existingConfigString = fileContents.substring(start, end),
+                lineReturn = existingConfigString.indexOf('\r') === -1 ? '\n' : '\r\n',
+                lastReturnIndex = startString.lastIndexOf('\n');
+
+            //Get the basic amount of indent for the require config call.
+            if (lastReturnIndex === -1) {
+                lastReturnIndex = 0;
+            }
+
+            match = baseIndentRegExp.exec(startString.substring(lastReturnIndex + 1, start));
+            if (match && match[1]) {
+                baseIndent = match[1];
+            }
+
+            //Calculate internal indentation for config
+            match = indentRegExp.exec(existingConfigString);
+            if (match && match[1]) {
+                indent = match[1];
+            }
+
+            if (!indent || indent.length < baseIndent) {
+                indent = '  ';
+            } else {
+                indent = indent.substring(baseIndent.length);
+            }
+
+            outDentRegExp = new RegExp('(' + lineReturn + ')' + indent, 'g');
+
+            configString = transform.objectToString(config,
+                                                    indent,
+                                                    lineReturn,
+                                                    outDentRegExp);
+
+            //Add in the base indenting level.
+            configString = applyIndent(configString, baseIndent, lineReturn);
+
+            return startString + configString + fileContents.substring(end);
+        },
+
+        /**
+         * Tries converting a JS object to a string. This will likely suck, and
+         * is tailored to the type of config expected in a loader config call.
+         * So, hasOwnProperty fields, strings, numbers, arrays and functions,
+         * no weird recursively referenced stuff.
+         * @param  {Object} obj        the object to convert
+         * @param  {String} indent     the indentation to use for each level
+         * @param  {String} lineReturn the type of line return to use
+         * @param  {outDentRegExp} outDentRegExp the regexp to use to outdent functions
+         * @param  {String} totalIndent the total indent to print for this level
+         * @return {String}            a string representation of the object.
+         */
+        objectToString: function (obj, indent, lineReturn, outDentRegExp, totalIndent) {
+            var startBrace, endBrace, nextIndent,
+                first = true,
+                value = '';
+
+            totalIndent = totalIndent || '';
+            nextIndent = totalIndent + indent;
+
+            if (obj === null) {
+                value = 'null';
+            } else if (obj === undefined) {
+                value = 'undefined';
+            } else if (typeof obj === 'number') {
+                value = obj;
+            } else if (typeof obj === 'string') {
+                //Use double quotes in case the config may also work as JSON.
+                value = '"' + lang.jsEscape(obj) + '"';
+            } else if (lang.isArray(obj)) {
+                lang.each(obj, function (item, i) {
+                    value += (i !== 0 ? ',' + lineReturn : '' ) +
+                        nextIndent +
+                        transform.objectToString(item,
+                                                 indent,
+                                                 lineReturn,
+                                                 outDentRegExp,
+                                                 nextIndent);
+                });
+
+                startBrace = '[';
+                endBrace = ']';
+            } else if (lang.isFunction(obj) || lang.isRegExp(obj)) {
+                //The outdent regexp just helps pretty up the conversion
+                //just in node. Rhino strips comments and does a different
+                //indent scheme for Function toString, so not really helpful
+                //there.
+                value = obj.toString().replace(outDentRegExp, '$1');
+            } else {
+                //An object
+                lang.eachProp(obj, function (v, prop) {
+                    value += (first ? '': ',' + lineReturn) +
+                        nextIndent +
+                        '"' + lang.jsEscape(prop) + '": ' +
+                        transform.objectToString(v,
+                                                 indent,
+                                                 lineReturn,
+                                                 outDentRegExp,
+                                                 nextIndent);
+                    first = false;
+                });
+                startBrace = '{';
+                endBrace = '}';
+            }
+
+            if (startBrace) {
+                value = startBrace +
+                        lineReturn +
+                        value +
+                        lineReturn + totalIndent +
+                        endBrace;
+            }
+
+            return value;
         }
     });
 });/**
@@ -22683,7 +22846,7 @@ define('build', function (require) {
                 throw new Error(mainConfigFile + ' does not exist.');
             }
             try {
-                mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
+                mainConfig = parse.findConfig(file.readFile(mainConfigFile)).config;
             } catch (configError) {
                 throw new Error('The config in mainConfigFile ' +
                         mainConfigFile +
