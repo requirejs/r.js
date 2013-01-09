@@ -1409,6 +1409,25 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Peaceful coexistence of package config with shim in a built context.
+    //https://github.com/jrburke/r.js/issues/331
+    doh.register("configPackageShim",
+        [
+            function configPackageShim(t) {
+                file.deleteFile("lib/configPackageShim/built");
+
+                build(["lib/configPackageShim/build.js"]);
+
+                t.is(nol(c("lib/configPackageShim/expected.js")),
+                     nol(c("lib/configPackageShim/built/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Make sure pluginBuilder works.
     //https://github.com/jrburke/r.js/issues/175
     doh.register("pluginBuilder",
