@@ -10,7 +10,17 @@
 define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, logger, lang) {
     'use strict';
     var transform,
-        indentRegExp = /\{[\r\n]+([ \t]+)/;
+        baseIndentRegExp = /\^([ \t]+)/,
+        indentRegExp = /\{[\r\n]+([ \t]+)/,
+        bulkIndentRegExps = {
+            '\n': /\n/g,
+            '\r\n': /\r\n/g
+        };
+
+    function applyIndent(str, indent, lineReturn) {
+        var regExp = bulkIndentRegExps[lineReturn];
+        return str.replace(regExp, '$&' + indent);
+    }
 
     return (transform = {
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
@@ -361,20 +371,26 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
         },
 
         serializeConfig: function (config, fileContents, start, end) {
+debugger;
             //Calculate base level of indent
-            var baseIndent, indent, match, configString,
+            var indent, match, configString,
+                baseIndent = '',
                 startString = fileContents.substring(0, start),
                 existingConfigString = fileContents.substring(start, end),
                 lineReturn = existingConfigString.indexOf('\r') === -1 ? '\n' : '\r\n',
                 lastReturnIndex = startString.lastIndexOf('\n');
 
+            //Get the basic amount of indent for the require config call.
             if (lastReturnIndex === -1) {
                 lastReturnIndex = 0;
             }
-            baseIndent = start - lastReturnIndex;
+            match = baseIndentRegExp.exec(startString.substring(lastReturnIndex + 1, start));
+            if (match && match[1]) {
+                baseIndent = match[1];
+            }
 
             //Calculate internal indentation for config
-            match = indentRegExp.match(existingConfigString);
+            match = indentRegExp.exec(existingConfigString);
             if (match && match[1]) {
                 indent = match[1];
             }
@@ -382,7 +398,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
             if (!indent || indent.length < baseIndent) {
                 indent = '  ';
             } else {
-                indent = indent - baseIndent;
+                indent = indent.substring(baseIndent.length - 1);
             }
 
             configString = transform.objectToString(config,
@@ -405,6 +421,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
          */
         objectToString: function (obj, baseIndent, indent, lineReturn, level) {
             var startBrace, endBrace, i,
+                first = true,
                 value = '',
                 finalIndent = '';
 
@@ -428,6 +445,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
             } else if (lang.isArray(obj)) {
                 lang.each(obj, function (item, i) {
                     value += (i !== 0 ? ',' + lineReturn : '' ) +
+                        finalIndent + indent +
                         transform.objectToString(item,
                                                  baseIndent,
                                                  indent,
@@ -441,25 +459,29 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                 value = obj.toString();
             } else {
                 //An object
-                lang.eachProp(obj, function (value, prop) {
-                    value += (i !== 0 ? ',' + lineReturn : '' ) +
+                lang.eachProp(obj, function (v, prop) {
+                    value += (first ? '': ',' + lineReturn) +
+                        finalIndent + indent +
                         '"' + lang.jsEscape(prop) + '": ' +
-                        transform.objectToString(value,
+                        transform.objectToString(v,
                                                  baseIndent,
                                                  indent,
                                                  lineReturn,
                                                  level + 1);
+                    first = false;
                 });
                 startBrace = '{';
                 endBrace = '}';
             }
 
             if (startBrace) {
-                value = baseIndent + startBrace + lineReturn +
-                        baseIndent + indent + value + lineReturn +
-                        baseIndent + endBrace;
-            } else {
-                value = baseIndent + finalIndent + value;
+                value = startBrace +
+                        lineReturn +
+                        applyIndent(value,
+                                   (level ? indent : baseIndent + indent),
+                                   lineReturn) +
+                        lineReturn +
+                        endBrace;
             }
 
             return value;
