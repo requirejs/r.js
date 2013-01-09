@@ -852,6 +852,9 @@ define(function (require) {
                 wrap[keyName] += (wrap[keyName] ? '\n' : '') +
                     file.readFile(build.makeAbsPath(fileName, absFilePath));
             });
+        } else if (wrap[keyName] === null ||  wrap[keyName] === undefined) {
+            //Allow missing one, just set to empty string.
+            wrap[keyName] = '';
         } else if (typeof wrap[keyName] !== 'string') {
             throw new Error('wrap.' + keyName + ' or wrap.' + keyFileName + ' malformed');
         }
