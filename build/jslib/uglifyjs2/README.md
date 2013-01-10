@@ -1,6 +1,6 @@
 Sets up uglifyjs2 for use in the optimizer.
 
-Current embedded version: 2.1.11
+Current embedded version: 2.2.3
 
 Steps:
 
@@ -12,6 +12,10 @@ This will update:
 
 * ../source-map.js
 * ../uglifyjs2.js
+
+THEN:
+
+Copy WHITESPACE_CHARS from node_modules/uglify-js2/lib/parse.js and replace the one in ../uglifyjs2.js
 
 THINGS TO CHECK:
 
