@@ -194,6 +194,14 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             this._values["$" + key] = val;
             return this;
         },
+        add: function(key, val) {
+            if (this.has(key)) {
+                this.get(key).push(val);
+            } else {
+                this.set(key, [ val ]);
+            }
+            return this;
+        },
         get: function(key) {
             return this._values["$" + key];
         },
@@ -433,9 +441,9 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         },
         wrap_commonjs: function(name, export_all) {
             var self = this;
+            var to_export = [];
             if (export_all) {
                 self.figure_out_scope();
-                var to_export = [];
                 self.walk(new TreeWalker(function(node) {
                     if (node instanceof AST_SymbolDeclaration && node.definition().global) {
                         if (!find_if(function(n) {
@@ -1025,7 +1033,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
     var RE_OCT_NUMBER = /^0[0-7]+$/;
     var RE_DEC_NUMBER = /^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i;
     var OPERATORS = makePredicate([ "in", "instanceof", "typeof", "new", "void", "delete", "++", "--", "+", "-", "!", "~", "&", "|", "^", "*", "/", "%", ">>", "<<", ">>>", "<", ">", "<=", ">=", "==", "===", "!=", "!==", "?", "=", "+=", "-=", "/=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=", "&&", "||" ]);
-    var WHITESPACE_CHARS = makePredicate(characters("  \n\r	\f​᠎             　"));
+    var WHITESPACE_CHARS = makePredicate(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
     var PUNC_BEFORE_EXPRESSION = makePredicate(characters("[{(,.;:"));
     var PUNC_CHARS = makePredicate(characters("[]{}(),;:"));
     var REGEXP_MODIFIERS = makePredicate(characters("gmsiy"));
@@ -1555,7 +1563,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                   case "do":
                     return new AST_Do({
                         body: in_loop(statement),
-                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(), 
+                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(),
                         tmp)
                     });
 
@@ -1577,7 +1585,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                   case "return":
                     if (S.in_function == 0) croak("'return' outside of function");
                     return new AST_Return({
-                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true), 
+                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true),
                         semicolon(), tmp)
                     });
 
@@ -1687,7 +1695,8 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             });
         }
         var function_ = function(in_statement, ctor) {
-            var name = is("name") ? as_symbol(in_statement ? AST_SymbolDefun : ctor === AST_Accessor ? AST_SymbolAccessor : AST_SymbolLambda) : null;
+            var is_accessor = ctor === AST_Accessor;
+            var name = is("name") ? as_symbol(in_statement ? AST_SymbolDefun : is_accessor ? AST_SymbolAccessor : AST_SymbolLambda) : is_accessor && (is("string") || is("num")) ? as_atom_node() : null;
             if (in_statement && !name) unexpected();
             expect("(");
             if (!ctor) ctor = in_statement ? AST_Defun : AST_Function;
@@ -2229,7 +2238,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                         x = this;
                         descend(x, tw);
                     } else {
-                        tw.stack[tw.stack - 1] = x = this.clone();
+                        tw.stack[tw.stack.length - 1] = x = this.clone();
                         descend(x, tw);
                         y = tw.after(x, in_list);
                         if (y !== undefined) x = y;
@@ -2379,9 +2388,12 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             if (node instanceof AST_Scope) {
                 node.init_scope_vars(nesting);
                 var save_scope = node.parent_scope = scope;
+                var save_labels = labels;
                 ++nesting;
                 scope = node;
+                labels = new Dictionary();
                 descend();
+                labels = save_labels;
                 scope = save_scope;
                 --nesting;
                 return true;
@@ -2403,9 +2415,6 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 labels.del(l.name);
                 return true;
             }
-            if (node instanceof AST_SymbolDeclaration) {
-                node.init_scope_vars();
-            }
             if (node instanceof AST_Symbol) {
                 node.scope = scope;
             }
@@ -2415,15 +2424,12 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             }
             if (node instanceof AST_SymbolLambda) {
                 (node.scope = scope.parent_scope).def_function(node);
-                node.init.push(tw.parent());
             } else if (node instanceof AST_SymbolDefun) {
                 (node.scope = scope.parent_scope).def_function(node);
-                node.init.push(tw.parent());
             } else if (node instanceof AST_SymbolVar || node instanceof AST_SymbolConst) {
                 var def = scope.def_variable(node);
                 def.constant = node instanceof AST_SymbolConst;
                 def = tw.parent();
-                if (def.value) node.init.push(def);
             } else if (node instanceof AST_SymbolCatch) {
                 scope.def_variable(node);
             }
@@ -2509,9 +2515,6 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         }
         this.frame = this.scope.nesting - def.scope.nesting;
     });
-    AST_SymbolDeclaration.DEFMETHOD("init_scope_vars", function() {
-        this.init = [];
-    });
     AST_Label.DEFMETHOD("init_scope_vars", function() {
         this.references = [];
     });
@@ -2587,7 +2590,8 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
     AST_Toplevel.DEFMETHOD("_default_mangler_options", function(options) {
         return defaults(options, {
             except: [],
-            eval: false
+            eval: false,
+            sort: false
         });
     });
     AST_Toplevel.DEFMETHOD("mangle_names", function(options) {
@@ -2602,12 +2606,16 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 return true;
             }
             if (node instanceof AST_Scope) {
-                var p = tw.parent();
+                var p = tw.parent(), a = [];
                 node.variables.each(function(symbol) {
                     if (options.except.indexOf(symbol.name) < 0) {
-                        to_mangle.push(symbol);
+                        a.push(symbol);
                     }
                 });
+                if (options.sort) a.sort(function(a, b) {
+                    return b.references.length - a.references.length;
+                });
+                to_mangle.push.apply(to_mangle, a);
                 return;
             }
             if (node instanceof AST_Label) {
@@ -2756,7 +2764,8 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             source_map: null,
             bracketize: false,
             semicolons: true,
-            comments: false
+            comments: false,
+            preserve_line: false
         }, true);
         var indentation = 0;
         var current_col = 0;
@@ -2853,6 +2862,16 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 }
                 might_need_semicolon = false;
                 maybe_newline();
+            }
+            if (!options.beautify && options.preserve_line && stack[stack.length - 1]) {
+                var target_line = stack[stack.length - 1].start.line;
+                while (current_line < target_line) {
+                    OUTPUT += "\n";
+                    current_pos++;
+                    current_line++;
+                    current_col = 0;
+                    might_need_space = false;
+                }
             }
             if (might_need_space) {
                 var prev = last_char();
@@ -3022,23 +3041,24 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
     }
     (function() {
         function DEFPRINT(nodetype, generator) {
-            nodetype.DEFMETHOD("print", function(stream) {
-                var self = this;
-                stream.push_node(self);
-                if (self.needs_parens(stream)) {
-                    stream.with_parens(function() {
-                        self.add_comments(stream);
-                        self.add_source_map(stream);
-                        generator(self, stream);
-                    });
-                } else {
+            nodetype.DEFMETHOD("_codegen", generator);
+        }
+        AST_Node.DEFMETHOD("print", function(stream, force_parens) {
+            var self = this, generator = self._codegen;
+            stream.push_node(self);
+            if (force_parens || self.needs_parens(stream)) {
+                stream.with_parens(function() {
                     self.add_comments(stream);
                     self.add_source_map(stream);
                     generator(self, stream);
-                }
-                stream.pop_node();
-            });
-        }
+                });
+            } else {
+                self.add_comments(stream);
+                self.add_source_map(stream);
+                generator(self, stream);
+            }
+            stream.pop_node();
+        });
         AST_Node.DEFMETHOD("print_to_string", function(options) {
             var s = OutputStream(options);
             this.print(s);
@@ -3107,13 +3127,6 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 var so = this.operator, sp = PRECEDENCE[so];
                 if (pp > sp || pp == sp && this === p.right && !(so == po && (so == "*" || so == "&&" || so == "||"))) {
                     return true;
-                }
-            }
-            if (this.operator == "in") {
-                if ((p instanceof AST_For || p instanceof AST_ForIn) && p.init === this) return true;
-                if (p instanceof AST_VarDef) {
-                    var v = output.parent(1), p2 = output.parent(2);
-                    if ((p2 instanceof AST_For || p2 instanceof AST_ForIn) && p2.init === v) return true;
                 }
             }
         });
@@ -3226,7 +3239,11 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             output.space();
             output.with_parens(function() {
                 if (self.init) {
-                    self.init.print(output);
+                    if (self.init instanceof AST_Definitions) {
+                        self.init.print(output);
+                    } else {
+                        parenthesize_for_noin(self.init, output, true);
+                    }
                     output.print(";");
                     output.space();
                 } else {
@@ -3322,7 +3339,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 make_block(self.body, output);
                 return;
             }
-            if (!self.body) return output.semicolon();
+            if (!self.body) return output.force_semicolon();
             if (self.body instanceof AST_Do && output.option("ie_proof")) {
                 make_block(self.body, output);
                 return;
@@ -3339,7 +3356,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                     b = b.body;
                 } else break;
             }
-            self.body.print(output);
+            force_statement(self.body, output);
         }
         DEFPRINT(AST_If, function(self, output) {
             output.print("if");
@@ -3439,13 +3456,26 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         DEFPRINT(AST_Const, function(self, output) {
             self._do_print(output, "const");
         });
+        function parenthesize_for_noin(node, output, noin) {
+            if (!noin) node.print(output); else try {
+                node.walk(new TreeWalker(function(node) {
+                    if (node instanceof AST_Binary && node.operator == "in") throw output;
+                }));
+                node.print(output);
+            } catch (ex) {
+                if (ex !== output) throw ex;
+                node.print(output, true);
+            }
+        }
         DEFPRINT(AST_VarDef, function(self, output) {
             self.name.print(output);
             if (self.value) {
                 output.space();
                 output.print("=");
                 output.space();
-                self.value.print(output);
+                var p = output.parent(1);
+                var noin = p instanceof AST_For || p instanceof AST_ForIn;
+                parenthesize_for_noin(self.value, output, noin);
             }
         });
         DEFPRINT(AST_Call, function(self, output) {
@@ -3461,7 +3491,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         DEFPRINT(AST_New, function(self, output) {
             output.print("new");
             output.space();
-            AST_Call.prototype.print.call(self, output);
+            AST_Call.prototype._codegen(self, output);
         });
         AST_Seq.DEFMETHOD("_do_print", function(output) {
             this.car.print(output);
@@ -4137,11 +4167,20 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             def(AST_UnaryPrefix, function() {
                 return this.operator == "typeof";
             });
-            def(AST_Binary, function() {
-                return this.operator == "+" && (this.left.is_string() || this.right.is_string());
+            def(AST_Binary, function(compressor) {
+                return this.operator == "+" && (this.left.is_string(compressor) || this.right.is_string(compressor));
             });
-            def(AST_Assign, function() {
-                return this.operator == "=" && this.right.is_string();
+            def(AST_Assign, function(compressor) {
+                return (this.operator == "=" || this.operator == "+=") && this.right.is_string(compressor);
+            });
+            def(AST_Seq, function(compressor) {
+                return this.cdr.is_string(compressor);
+            });
+            def(AST_Conditional, function(compressor) {
+                return this.consequent.is_string(compressor) && this.alternative.is_string(compressor);
+            });
+            def(AST_Call, function(compressor) {
+                return compressor.option("unsafe") && this.expression instanceof AST_SymbolRef && this.expression.name == "String" && this.expression.undeclared();
             });
         })(function(node, func) {
             node.DEFMETHOD("is_string", func);
@@ -4449,10 +4488,12 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             def(AST_Jump, function() {
                 return this;
             });
-            def(AST_BlockStatement, function() {
+            function block_aborts() {
                 var n = this.body.length;
                 return n > 0 && aborts(this.body[n - 1]);
-            });
+            }
+            def(AST_BlockStatement, block_aborts);
+            def(AST_SwitchBranch, block_aborts);
             def(AST_If, function() {
                 return this.alternative && aborts(this.body) && aborts(this.alternative);
             });
@@ -4494,16 +4535,21 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             var self = this;
             if (compressor.option("unused") && !(self instanceof AST_Toplevel) && !self.uses_eval) {
                 var in_use = [];
+                var initializations = new Dictionary();
                 var scope = this;
                 var tw = new TreeWalker(function(node, descend) {
                     if (node !== self) {
                         if (node instanceof AST_Defun) {
+                            initializations.add(node.name.name, node);
                             return true;
                         }
                         if (node instanceof AST_Definitions && scope === self) {
                             node.definitions.forEach(function(def) {
-                                if (def.value && def.value.has_side_effects()) {
-                                    def.value.walk(tw);
+                                if (def.value) {
+                                    initializations.add(def.name.name, def.value);
+                                    if (def.value.has_side_effects()) {
+                                        def.value.walk(tw);
+                                    }
                                 }
                             });
                             return true;
@@ -4524,16 +4570,15 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 self.walk(tw);
                 for (var i = 0; i < in_use.length; ++i) {
                     in_use[i].orig.forEach(function(decl) {
-                        if (decl instanceof AST_SymbolDeclaration) {
-                            decl.init.forEach(function(init) {
-                                var tw = new TreeWalker(function(node) {
-                                    if (node instanceof AST_SymbolRef) {
-                                        push_uniq(in_use, node.definition());
-                                    }
-                                });
-                                init.walk(tw);
+                        var init = initializations.get(decl.name);
+                        if (init) init.forEach(function(init) {
+                            var tw = new TreeWalker(function(node) {
+                                if (node instanceof AST_SymbolRef) {
+                                    push_uniq(in_use, node.definition());
+                                }
                             });
-                        }
+                            init.walk(tw);
+                        });
                     });
                 }
                 var tt = new TreeTransformer(function before(node, descend, in_list) {
@@ -4685,13 +4730,60 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                     }
                 });
                 self = self.transform(tt);
-                if (vars_found > 0) hoisted.unshift(make_node(AST_Var, self, {
-                    definitions: vars.map(function(def) {
-                        def = def.clone();
-                        def.value = null;
-                        return def;
-                    })
-                }));
+                if (vars_found > 0) {
+                    var defs = [];
+                    vars.each(function(def, name) {
+                        if (self instanceof AST_Lambda && find_if(function(x) {
+                            return x.name == def.name.name;
+                        }, self.argnames)) {
+                            vars.del(name);
+                        } else {
+                            def = def.clone();
+                            def.value = null;
+                            defs.push(def);
+                            vars.set(name, def);
+                        }
+                    });
+                    if (defs.length > 0) {
+                        for (var i = 0; i < self.body.length; ) {
+                            if (self.body[i] instanceof AST_SimpleStatement) {
+                                var expr = self.body[i].body, sym, assign;
+                                if (expr instanceof AST_Assign && expr.operator == "=" && (sym = expr.left) instanceof AST_Symbol && vars.has(sym.name)) {
+                                    var def = vars.get(sym.name);
+                                    if (def.value) break;
+                                    def.value = expr.right;
+                                    remove(defs, def);
+                                    defs.push(def);
+                                    self.body.splice(i, 1);
+                                    continue;
+                                }
+                                if (expr instanceof AST_Seq && (assign = expr.car) instanceof AST_Assign && assign.operator == "=" && (sym = assign.left) instanceof AST_Symbol && vars.has(sym.name)) {
+                                    var def = vars.get(sym.name);
+                                    if (def.value) break;
+                                    def.value = assign.right;
+                                    remove(defs, def);
+                                    defs.push(def);
+                                    self.body[i].body = expr.cdr;
+                                    continue;
+                                }
+                            }
+                            if (self.body[i] instanceof AST_EmptyStatement) {
+                                self.body.splice(i, 1);
+                                continue;
+                            }
+                            if (self.body[i] instanceof AST_BlockStatement) {
+                                var tmp = [ i, 1 ].concat(self.body[i].body);
+                                self.body.splice.apply(self.body, tmp);
+                                continue;
+                            }
+                            break;
+                        }
+                        defs = make_node(AST_Var, self, {
+                            definitions: defs
+                        });
+                        hoisted.push(defs);
+                    }
+                }
                 self.body = dirs.concat(hoisted, self.body);
             }
             return self;
@@ -4932,6 +5024,71 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 var stat = last_branch.body[last_branch.body.length - 1];
                 if (stat instanceof AST_Break && loop_body(compressor.loopcontrol_target(stat.label)) === self) last_branch.body.pop();
             }
+            var exp = self.expression.evaluate(compressor);
+            out: if (exp.length == 2) try {
+                self.expression = exp[0];
+                if (!compressor.option("dead_code")) break out;
+                var value = exp[1];
+                var in_if = false;
+                var in_block = false;
+                var started = false;
+                var stopped = false;
+                var ruined = false;
+                var tt = new TreeTransformer(function(node, descend, in_list) {
+                    if (node instanceof AST_Lambda || node instanceof AST_SimpleStatement) {
+                        return node;
+                    } else if (node instanceof AST_Switch && node === self) {
+                        node = node.clone();
+                        descend(node, this);
+                        return ruined ? node : make_node(AST_BlockStatement, node, {
+                            body: node.body.reduce(function(a, branch) {
+                                return a.concat(branch.body);
+                            }, [])
+                        }).transform(compressor);
+                    } else if (node instanceof AST_If || node instanceof AST_Try) {
+                        var save = in_if;
+                        in_if = !in_block;
+                        descend(node, this);
+                        in_if = save;
+                        return node;
+                    } else if (node instanceof AST_StatementWithBody || node instanceof AST_Switch) {
+                        var save = in_block;
+                        in_block = true;
+                        descend(node, this);
+                        in_block = save;
+                        return node;
+                    } else if (node instanceof AST_Break && this.loopcontrol_target(node.label) === self) {
+                        if (in_if) {
+                            ruined = true;
+                            return node;
+                        }
+                        if (in_block) return node;
+                        stopped = true;
+                        return in_list ? MAP.skip : make_node(AST_EmptyStatement, node);
+                    } else if (node instanceof AST_SwitchBranch && this.parent() === self) {
+                        if (stopped) return MAP.skip;
+                        if (node instanceof AST_Case) {
+                            var exp = node.expression.evaluate(compressor);
+                            if (exp.length < 2) {
+                                throw self;
+                            }
+                            if (exp[1] === value || started) {
+                                started = true;
+                                if (aborts(node)) stopped = true;
+                                descend(node, this);
+                                return node;
+                            }
+                            return MAP.skip;
+                        }
+                        descend(node, this);
+                        return node;
+                    }
+                });
+                tt.stack = compressor.stack.slice();
+                self = self.transform(tt);
+            } catch (ex) {
+                if (ex !== self) throw ex;
+            }
             return self;
         });
         OPT(AST_Case, function(self, compressor) {
@@ -5032,7 +5189,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                       case "Function":
                       case "Error":
                       case "Array":
-                        return make_node(AST_Call, self, self);
+                        return make_node(AST_Call, self, self).transform(compressor);
                     }
                 }
             }
@@ -5040,7 +5197,12 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         });
         OPT(AST_Seq, function(self, compressor) {
             if (!compressor.option("side_effects")) return self;
-            if (!self.car.has_side_effects()) return self.cdr;
+            if (!self.car.has_side_effects()) {
+                var p;
+                if (!(self.cdr instanceof AST_SymbolRef && self.cdr.name == "eval" && self.cdr.undeclared() && (p = compressor.parent()) instanceof AST_Call && p.expression === self)) {
+                    return self.cdr;
+                }
+            }
             if (compressor.option("cascade")) {
                 if (self.car instanceof AST_Assign && !self.car.left.has_side_effects() && self.car.left.equivalent_to(self.cdr)) {
                     return self.car;
@@ -5112,10 +5274,12 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         var commutativeOperators = makePredicate("== === != !== * & | ^");
         OPT(AST_Binary, function(self, compressor) {
             function reverse(op) {
-                if (op) self.operator = op;
-                var tmp = self.left;
-                self.left = self.right;
-                self.right = tmp;
+                if (!(self.left.has_side_effects() && self.right.has_side_effects())) {
+                    if (op) self.operator = op;
+                    var tmp = self.left;
+                    self.left = self.right;
+                    self.right = tmp;
+                }
             }
             if (commutativeOperators(self.operator)) {
                 if (self.right instanceof AST_Constant && !(self.left instanceof AST_Constant)) {
@@ -5126,7 +5290,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             if (compressor.option("comparisons")) switch (self.operator) {
               case "===":
               case "!==":
-                if (self.left.is_string() && self.right.is_string() || self.left.is_boolean() && self.right.is_boolean()) {
+                if (self.left.is_string(compressor) && self.right.is_string(compressor) || self.left.is_boolean() && self.right.is_boolean()) {
                     self.operator = self.operator.substr(0, 2);
                 }
 
@@ -5202,6 +5366,9 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                     reverse(">=");
                     break;
                 }
+            }
+            if (self.operator == "+" && self.right instanceof AST_String && self.right.getValue() === "" && self.left instanceof AST_Binary && self.left.operator == "+" && self.left.is_string(compressor)) {
+                return self.left;
             }
             return self;
         });
@@ -5745,6 +5912,9 @@ exports.minify = function(files, options, name) {
         inSourceMap  : null,
         fromString   : false,
         warnings     : false,
+        mangle       : {},
+        output       : null,
+        compress     : {}
     });
     if (typeof files == "string")
         files = [ files ];
@@ -5762,16 +5932,20 @@ exports.minify = function(files, options, name) {
     });
 
     // 2. compress
-    toplevel.figure_out_scope();
-    var sq = UglifyJS.Compressor({
-        warnings: options.warnings,
-    });
-    toplevel = toplevel.transform(sq);
+    if (options.compress) {
+        var compress = { warnings: options.warnings };
+        UglifyJS.merge(compress, options.compress);
+        toplevel.figure_out_scope();
+        var sq = UglifyJS.Compressor(compress);
+        toplevel = toplevel.transform(sq);
+    }
 
     // 3. mangle
-    toplevel.figure_out_scope();
-    toplevel.compute_char_frequency();
-    toplevel.mangle_names();
+    if (options.mangle) {
+        toplevel.figure_out_scope();
+        toplevel.compute_char_frequency();
+        toplevel.mangle_names(options.mangle);
+    }
 
     // 4. output
     var map = null;
@@ -5784,7 +5958,11 @@ exports.minify = function(files, options, name) {
         orig: inMap,
         root: options.sourceRoot
     });
-    var stream = UglifyJS.OutputStream({ source_map: map });
+    var output = { source_map: map };
+    if (options.output) {
+        UglifyJS.merge(output, options.output);
+    }
+    var stream = UglifyJS.OutputStream(output);
     toplevel.print(stream);
     return {
         code : stream + "",
