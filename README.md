@@ -179,7 +179,7 @@ and Java/Rhino:
     * node dist.js
     * cd tests
     * node ../r.js all.js
-    * java -classpath ../lib/rhino/js.jar:../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ./r.js all.js
+    * java -classpath ../lib/rhino/js.jar:../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ../r.js all.js
     * cd ../build/tests
     * node ../../r.js all.js
     * java -classpath ../../lib/rhino/js.jar:../../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ../../r.js all.js
