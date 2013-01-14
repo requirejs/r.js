@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Fri, 11 Jan 2013 23:14:38 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Mon, 14 Jan 2013 19:47:29 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Fri, 11 Jan 2013 23:14:38 GMT',
+        version = '2.1.2+ Mon, 14 Jan 2013 19:47:29 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -20726,6 +20726,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
+        defineStringCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\[\s*["']amd["']\s*\]/g,
         defineTypeFirstCheckRegExp: /\s*["']function["']\s*===\s*typeof\s+define\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
@@ -20761,6 +20762,8 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 //checks above.
                 fileContents = fileContents.replace(pragma.defineCheckRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
+                fileContents = fileContents.replace(pragma.defineStringCheckRegExp,
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define['amd']");
                 fileContents = fileContents.replace(pragma.defineTypeFirstCheckRegExp,
                                                     "'function' === typeof " + ns + ".define && " + ns + ".define.amd");
 
