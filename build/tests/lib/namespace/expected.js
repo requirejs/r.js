@@ -22,9 +22,18 @@ if(false){
         name: 'four'
     });
 };
+if (typeof foo.define === 'function' && foo.define['amd']) {
+    foo.define('modules/six',{
+        name: 'six'
+    });
+}
+;
 if ('function' === typeof foo.define && foo.define.amd) {
-    foo.define('modules/five',[],function () {
-       return { name: 'five' };
+    foo.define('modules/five',['require','./six'],function (require) {
+        return {
+            name: 'five',
+            six: require('./six')
+        };
     });
 }
 ;

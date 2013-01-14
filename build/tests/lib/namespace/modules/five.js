@@ -1,5 +1,8 @@
 if ("function" === typeof define && define.amd) {
-    define(function () {
-       return { name: 'five' };
+    define(function (require) {
+        return {
+            name: 'five',
+            six: require('./six')
+        };
     });
 }

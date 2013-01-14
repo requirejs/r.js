@@ -37,6 +37,7 @@ define(['parse', 'logger'], function (parse, logger) {
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
+        defineStringCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\[\s*["']amd["']\s*\]/g,
         defineTypeFirstCheckRegExp: /\s*["']function["']\s*===\s*typeof\s+define\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
@@ -72,6 +73,8 @@ define(['parse', 'logger'], function (parse, logger) {
                 //checks above.
                 fileContents = fileContents.replace(pragma.defineCheckRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
+                fileContents = fileContents.replace(pragma.defineStringCheckRegExp,
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define['amd']");
                 fileContents = fileContents.replace(pragma.defineTypeFirstCheckRegExp,
                                                     "'function' === typeof " + ns + ".define && " + ns + ".define.amd");
 
