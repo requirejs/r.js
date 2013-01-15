@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Mon, 14 Jan 2013 19:47:29 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Tue, 15 Jan 2013 01:33:33 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Mon, 14 Jan 2013 19:47:29 GMT',
+        version = '2.1.2+ Tue, 15 Jan 2013 01:33:33 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2908,11 +2908,12 @@ if(env === 'browser') {
  */
 
 /*jslint sloppy: true, nomen: true */
-/*global require, define, console, XMLHttpRequest, requirejs */
+/*global require, define, console, XMLHttpRequest, requirejs, location */
 
 define('browser/file', ['prim'], function (prim) {
 
-    var file;
+    var file,
+        currDirRegExp = /^\.(\/|$)/;
 
     function frontSlash(path) {
         return path.replace(/\\/g, '/');
@@ -2961,6 +2962,26 @@ define('browser/file', ['prim'], function (prim) {
          * @param {String} fileName
          */
         absPath: function (fileName) {
+            var dir;
+            if (currDirRegExp.test(fileName)) {
+                dir = frontSlash(location.href);
+                if (dir.indexOf('/') !== -1) {
+                    dir = dir.split('/');
+
+                    //Pull off protocol and host, just want
+                    //to allow paths (other build parts, like
+                    //require._isSupportedBuildUrl do not support
+                    //full URLs), but a full path from
+                    //the root.
+                    dir.splice(0, 3);
+
+                    dir.pop();
+                    dir = '/' + dir.join('/');
+                }
+
+                fileName = dir + fileName.substring(1);
+            }
+
             return fileName;
         },
 
