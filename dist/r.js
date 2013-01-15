@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Tue, 15 Jan 2013 01:33:33 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Tue, 15 Jan 2013 23:30:50 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Tue, 15 Jan 2013 01:33:33 GMT',
+        version = '2.1.2+ Tue, 15 Jan 2013 23:30:50 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -21146,7 +21146,7 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
                 }
                 return fileContents;
             } else {
-                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
+                throw new Error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }
 
             return fileContents;
@@ -21174,8 +21174,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
-        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
-        endSemicolonRegExp = /;\s*$/;
+        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g;
 
     /**
      * If an URL from a CSS url value contains start/end quotes, remove them.
@@ -21378,25 +21377,33 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
-                optConfig = config[optimizerName] || {}
+                optConfig = config[optimizerName] || {};
                 if (config.generateSourceMaps) {
                     optConfig.generateSourceMaps = !!config.generateSourceMaps;
                 }
 
-                if (config.preserveLicenseComments) {
-                    //Pull out any license comments for prepending after optimization.
-                    try {
-                        licenseContents = parse.getLicenseComments(fileName, fileContents);
-                    } catch (e) {
-                        logger.error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
+                try {
+                    if (config.preserveLicenseComments) {
+                        //Pull out any license comments for prepending after optimization.
+                        try {
+                            licenseContents = parse.getLicenseComments(fileName, fileContents);
+                        } catch (e) {
+                            throw new Error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
+                        }
+                    }
+
+                    fileContents = licenseContents + optFunc(fileName,
+                                                             fileContents,
+                                                             outFileName,
+                                                             keepLines,
+                                                             optConfig);
+                } catch (e) {
+                    if (config.throwWhen && config.throwWhen.optimize) {
+                        throw e;
+                    } else {
+                        logger.error(e);
                     }
                 }
-
-                fileContents = licenseContents + optFunc(fileName,
-                                                         fileContents,
-                                                         outFileName,
-                                                         keepLines,
-                                                         optConfig);
             }
 
             return fileContents;
@@ -21549,7 +21556,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     if (errMatch) {
                         errMessage = errMessage.substring(0, errMatch.index);
                     }
-                    logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
+                    throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
                 }
                 return fileContents;
             },
@@ -21581,7 +21588,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         fileContents = result.code;
                     }
                 } catch (e) {
-                    logger.error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
+                    throw new Error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
                 return fileContents;
             }
@@ -22850,7 +22857,8 @@ define('build', function (require) {
         hasOnSave: true,
         uglify: true,
         closure: true,
-        map: true
+        map: true,
+        throwWhen: true
     };
 
     build.hasDotPropMatch = function (prop) {
