@@ -981,6 +981,44 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/r.js/issues/350 CSS optimizer makes
+    //url() relative to cssIn option
+    doh.register("cssPrefix",
+        [
+            function cssPrefix(t) {
+                file.deleteFile("lib/cssPrefix/output/main-built.css");
+
+                build(["lib/cssPrefix/build.js"]);
+
+                t.is(nol(c("lib/cssPrefix/output/expected.css")),
+                     nol(c("lib/cssPrefix/output/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/350 CSS optimizer makes
+    //url() relative to cssIn option
+    doh.register("cssRelativeUrl",
+        [
+            function cssPrefix(t) {
+                file.deleteFile("lib/cssRelativeUrl/output/main-built.css");
+
+                build(["lib/cssRelativeUrl/build.js"]);
+
+                t.is(nol(c("lib/cssRelativeUrl/output/expected.css")),
+                     nol(c("lib/cssRelativeUrl/output/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/296 removeCombined should
     //remove files that have been inlined.
     doh.register("cssRemoveCombined",
