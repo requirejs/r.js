@@ -142,7 +142,7 @@ define(['logger', 'env!env/file'], function (logger, file) {
                 }
                 return fileContents;
             } else {
-                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
+                throw new Error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }
 
             return fileContents;

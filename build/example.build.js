@@ -466,6 +466,16 @@
     //Default is 0.
     logLevel: 0,
 
+    //Introduced in 2.1.3: Some situations do not throw and stop the optimizer
+    //when an error occurs. However, you may want to have the optimizer stop
+    //on certain kinds of errors and you can configure those situations via
+    //this option
+    throwWhen: {
+        //If there is an error calling the minifier for some JavaScript,
+        //instead of just skipping that file throw an error.
+        optimize: true
+    },
+
     //A function that if defined will be called for every file read in the
     //build that is done to trace JS dependencies. This allows transforms of
     //the content.

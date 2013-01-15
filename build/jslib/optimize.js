@@ -16,8 +16,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
-        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
-        endSemicolonRegExp = /;\s*$/;
+        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g;
 
     /**
      * If an URL from a CSS url value contains start/end quotes, remove them.
@@ -220,25 +219,33 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
-                optConfig = config[optimizerName] || {}
+                optConfig = config[optimizerName] || {};
                 if (config.generateSourceMaps) {
                     optConfig.generateSourceMaps = !!config.generateSourceMaps;
                 }
 
-                if (config.preserveLicenseComments) {
-                    //Pull out any license comments for prepending after optimization.
-                    try {
-                        licenseContents = parse.getLicenseComments(fileName, fileContents);
-                    } catch (e) {
-                        logger.error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
+                try {
+                    if (config.preserveLicenseComments) {
+                        //Pull out any license comments for prepending after optimization.
+                        try {
+                            licenseContents = parse.getLicenseComments(fileName, fileContents);
+                        } catch (e) {
+                            throw new Error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
+                        }
+                    }
+
+                    fileContents = licenseContents + optFunc(fileName,
+                                                             fileContents,
+                                                             outFileName,
+                                                             keepLines,
+                                                             optConfig);
+                } catch (e) {
+                    if (config.throwWhen && config.throwWhen.optimize) {
+                        throw e;
+                    } else {
+                        logger.error(e);
                     }
                 }
-
-                fileContents = licenseContents + optFunc(fileName,
-                                                         fileContents,
-                                                         outFileName,
-                                                         keepLines,
-                                                         optConfig);
             }
 
             return fileContents;
@@ -391,7 +398,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     if (errMatch) {
                         errMessage = errMessage.substring(0, errMatch.index);
                     }
-                    logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
+                    throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
                 }
                 return fileContents;
             },
@@ -423,7 +430,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         fileContents = result.code;
                     }
                 } catch (e) {
-                    logger.error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
+                    throw new Error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
                 return fileContents;
             }
