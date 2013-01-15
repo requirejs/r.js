@@ -156,7 +156,19 @@
     //If using UglifyJS for script optimization, these config options can be
     //used to pass configuration values to UglifyJS.
     //See https://github.com/mishoo/UglifyJS2 for possible values.
-    uglify2: {},
+    uglify2: {
+        //Example of a specialized config. If you are fine
+        //with the default options, no need to specify
+        //any of these properties.
+        output: {
+            beautify: true
+        },
+        compress: {
+            sequences: false
+        },
+        warnings: true,
+        mangle: false
+    },
 
     //If using Closure Compiler for script optimization, these config options
     //can be used to configure Closure Compiler. See the documentation for
