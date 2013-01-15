@@ -1,6 +1,7 @@
-define(['c'], function (c) {
+define(['c', 'd'], function (c, d) {
     return {
         name: 'b',
-        c: c
+        c: c,
+        d: d
     };
 });

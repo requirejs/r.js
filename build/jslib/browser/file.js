@@ -5,11 +5,12 @@
  */
 
 /*jslint sloppy: true, nomen: true */
-/*global require, define, console, XMLHttpRequest, requirejs */
+/*global require, define, console, XMLHttpRequest, requirejs, location */
 
 define(['prim'], function (prim) {
 
-    var file;
+    var file,
+        currDirRegExp = /^\.(\/|$)/;
 
     function frontSlash(path) {
         return path.replace(/\\/g, '/');
@@ -58,6 +59,26 @@ define(['prim'], function (prim) {
          * @param {String} fileName
          */
         absPath: function (fileName) {
+            var dir;
+            if (currDirRegExp.test(fileName)) {
+                dir = frontSlash(location.href);
+                if (dir.indexOf('/') !== -1) {
+                    dir = dir.split('/');
+
+                    //Pull off protocol and host, just want
+                    //to allow paths (other build parts, like
+                    //require._isSupportedBuildUrl do not support
+                    //full URLs), but a full path from
+                    //the root.
+                    dir.splice(0, 3);
+
+                    dir.pop();
+                    dir = '/' + dir.join('/');
+                }
+
+                fileName = dir + fileName.substring(1);
+            }
+
             return fileName;
         },
 

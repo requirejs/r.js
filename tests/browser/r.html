@@ -13,6 +13,9 @@
         document.getElementById('build').addEventListener('click', function (evt) {
             requirejs.optimize({
                 baseUrl: '.',
+                paths: {
+                    'd': 'sub/d'
+                },
                 include: ['a'],
                 out: function (text) {
                     document.getElementById('output').value = text;

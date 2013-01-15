@@ -6,6 +6,9 @@ self.onmessage = function (evt) {
     if (evt.data === 'run') {
         requirejs.optimize({
             baseUrl: '.',
+            paths: {
+                'd': 'sub/d'
+            },
             include: ['a'],
             out: function (text) {
                 out = text;
