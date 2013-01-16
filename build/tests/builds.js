@@ -1106,6 +1106,24 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    doh.register("shimFakeDefine",
+        [
+            function shimFakeDefine(t) {
+                file.deleteFile("lib/shimFakeDefine/main-built.js");
+
+                build(["lib/shimFakeDefine/build.js"]);
+
+                t.is(nol(c("lib/shimFakeDefine/expected.js")),
+                     nol(c("lib/shimFakeDefine/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("mapConfig",
         [
             function mapConfig(t) {

@@ -60,6 +60,7 @@ build/tests/lib/removeCombined/app-built
 build/tests/lib/removeCombined/baseUrl-built
 build/tests/lib/requireHoist/perLayer/built
 build/tests/lib/rhino-186/built
+build/tests/lib/shimFakeDefine/main-built.js
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/stubModules/perModule/built
 build/tests/lib/transportBeforeMinify/www-built

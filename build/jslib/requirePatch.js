@@ -319,10 +319,6 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                 context.execCb = function (name, cb, args, exports) {
                     var buildShimExports = getOwn(layer.context.buildShimExports, name);
 
-                    if (falseProp(layer.needsDefine, name) && !buildShimExports) {
-                        layer.modulesWithNames[name] = true;
-                    }
-
                     if (buildShimExports) {
                         return buildShimExports;
                     } else if (cb.__requireJsBuild || getOwn(layer.context.needFullExec, name)) {
