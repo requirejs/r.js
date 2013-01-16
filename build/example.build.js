@@ -155,7 +155,9 @@
 
     //If using UglifyJS for script optimization, these config options can be
     //used to pass configuration values to UglifyJS.
-    //See https://github.com/mishoo/UglifyJS2 for possible values.
+    //For possible values see:
+    //http://lisperator.net/uglifyjs/codegen
+    //http://lisperator.net/uglifyjs/compress
     uglify2: {
         //Example of a specialized config. If you are fine
         //with the default options, no need to specify
