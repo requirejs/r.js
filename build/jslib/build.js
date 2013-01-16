@@ -999,6 +999,12 @@ define(function (require) {
             if (!config.out) {
                 throw new Error('"out" option missing.');
             }
+            if (config.cssPrefix) {
+                //Make sure cssPrefix ends in a slash
+                config.cssPrefix = endsWithSlash(config.cssPrefix);
+            } else {
+                config.cssPrefix = '';
+            }
         }
         if (!config.cssIn && !config.baseUrl) {
             //Just use the current directory as the baseUrl

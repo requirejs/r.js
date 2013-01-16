@@ -43,9 +43,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
      * @param {String} fileName the file name
      * @param {String} fileContents the file contents
      * @param {String} cssImportIgnore comma delimited string of files to ignore
+     * @param {String} cssPrefix string to be prefixed before relative URLs
      * @param {Object} included an object used to track the files already imported
      */
-    function flattenCss(fileName, fileContents, cssImportIgnore, included) {
+    function flattenCss(fileName, fileContents, cssImportIgnore, cssPrefix, included) {
         //Find the last slash in the name.
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
@@ -96,7 +97,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 included[fullImportFileName] = true;
 
                 //Make sure to flatten any nested imports.
-                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, included);
+                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, cssPrefix, included);
                 importContents = flat.fileContents;
 
                 if (flat.importList.length) {
@@ -125,8 +126,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     //a protocol.
                     colonIndex = fixedUrlMatch.indexOf(":");
                     if (fixedUrlMatch.charAt(0) !== "/" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
-                        //It is a relative URL, tack on the path prefix
-                        urlMatch = importPath + fixedUrlMatch;
+                        //It is a relative URL, tack on the cssPrefix and path prefix
+                        urlMatch = cssPrefix + importPath + fixedUrlMatch;
+
                     } else {
                         logger.trace(importFileName + "\n  URL not a relative URL, skipping: " + urlMatch);
                     }
@@ -256,7 +258,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
             //Read in the file. Make sure we have a JS string.
             var originalFileContents = file.readFile(fileName),
-                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, {}),
+                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, config.cssPrefix, {}),
                 //Do not use the flattened CSS if there was one that was skipped.
                 fileContents = flat.skippedList.length ? originalFileContents : flat.fileContents,
                 startIndex, endIndex, buildText, comment;
