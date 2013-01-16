@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Tue, 15 Jan 2013 23:30:50 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Wed, 16 Jan 2013 21:00:01 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Tue, 15 Jan 2013 23:30:50 GMT',
+        version = '2.1.2+ Wed, 16 Jan 2013 21:00:01 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -21917,10 +21917,6 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                 //callback, but only if it meets certain criteria.
                 context.execCb = function (name, cb, args, exports) {
                     var buildShimExports = getOwn(layer.context.buildShimExports, name);
-
-                    if (falseProp(layer.needsDefine, name) && !buildShimExports) {
-                        layer.modulesWithNames[name] = true;
-                    }
 
                     if (buildShimExports) {
                         return buildShimExports;
