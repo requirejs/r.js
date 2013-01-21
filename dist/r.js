@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Thu, 17 Jan 2013 01:18:51 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Mon, 21 Jan 2013 06:08:20 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Thu, 17 Jan 2013 01:18:51 GMT',
+        version = '2.1.2+ Mon, 21 Jan 2013 06:08:20 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23299,8 +23299,7 @@ define('build', function (require) {
                 }
             }
         } catch (wrapError) {
-            throw new Error('Malformed wrap config: need both start/end or ' +
-                            'startFile/endFile: ' + wrapError.toString());
+            throw new Error('Malformed wrap config: ' + wrapError.toString());
         }
 
         //Do final input verification
