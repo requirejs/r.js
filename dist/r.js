@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.2+ Mon, 21 Jan 2013 06:08:20 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2+ Mon, 21 Jan 2013 21:40:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.2+ Mon, 21 Jan 2013 06:08:20 GMT',
+        version = '2.1.2+ Mon, 21 Jan 2013 21:40:15 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -21202,9 +21202,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
      * @param {String} fileName the file name
      * @param {String} fileContents the file contents
      * @param {String} cssImportIgnore comma delimited string of files to ignore
+     * @param {String} cssPrefix string to be prefixed before relative URLs
      * @param {Object} included an object used to track the files already imported
      */
-    function flattenCss(fileName, fileContents, cssImportIgnore, included) {
+    function flattenCss(fileName, fileContents, cssImportIgnore, cssPrefix, included) {
         //Find the last slash in the name.
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
@@ -21255,7 +21256,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 included[fullImportFileName] = true;
 
                 //Make sure to flatten any nested imports.
-                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, included);
+                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, cssPrefix, included);
                 importContents = flat.fileContents;
 
                 if (flat.importList.length) {
@@ -21284,8 +21285,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     //a protocol.
                     colonIndex = fixedUrlMatch.indexOf(":");
                     if (fixedUrlMatch.charAt(0) !== "/" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
-                        //It is a relative URL, tack on the path prefix
-                        urlMatch = importPath + fixedUrlMatch;
+                        //It is a relative URL, tack on the cssPrefix and path prefix
+                        urlMatch = cssPrefix + importPath + fixedUrlMatch;
+
                     } else {
                         logger.trace(importFileName + "\n  URL not a relative URL, skipping: " + urlMatch);
                     }
@@ -21423,7 +21425,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
             //Read in the file. Make sure we have a JS string.
             var originalFileContents = file.readFile(fileName),
-                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, {}),
+                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, config.cssPrefix, {}),
                 //Do not use the flattened CSS if there was one that was skipped.
                 fileContents = flat.skippedList.length ? originalFileContents : flat.fileContents,
                 startIndex, endIndex, buildText, comment;
@@ -23175,6 +23177,12 @@ define('build', function (require) {
             }
             if (!config.out) {
                 throw new Error('"out" option missing.');
+            }
+            if (config.cssPrefix) {
+                //Make sure cssPrefix ends in a slash
+                config.cssPrefix = endsWithSlash(config.cssPrefix);
+            } else {
+                config.cssPrefix = '';
             }
         }
         if (!config.cssIn && !config.baseUrl) {
