@@ -1123,8 +1123,7 @@ define(function (require) {
                 }
             }
         } catch (wrapError) {
-            throw new Error('Malformed wrap config: need both start/end or ' +
-                            'startFile/endFile: ' + wrapError.toString());
+            throw new Error('Malformed wrap config: ' + wrapError.toString());
         }
 
         //Do final input verification
