@@ -1259,7 +1259,7 @@ define(function (require) {
         rawTextByIds = require.s.contexts._.config.rawText;
         if (rawTextByIds) {
             lang.eachProp(rawTextByIds, function (contents, id) {
-                var url = require.toUrl(id);
+                var url = require.toUrl(id) + '.js';
                 require._cachedRawText[url] = contents;
             });
         }
