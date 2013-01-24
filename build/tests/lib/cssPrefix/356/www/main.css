@@ -1,0 +1,5 @@
+@import url('sub.css');
+
+.working {
+    background-image: url('some/valid/path.jpg');
+}

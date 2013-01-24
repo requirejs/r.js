@@ -1000,6 +1000,28 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Tests https://github.com/jrburke/r.js/issues/356 cssPrefix normalization
+    //done even in directory builds
+    doh.register("cssPrefixDirNormalization",
+        [
+            function cssPrefixDirNormalization(t) {
+                file.deleteFile("lib/cssPrefix/356/www-built");
+
+                build(["lib/cssPrefix/356/build.js"]);
+
+                t.is(nol(c("lib/cssPrefix/356/expected/main.css")),
+                     nol(c("lib/cssPrefix/356/www-built/main.css")));
+
+                t.is(nol(c("lib/cssPrefix/356/expected/sub.css")),
+                     nol(c("lib/cssPrefix/356/www-built/sub.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/296 removeCombined should
     //remove files that have been inlined.
     doh.register("cssRemoveCombined",
