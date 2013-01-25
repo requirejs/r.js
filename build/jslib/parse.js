@@ -10,12 +10,11 @@
 define(['./esprima'], function (esprima) {
     'use strict';
 
-    var ostring = Object.prototype.toString,
-        //This string is saved off because JSLint complains
-        //about obj.arguments use, as 'reserved word'
-        argPropName = 'arguments';
+    //This string is saved off because JSLint complains
+    //about obj.arguments use, as 'reserved word'
+    var argPropName = 'arguments';
 
-    //From an exprima example for traversing its ast.
+    //From an esprima example for traversing its ast.
     function traverse(object, visitor) {
         var key, child;
 
@@ -24,13 +23,15 @@ define(['./esprima'], function (esprima) {
         }
 
         if (visitor.call(null, object) === false) {
-            return;
+            return false;
         }
         for (key in object) {
             if (object.hasOwnProperty(key)) {
                 child = object[key];
                 if (typeof child === 'object' && child !== null) {
-                    traverse(child, visitor);
+                    if (traverse(child, visitor) === false) {
+                        return false;
+                    }
                 }
             }
         }
@@ -271,22 +272,21 @@ define(['./esprima'], function (esprima) {
         var match;
 
         traverse(node, function (node) {
-            var arg0, arg1,
-                exp = node.expression;
+            var arg0, arg1;
 
-            if (exp && exp.type === 'CallExpression' &&
-                    exp.callee && exp.callee.type === 'Identifier' &&
-                    exp.callee.name === 'define' && exp[argPropName]) {
+            if (node && node.type === 'CallExpression' &&
+                    node.callee && node.callee.type === 'Identifier' &&
+                    node.callee.name === 'define' && node[argPropName]) {
 
                 //Just the factory function passed to define
-                arg0 = exp[argPropName][0];
+                arg0 = node[argPropName][0];
                 if (arg0 && arg0.type === 'FunctionExpression') {
                     match = arg0;
                     return false;
                 }
 
                 //A string literal module ID followed by the factory function.
-                arg1 = exp[argPropName][1];
+                arg1 = node[argPropName][1];
                 if (arg0.type === 'Literal' &&
                         arg1 && arg1.type === 'FunctionExpression') {
                     match = arg1;
@@ -302,25 +302,25 @@ define(['./esprima'], function (esprima) {
      * Finds any config that is passed to requirejs. That includes calls to
      * require/requirejs.config(), as well as require({}, ...) and
      * requirejs({}, ...)
-     * @param {String} fileName
      * @param {String} fileContents
      *
-     * @returns {Object} a config object. Will be null if no config.
+     * @returns {Object} a config details object with the following properties:
+     * - config: {Object} the config object found. Can be undefined if no
+     * config found.
+     * - range: {Array} the start index and end index in the contents where
+     * the config was found. Can be undefined if no config found.
      * Can throw an error if the config in the file cannot be evaluated in
      * a build context to valid JavaScript.
      */
-    parse.findConfig = function (fileName, fileContents) {
+    parse.findConfig = function (fileContents) {
         /*jslint evil: true */
-        var jsConfig,
-            foundConfig = null,
+        var jsConfig, foundRange, foundConfig,
             astRoot = esprima.parse(fileContents, {
                 range: true
             });
 
         traverse(astRoot, function (node) {
             var arg,
-                exp = node.expression,
-                c = exp && exp.callee,
                 requireType = parse.hasRequire(node);
 
             if (requireType && (requireType === 'require' ||
@@ -328,19 +328,77 @@ define(['./esprima'], function (esprima) {
                     requireType === 'requireConfig' ||
                     requireType === 'requirejsConfig')) {
 
-                arg = exp[argPropName] && exp[argPropName][0];
+                arg = node[argPropName] && node[argPropName][0];
 
                 if (arg && arg.type === 'ObjectExpression') {
                     jsConfig = parse.nodeToString(fileContents, arg);
-                    foundConfig = eval('(' + jsConfig + ')');
+                    foundRange = arg.range;
+                    return false;
+                }
+            } else {
+                arg = parse.getRequireObjectLiteral(node);
+                if (arg) {
+                    jsConfig = parse.nodeToString(fileContents, arg);
+                    foundRange = arg.range;
                     return false;
                 }
             }
-
-
         });
 
-        return foundConfig;
+        if (jsConfig) {
+            foundConfig = eval('(' + jsConfig + ')');
+        }
+
+        return {
+            config: foundConfig,
+            range: foundRange
+        };
+    };
+
+    /** Returns the node for the object literal assigned to require/requirejs,
+     * for holding a declarative config.
+     */
+    parse.getRequireObjectLiteral = function (node) {
+        if (node.id && node.id.type === 'Identifier' &&
+                (node.id.name === 'require' || node.id.name === 'requirejs') &&
+                node.init && node.init.type === 'ObjectExpression') {
+            return node.init;
+        }
+    };
+
+    /**
+     * Renames require/requirejs/define calls to be ns + '.' + require/requirejs/define
+     * Does *not* do .config calls though. See pragma.namespace for the complete
+     * set of namespace transforms. This function is used because require calls
+     * inside a define() call should not be renamed, so a simple regexp is not
+     * good enough.
+     * @param  {String} fileContents the contents to transform.
+     * @param  {String} ns the namespace, *not* including trailing dot.
+     * @return {String} the fileContents with the namespace applied
+     */
+    parse.renameNamespace = function (fileContents, ns) {
+        var ranges = [],
+            astRoot = esprima.parse(fileContents, {
+                range: true
+            });
+
+        parse.recurse(astRoot, function (callName, config, name, deps, node) {
+            ranges.push(node.range);
+            //Do not recurse into define functions, they should be using
+            //local defines.
+            return callName !== 'define';
+        }, {});
+
+        //Go backwards through the found ranges, adding in the namespace name
+        //in front.
+        ranges.reverse();
+        ranges.forEach(function (range) {
+            fileContents = fileContents.substring(0, range[0]) +
+                           ns + '.' +
+                           fileContents.substring(range[0]);
+        });
+
+        return fileContents;
     };
 
     /**
@@ -369,7 +427,7 @@ define(['./esprima'], function (esprima) {
      * Finds only CJS dependencies, ones that are the form
      * require('stringLiteral')
      */
-    parse.findCjsDependencies = function (fileName, fileContents, options) {
+    parse.findCjsDependencies = function (fileName, fileContents) {
         var dependencies = [];
 
         traverse(esprima.parse(fileContents), function (node) {
@@ -397,20 +455,18 @@ define(['./esprima'], function (esprima) {
 
     //define.amd = ...
     parse.hasDefineAmd = function (node) {
-        var exp = node.expression;
-        return exp && exp.type === 'AssignmentExpression' &&
-            exp.left && exp.left.type === 'MemberExpression' &&
-            exp.left.object && exp.left.object.name === 'define' &&
-            exp.left.property && exp.left.property.name === 'amd';
+        return node && node.type === 'AssignmentExpression' &&
+            node.left && node.left.type === 'MemberExpression' &&
+            node.left.object && node.left.object.name === 'define' &&
+            node.left.property && node.left.property.name === 'amd';
     };
 
     //require(), requirejs(), require.config() and requirejs.config()
     parse.hasRequire = function (node) {
         var callName,
-            exp = node.expression,
-            c = exp && exp.callee;
+            c = node && node.callee;
 
-        if (exp && exp.type === 'CallExpression' && c) {
+        if (node && node.type === 'CallExpression' && c) {
             if (c.type === 'Identifier' &&
                     (c.name === 'require' ||
                     c.name === 'requirejs')) {
@@ -432,22 +488,40 @@ define(['./esprima'], function (esprima) {
 
     //define()
     parse.hasDefine = function (node) {
-        var exp = node.expression;
+        return node && node.type === 'CallExpression' && node.callee &&
+            node.callee.type === 'Identifier' &&
+            node.callee.name === 'define';
+    };
 
-        return exp && exp.type === 'CallExpression' && exp.callee &&
-            exp.callee.type === 'Identifier' &&
-            exp.callee.name === 'define';
+    /**
+     * If there is a named define in the file, returns the name. Does not
+     * scan for mulitple names, just the first one.
+     */
+    parse.getNamedDefine = function (fileContents) {
+        var name;
+        traverse(esprima.parse(fileContents), function (node) {
+            if (node && node.type === 'CallExpression' && node.callee &&
+            node.callee.type === 'Identifier' &&
+            node.callee.name === 'define' &&
+            node[argPropName] && node[argPropName][0] &&
+            node[argPropName][0].type === 'Literal') {
+                name = node[argPropName][0].value;
+                return false;
+            }
+        });
+
+        return name;
     };
 
     /**
      * Determines if define(), require({}|[]) or requirejs was called in the
      * file. Also finds out if define() is declared and if define.amd is called.
      */
-    parse.usesAmdOrRequireJs = function (fileName, fileContents, options) {
+    parse.usesAmdOrRequireJs = function (fileName, fileContents) {
         var uses;
 
         traverse(esprima.parse(fileContents), function (node) {
-            var type, callName, arg, exp;
+            var type, callName, arg;
 
             if (parse.hasDefDefine(node)) {
                 //function define() {}
@@ -457,8 +531,7 @@ define(['./esprima'], function (esprima) {
             } else {
                 callName = parse.hasRequire(node);
                 if (callName) {
-                    exp = node.expression;
-                    arg = exp[argPropName] && exp[argPropName][0];
+                    arg = node[argPropName] && node[argPropName][0];
                     if (arg && (arg.type === 'ObjectExpression' ||
                             arg.type === 'ArrayExpression')) {
                         type = callName;
@@ -484,7 +557,7 @@ define(['./esprima'], function (esprima) {
      * __dirname, __filename are used. So, not strictly traditional CommonJS,
      * also checks for Node variants.
      */
-    parse.usesCommonJs = function (fileName, fileContents, options) {
+    parse.usesCommonJs = function (fileName, fileContents) {
         var uses = null,
             assignsExports = false;
 
@@ -537,8 +610,6 @@ define(['./esprima'], function (esprima) {
 
 
     parse.findRequireDepNames = function (node, deps) {
-        var moduleName, i, n, call, args;
-
         traverse(node, function (node) {
             var arg;
 
@@ -568,17 +639,16 @@ define(['./esprima'], function (esprima) {
      */
     parse.parseNode = function (node, onMatch) {
         var name, deps, cjsDeps, arg, factory,
-            exp = node.expression,
-            args = exp && exp[argPropName],
+            args = node && node[argPropName],
             callName = parse.hasRequire(node);
 
         if (callName === 'require' || callName === 'requirejs') {
             //A plain require/requirejs call
-            arg = exp[argPropName] && exp[argPropName][0];
+            arg = node[argPropName] && node[argPropName][0];
             if (arg.type !== 'ArrayExpression') {
                 if (arg.type === 'ObjectExpression') {
                     //A config call, try the second arg.
-                    arg = exp[argPropName][1];
+                    arg = node[argPropName][1];
                 }
             }
 
@@ -587,7 +657,7 @@ define(['./esprima'], function (esprima) {
                 return;
             }
 
-            return onMatch("require", null, null, deps);
+            return onMatch("require", null, null, deps, node);
         } else if (parse.hasDefine(node) && args && args.length) {
             name = args[0];
             deps = args[1];
@@ -637,7 +707,7 @@ define(['./esprima'], function (esprima) {
                 name = name.value;
             }
 
-            return onMatch("define", null, name, deps);
+            return onMatch("define", null, name, deps, node);
         }
     };
 
@@ -666,6 +736,7 @@ define(['./esprima'], function (esprima) {
                 comment: true
             }),
             result = '',
+            existsMap = {},
             lineEnd = contents.indexOf('\r') === -1 ? '\n' : '\r\n';
 
         if (ast.comments) {
@@ -692,23 +763,24 @@ define(['./esprima'], function (esprima) {
                             } else {
                                 //No more single line comment blocks. Break out
                                 //and continue outer looping.
-                                value += lineEnd;
-                                i = j - 1;
                                 break;
                             }
                         }
+                        value += lineEnd;
+                        i = j - 1;
                     }
                 } else {
                     value = '/*' + commentNode.value + '*/' + lineEnd + lineEnd;
                 }
 
-                if (value.indexOf('license') !== -1 ||
+                if (!existsMap[value] && (value.indexOf('license') !== -1 ||
                         (commentNode.type === 'Block' &&
                             value.indexOf('/*!') === 0) ||
                         value.indexOf('opyright') !== -1 ||
-                        value.indexOf('(c)') !== -1) {
+                        value.indexOf('(c)') !== -1)) {
 
                     result += value;
+                    existsMap[value] = true;
                 }
 
             }

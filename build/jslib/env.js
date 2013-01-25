@@ -20,7 +20,8 @@
         env = 'rhino';
     } else if (typeof process !== 'undefined') {
         env = 'node';
-    } else if (typeof window !== "undefined" && navigator && document) {
+    } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
     }
 

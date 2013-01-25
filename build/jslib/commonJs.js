@@ -82,11 +82,11 @@ define(['env!env/file', 'parse'], function (file, parse) {
 
                 if (commonJsProps.dirname || commonJsProps.filename) {
                     preamble = 'var __filename = module.uri || "", ' +
-                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n';
+                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1); ';
                 }
 
                 //Construct the wrapper boilerplate.
-                fileContents = 'define(function (require, exports, module) {\n' +
+                fileContents = 'define(function (require, exports, module) {' +
                     preamble +
                     fileContents +
                     '\n});\n';

@@ -11,22 +11,22 @@ define(['commonJs'], function (commonJs) {
                     source2 = 'define("fake", [],\nfunction(){\nreturn{lol : \'you guise\'};\n});',
 
                     source3 = 'exports.name = "foo";',
-                    expected3 = 'define(function (require, exports, module) {\nexports.name = "foo";\n});\n',
+                    expected3 = 'define(function (require, exports, module) {exports.name = "foo";\n});\n',
 
                     source4 = 'module.exports = "foo";',
-                    expected4 = 'define(function (require, exports, module) {\nmodule.exports = "foo";\n});\n',
+                    expected4 = 'define(function (require, exports, module) {module.exports = "foo";\n});\n',
 
                     source5 = 'var a = require("a");\nexports.name = a;',
-                    expected5 = 'define(function (require, exports, module) {\nvar a = require("a");\nexports.name = a;\n});\n',
+                    expected5 = 'define(function (require, exports, module) {var a = require("a");\nexports.name = a;\n});\n',
 
                     source6 = 'exports.name = __dirname;',
-                    expected6 = 'define(function (require, exports, module) {\n' +
-                                'var __filename = module.uri || "", __dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n' +
+                    expected6 = 'define(function (require, exports, module) {' +
+                                'var __filename = module.uri || "", __dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1); ' +
                                 'exports.name = __dirname;\n});\n',
 
                     source7 = 'exports.name = __filename;',
-                    expected7 = 'define(function (require, exports, module) {\n' +
-                                'var __filename = module.uri || "", __dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n' +
+                    expected7 = 'define(function (require, exports, module) {' +
+                                'var __filename = module.uri || "", __dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1); ' +
                                 'exports.name = __filename;\n});\n';
 
                 t.is(source1, commonJs.convert('fake.js', source1));

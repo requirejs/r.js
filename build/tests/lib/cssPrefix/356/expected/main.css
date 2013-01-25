@@ -1,0 +1,9 @@
+.sub-path {
+    background-image: url(some/path.png);
+}
+.sub-path .again {
+    background-image: url(another/path.png);
+}
+.working {
+    background-image: url('some/valid/path.jpg');
+}

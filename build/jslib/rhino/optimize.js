@@ -4,10 +4,10 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint strict: false, plusplus: false */
-/*global define: false, java: false, Packages: false */
+/*jslint sloppy: true, plusplus: true */
+/*global define, java, Packages, com */
 
-define(['logger'], function (logger) {
+define(['logger', 'env!env/file'], function (logger, file) {
 
     //Add .reduce to Rhino so UglifyJS can run in Rhino,
     //inspired by https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/reduce
@@ -21,13 +21,12 @@ define(['logger'], function (logger) {
             if (arguments.length >= 2) {
                 accumulator = arguments[1];
             } else {
-                do {
-                    if (i in this) {
-                        accumulator = this[i++];
-                        break;
+                if (length) {
+                    while (!(i in this)) {
+                        i++;
                     }
+                    accumulator = this[i++];
                 }
-                while (true);
             }
 
             for (; i < length; i++) {
@@ -40,7 +39,8 @@ define(['logger'], function (logger) {
         };
     }
 
-    var JSSourceFilefromCode, optimize;
+    var JSSourceFilefromCode, optimize,
+        mapRegExp = /"file":"[^"]+"/;
 
     //Bind to Closure compiler, but if it is not available, do not sweat it.
     try {
@@ -52,20 +52,43 @@ define(['logger'], function (logger) {
         return JSSourceFilefromCode.invoke(null, [filename, content]);
     }
 
+
+    function getFileWriter(fileName, encoding) {
+        var outFile = new java.io.File(fileName), outWriter, parentDir;
+
+        parentDir = outFile.getAbsoluteFile().getParentFile();
+        if (!parentDir.exists()) {
+            if (!parentDir.mkdirs()) {
+                throw "Could not create directory: " + parentDir.getAbsolutePath();
+            }
+        }
+
+        if (encoding) {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
+        } else {
+            outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
+        }
+
+        return new java.io.BufferedWriter(outWriter);
+    }
+
     optimize = {
-        closure: function (fileName, fileContents, keepLines, config) {
+        closure: function (fileName, fileContents, outFileName, keepLines, config) {
             config = config || {};
-            var jscomp = Packages.com.google.javascript.jscomp,
+            var result, mappings, optimized, compressed, baseName, writer,
+                outBaseName, outFileNameMap, outFileNameMapContent,
+                jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
                 //Fake extern
                 externSourceFile = closurefromCode("fakeextern.js", " "),
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
                 options, option, FLAG_compilation_level, compiler,
-                Compiler = Packages.com.google.javascript.jscomp.Compiler,
-                result;
+                Compiler = Packages.com.google.javascript.jscomp.Compiler;
 
             logger.trace("Minifying file: " + fileName);
+
+            baseName = (new java.io.File(fileName)).getName();
 
             //Set up options
             options = new jscomp.CompilerOptions();
@@ -81,15 +104,45 @@ define(['logger'], function (logger) {
             FLAG_compilation_level = jscomp.CompilationLevel[config.CompilationLevel || 'SIMPLE_OPTIMIZATIONS'];
             FLAG_compilation_level.setOptionsForCompilationLevel(options);
 
+            if (config.generateSourceMaps) {
+                mappings = new java.util.ArrayList();
+
+                mappings.add(new com.google.javascript.jscomp.SourceMap.LocationMapping(fileName, baseName + ".src"));
+                options.setSourceMapLocationMappings(mappings);
+                options.setSourceMapOutputPath(fileName + ".map");
+            }
+
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
 
             result = compiler.compile(externSourceFile, jsSourceFile, options);
-            if (!result.success) {
-                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
+            if (result.success) {
+                optimized = String(compiler.toSource());
+
+                if (config.generateSourceMaps && result.sourceMap && outFileName) {
+                    outBaseName = (new java.io.File(outFileName)).getName();
+
+                    file.saveUtf8File(outFileName + ".src", fileContents);
+
+                    outFileNameMap = outFileName + ".map";
+                    writer = getFileWriter(outFileNameMap, "utf-8");
+                    result.sourceMap.appendTo(writer, outFileName);
+                    writer.close();
+
+                    //Not sure how better to do this, but right now the .map file
+                    //leaks the full OS path in the "file" property. Manually
+                    //modify it to not do that.
+                    file.saveFile(outFileNameMap,
+                        file.readFile(outFileNameMap).replace(mapRegExp, '"file":"' + baseName + '"'));
+
+                    fileContents = optimized + "\n//@ sourceMappingURL=" + outBaseName + ".map";
+                } else {
+                    fileContents = optimized;
+                }
+                return fileContents;
             } else {
-                fileContents = compiler.toSource();
+                throw new Error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }
 
             return fileContents;

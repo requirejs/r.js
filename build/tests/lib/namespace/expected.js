@@ -22,17 +22,26 @@ if(false){
         name: 'four'
     });
 };
+if (typeof foo.define === 'function' && foo.define['amd']) {
+    foo.define('modules/six',{
+        name: 'six'
+    });
+}
+;
 if ('function' === typeof foo.define && foo.define.amd) {
-    foo.define('modules/five',[],function () {
-       return { name: 'five' };
+    foo.define('modules/five',['require','./six'],function (require) {
+        return {
+            name: 'five',
+            six: require('./six')
+        };
     });
 }
 ;
 (function (define) {
-    foo.define('modules/three',[], function (require) {
+    foo.define('modules/three',['require','./four','./five'], function (require) {
         //If have dependencies, get them here
-        var four = foo.require('./four'),
-            five = foo.require('./five');
+        var four = require('./four'),
+            five = require('./five');
 
         //Return the module definition.
         return {

@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.0.5+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -13,14 +13,15 @@
 
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
-console: false, java: false, module: false, requirejsVars */
+console: false, java: false, module: false, requirejsVars, navigator,
+document, importScripts, self, location */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.0.5+',
+        version = '2.1.4',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -32,7 +33,24 @@ var requirejs, require, define;
         console.log('See https://github.com/jrburke/r.js for usage.');
     }
 
-    if (typeof Packages !== 'undefined') {
+    if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
+        env = 'browser';
+
+        readFile = function (path) {
+            return fs.readFileSync(path, 'utf8');
+        };
+
+        exec = function (string, name) {
+            return eval(string);
+        };
+
+        exists = function (fileName) {
+            console.log('x.js exists not applicable in browser env');
+            return false;
+        };
+
+    } else if (typeof Packages !== 'undefined') {
         env = 'rhino';
 
         fileName = args[0];
@@ -106,7 +124,9 @@ var requirejs, require, define;
 
     //INSERT require.js
 
-    if (env === 'rhino') {
+    if (env === 'browser') {
+        //INSERT build/jslib/browser.js
+    } else if (env === 'rhino') {
         //INSERT build/jslib/rhino.js
     } else if (env === 'node') {
         this.requirejsVars = {
@@ -152,14 +172,10 @@ var requirejs, require, define;
         }
     }
 
-    //If in Node, and included via a require('requirejs'), just export and
-    //THROW IT ON THE GROUND!
-    if (env === 'node' && reqMain !== module) {
-        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
-
+    function createRjsApi() {
         //Create a method that will run the optimzer given an object
         //config.
-        requirejs.optimize = function (config, callback) {
+        requirejs.optimize = function (config, callback, errback) {
             if (!loadedOptimizedLib) {
                 loadLib();
                 loadedOptimizedLib = true;
@@ -173,14 +189,27 @@ var requirejs, require, define;
                 config.logLevel = config.hasOwnProperty('logLevel') ?
                                   config.logLevel : logger.SILENT;
 
-                var result = build(config);
-
-                //Reset build internals on each run.
-                requirejs._buildReset();
-
-                if (callback) {
-                    callback(result);
+                //Reset build internals first in case this is part
+                //of a long-running server process that could have
+                //exceptioned out in a bad state. It is only defined
+                //after the first call though.
+                if (requirejs._buildReset) {
+                    requirejs._buildReset();
+                    requirejs._cacheReset();
                 }
+
+                function done(result) {
+                    //And clean up, in case something else triggers
+                    //a build in another pathway.
+                    if (requirejs._buildReset) {
+                        requirejs._buildReset();
+                        requirejs._cacheReset();
+                    }
+
+                    return result;
+                }
+
+                build(config).then(done, done).then(callback, errback);
             };
 
             requirejs({
@@ -211,8 +240,21 @@ var requirejs, require, define;
         };
 
         requirejs.define = define;
+    }
+
+    //If in Node, and included via a require('requirejs'), just export and
+    //THROW IT ON THE GROUND!
+    if (env === 'node' && reqMain !== module) {
+        setBaseUrl(path.resolve(reqMain ? reqMain.filename : '.'));
+
+        createRjsApi();
 
         module.exports = requirejs;
+        return;
+    } else if (env === 'browser') {
+        //Only option is to use the API.
+        setBaseUrl(location.href);
+        createRjsApi();
         return;
     }
 
@@ -228,19 +270,19 @@ var requirejs, require, define;
         loadLib();
 
         this.requirejsVars.require(['env!env/args', 'commonJs', 'env!env/print'],
-        function (args,           commonJs,   print) {
+            function (args, commonJs, print) {
 
-            var srcDir, outDir;
-            srcDir = args[0];
-            outDir = args[1];
+                var srcDir, outDir;
+                srcDir = args[0];
+                outDir = args[1];
 
-            if (!srcDir || !outDir) {
-                print('Usage: path/to/commonjs/modules output/dir');
-                return;
-            }
+                if (!srcDir || !outDir) {
+                    print('Usage: path/to/commonjs/modules output/dir');
+                    return;
+                }
 
-            commonJs.convertDir(args[0], args[1]);
-        });
+                commonJs.convertDir(args[0], args[1]);
+            });
     } else {
         //Just run an app
 
@@ -259,5 +301,5 @@ var requirejs, require, define;
     }
 
 }((typeof console !== 'undefined' ? console : undefined),
-  (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
-  (typeof readFile !== 'undefined' ? readFile : undefined)));
+    (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
+    (typeof readFile !== 'undefined' ? readFile : undefined)));

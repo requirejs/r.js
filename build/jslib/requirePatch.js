@@ -15,10 +15,20 @@
 
 //NOT asking for require as a dependency since the goal is to modify the
 //global require below
-define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs'],
-function (file,           pragma,   parse,   lang,   logger,   commonJs) {
+define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'], function (
+    file,
+    pragma,
+    parse,
+    lang,
+    logger,
+    commonJs,
+    prim
+) {
 
-    var allowRun = true;
+    var allowRun = true,
+        hasProp = lang.hasProp,
+        falseProp = lang.falseProp,
+        getOwn = lang.getOwn;
 
     //This method should be called when the patches to require should take hold.
     return function () {
@@ -38,8 +48,20 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
             exports,
             module;
 
-        //Stored cached file contents for reuse in other layers.
-        require._cachedFileContents = {};
+        /**
+         * Reset "global" build caches that are kept around between
+         * build layer builds. Useful to do when there are multiple
+         * top level requirejs.optimize() calls.
+         */
+        require._cacheReset = function () {
+            //Stored raw text caches, used by browser use.
+            require._cachedRawText = {};
+            //Stored cached file contents for reuse in other layers.
+            require._cachedFileContents = {};
+            //Store which cached files contain a require definition.
+            require._cachedDefinesRequireUrls = {};
+        };
+        require._cacheReset();
 
         /**
          * Makes sure the URL is something that can be supported by the
@@ -54,11 +76,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
             if (url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
-                   url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0) {
+                    url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0) {
                 return true;
             } else {
                 if (!layer.ignoredUrls[url]) {
-                    logger.info('Cannot optimize network URL, skipping: ' + url);
+                    if (url.indexOf('empty:') === -1) {
+                        logger.info('Cannot optimize network URL, skipping: ' + url);
+                    }
                     layer.ignoredUrls[url] = true;
                 }
                 return false;
@@ -83,6 +107,11 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
 
             //Only do this for the context used for building.
             if (name === '_') {
+                //For build contexts, do everything sync
+                context.nextTick = function (fn) {
+                    fn();
+                };
+
                 context.needFullExec = {};
                 context.fullExec = {};
                 context.plugins = {};
@@ -91,31 +120,22 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //Override the shim exports function generator to just
                 //spit out strings that can be used in the stringified
                 //build output.
-                context.makeShimExports = function (exports) {
-                    var result;
-                    if (typeof exports === 'string') {
-                        result = function () {
-                            return '(function (global) {\n' +
+                context.makeShimExports = function (value) {
+                    function fn() {
+                        return '(function (global) {\n' +
                             '    return function () {\n' +
-                            '        return global.' + exports + ';\n' +
-                            '    }\n' +
+                            '        var ret, fn;\n' +
+                            (value.init ?
+                                    ('       fn = ' + value.init.toString() + ';\n' +
+                                    '        ret = fn.apply(global, arguments);\n') : '') +
+                            (value.exports ?
+                                    '        return ret || global.' + value.exports + ';\n' :
+                                    '        return ret;\n') +
+                            '    };\n' +
                             '}(this))';
-                        };
-                        result.exports = exports;
-                    } else {
-                        result = function () {
-                            return '(function (global) {\n' +
-                            '    return function () {\n' +
-                            '        var func = ' + exports.toString() + ';\n' +
-                            '        return func.apply(global, arguments);\n' +
-                            '    }\n' +
-                            '}(this))';
-                        };
                     }
 
-                    //Mark the result has being tranformed by the build already.
-                    result.__buildReady = true;
-                    return result;
+                    return fn;
                 };
 
                 context.enable = function (depMap, parent) {
@@ -123,15 +143,17 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                         parentId = parent && parent.map.id,
                         needFullExec = context.needFullExec,
                         fullExec = context.fullExec,
-                        mod = context.registry[id];
+                        mod = getOwn(context.registry, id);
 
                     if (mod && !mod.defined) {
-                        if (parentId && needFullExec[parentId]) {
+                        if (parentId && getOwn(needFullExec, parentId)) {
                             needFullExec[id] = true;
                         }
-                    } else if ((needFullExec[id] && !fullExec[id]) ||
-                               (parentId && needFullExec[parentId] && !fullExec[id])) {
-                        context.undef(id);
+
+                    } else if ((getOwn(needFullExec, id) && falseProp(fullExec, id)) ||
+                               (parentId && getOwn(needFullExec, parentId) &&
+                                falseProp(fullExec, id))) {
+                        context.require.undef(id);
                     }
 
                     return oldEnable.apply(context, arguments);
@@ -164,78 +186,91 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                         layer.buildPathMap[moduleName] = url;
                         layer.buildFileToModule[url] = moduleName;
 
-                        if (context.plugins.hasOwnProperty(moduleName)) {
+                        if (hasProp(context.plugins, moduleName)) {
                             //plugins need to have their source evaled as-is.
                             context.needFullExec[moduleName] = true;
                         }
 
-                        try {
-                            if (require._cachedFileContents.hasOwnProperty(url) &&
-                                (!context.needFullExec[moduleName] || context.fullExec[moduleName])) {
+                        prim().start(function () {
+                            if (hasProp(require._cachedFileContents, url) &&
+                                    (falseProp(context.needFullExec, moduleName) ||
+                                    getOwn(context.fullExec, moduleName))) {
                                 contents = require._cachedFileContents[url];
+
+                                //If it defines require, mark it so it can be hoisted.
+                                //Done here and in the else below, before the
+                                //else block removes code from the contents.
+                                //Related to #263
+                                if (!layer.existingRequireUrl && require._cachedDefinesRequireUrls[url]) {
+                                    layer.existingRequireUrl = url;
+                                }
                             } else {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
-                                contents = file.readFile(url);
+                                return require._cacheReadAsync(url).then(function (text) {
+                                    contents = text;
 
-                                if (context.config.cjsTranslate) {
-                                    contents = commonJs.convert(url, contents);
-                                }
-
-                                //If there is a read filter, run it now.
-                                if (context.config.onBuildRead) {
-                                    contents = context.config.onBuildRead(moduleName, url, contents);
-                                }
-
-                                contents = pragma.process(url, contents, context.config, 'OnExecute');
-
-                                //Find out if the file contains a require() definition. Need to know
-                                //this so we can inject plugins right after it, but before they are needed,
-                                //and to make sure this file is first, so that define calls work.
-                                //This situation mainly occurs when the build is done on top of the output
-                                //of another build, where the first build may include require somewhere in it.
-                                try {
-                                    if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
-                                        layer.existingRequireUrl = url;
+                                    if (context.config.cjsTranslate) {
+                                        contents = commonJs.convert(url, contents);
                                     }
-                                } catch (e1) {
-                                    throw new Error('Parse error using esprima ' +
-                                                    'for file: ' + url + '\n' + e1);
-                                }
 
-                                if (context.plugins.hasOwnProperty(moduleName)) {
-                                    //This is a loader plugin, check to see if it has a build extension,
-                                    //otherwise the plugin will act as the plugin builder too.
-                                    pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
-                                    if (pluginBuilderMatch) {
-                                        //Load the plugin builder for the plugin contents.
-                                        builderName = context.makeModuleMap(pluginBuilderMatch[3],
-                                                                            context.makeModuleMap(moduleName),
-                                                                            null,
-                                                                            true).id;
-                                        contents = file.readFile(context.nameToUrl(builderName));
+                                    //If there is a read filter, run it now.
+                                    if (context.config.onBuildRead) {
+                                        contents = context.config.onBuildRead(moduleName, url, contents);
                                     }
-                                }
 
-                                //Parse out the require and define calls.
-                                //Do this even for plugins in case they have their own
-                                //dependencies that may be separate to how the pluginBuilder works.
-                                try {
-                                    if (!context.needFullExec[moduleName]) {
-                                        contents = parse(moduleName, url, contents, {
-                                            insertNeedsDefine: true,
-                                            has: context.config.has,
-                                            findNestedDependencies: context.config.findNestedDependencies
-                                        });
+                                    contents = pragma.process(url, contents, context.config, 'OnExecute');
+
+                                    //Find out if the file contains a require() definition. Need to know
+                                    //this so we can inject plugins right after it, but before they are needed,
+                                    //and to make sure this file is first, so that define calls work.
+                                    try {
+                                        if (!layer.existingRequireUrl && parse.definesRequire(url, contents)) {
+                                            layer.existingRequireUrl = url;
+                                            require._cachedDefinesRequireUrls[url] = true;
+                                        }
+                                    } catch (e1) {
+                                        throw new Error('Parse error using esprima ' +
+                                                        'for file: ' + url + '\n' + e1);
                                     }
-                                } catch (e2) {
-                                    throw new Error('Parse error using esprima ' +
-                                                    'for file: ' + url + '\n' + e2);
-                                }
+                                }).then(function () {
+                                    if (hasProp(context.plugins, moduleName)) {
+                                        //This is a loader plugin, check to see if it has a build extension,
+                                        //otherwise the plugin will act as the plugin builder too.
+                                        pluginBuilderMatch = pluginBuilderRegExp.exec(contents);
+                                        if (pluginBuilderMatch) {
+                                            //Load the plugin builder for the plugin contents.
+                                            builderName = context.makeModuleMap(pluginBuilderMatch[3],
+                                                                                context.makeModuleMap(moduleName),
+                                                                                null,
+                                                                                true).id;
+                                            return require._cacheReadAsync(context.nameToUrl(builderName));
+                                        }
+                                    }
+                                    return contents;
+                                }).then(function (text) {
+                                    contents = text;
 
-                                require._cachedFileContents[url] = contents;
+                                    //Parse out the require and define calls.
+                                    //Do this even for plugins in case they have their own
+                                    //dependencies that may be separate to how the pluginBuilder works.
+                                    try {
+                                        if (falseProp(context.needFullExec, moduleName)) {
+                                            contents = parse(moduleName, url, contents, {
+                                                insertNeedsDefine: true,
+                                                has: context.config.has,
+                                                findNestedDependencies: context.config.findNestedDependencies
+                                            });
+                                        }
+                                    } catch (e2) {
+                                        throw new Error('Parse error using esprima ' +
+                                                        'for file: ' + url + '\n' + e2);
+                                    }
+
+                                    require._cachedFileContents[url] = contents;
+                                });
                             }
-
+                        }).then(function () {
                             if (contents) {
                                 eval(contents);
                             }
@@ -244,10 +279,10 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 //If have a string shim config, and this is
                                 //a fully executed module, try to see if
                                 //it created a variable in this eval scope
-                                if (context.needFullExec[moduleName]) {
-                                    shim = context.config.shim[moduleName];
-                                    if (shim && shim.exports && shim.exports.exports) {
-                                        shimExports = eval(shim.exports.exports);
+                                if (getOwn(context.needFullExec, moduleName)) {
+                                    shim = getOwn(context.config.shim, moduleName);
+                                    if (shim && shim.exports) {
+                                        shimExports = eval(shim.exports);
                                         if (typeof shimExports !== 'undefined') {
                                             context.buildShimExports[moduleName] = shimExports;
                                         }
@@ -265,13 +300,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                                 e.moduleTree.push(moduleName);
                                 throw e;
                             }
+                        }).then(null, function (eOuter) {
 
-                        } catch (eOuter) {
                             if (!eOuter.fileName) {
                                 eOuter.fileName = url;
                             }
                             throw eOuter;
-                        }
+                        }).end();
                     } else {
                         //With unsupported URLs still need to call completeLoad to
                         //finish loading.
@@ -282,21 +317,17 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //Marks module has having a name, and optionally executes the
                 //callback, but only if it meets certain criteria.
                 context.execCb = function (name, cb, args, exports) {
-                    var buildShimExports = layer.context.buildShimExports[name];
-
-                    if (!layer.needsDefine[name] && !buildShimExports) {
-                        layer.modulesWithNames[name] = true;
-                    }
+                    var buildShimExports = getOwn(layer.context.buildShimExports, name);
 
                     if (buildShimExports) {
                         return buildShimExports;
-                    } else if (cb.__requireJsBuild || layer.context.needFullExec[name]) {
+                    } else if (cb.__requireJsBuild || getOwn(layer.context.needFullExec, name)) {
                         return cb.apply(exports, args);
                     }
                     return undefined;
                 };
 
-                moduleProto.init = function(depMaps) {
+                moduleProto.init = function (depMaps) {
                     if (context.needFullExec[this.map.id]) {
                         lang.each(depMaps, lang.bind(this, function (depMap) {
                             if (typeof depMap === 'string') {
@@ -305,7 +336,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                             }
 
                             if (!context.fullExec[depMap.id]) {
-                                context.undef(depMap.id);
+                                context.require.undef(depMap.id);
                             }
                         }));
                     }
@@ -317,15 +348,15 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                     var map = this.map,
                         pluginMap = context.makeModuleMap(map.prefix),
                         pluginId = pluginMap.id,
-                        pluginMod = context.registry[pluginId];
+                        pluginMod = getOwn(context.registry, pluginId);
 
                     context.plugins[pluginId] = true;
                     context.needFullExec[pluginId] = true;
 
                     //If the module is not waiting to finish being defined,
                     //undef it and start over, to get full execution.
-                    if (!context.fullExec[pluginId] && (!pluginMod || pluginMod.defined)) {
-                        context.undef(pluginMap.id);
+                    if (falseProp(context.fullExec, pluginId) && (!pluginMod || pluginMod.defined)) {
+                        context.require.undef(pluginMap.id);
                     }
 
                     return oldCallPlugin.apply(this, arguments);
@@ -377,7 +408,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
         //This function signature does not have to be exact, just match what we
         //are looking for.
         define = function (name) {
-            if (typeof name === "string" && !layer.needsDefine[name]) {
+            if (typeof name === "string" && falseProp(layer.needsDefine, name)) {
                 layer.modulesWithNames[name] = true;
             }
             return oldDef.apply(require, arguments);
@@ -402,13 +433,13 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
             //that. Only valid for the context used in a build, not for
             //other contexts being run, like for useLib, plain requirejs
             //use in node/rhino.
-            if (context.needFullExec && context.needFullExec[id]) {
+            if (context.needFullExec && getOwn(context.needFullExec, id)) {
                 context.fullExec[id] = true;
             }
 
             //A plugin.
             if (map.prefix) {
-                if (!layer.pathAdded[id]) {
+                if (falseProp(layer.pathAdded, id)) {
                     layer.buildFilePaths.push(id);
                     //For plugins the real path is not knowable, use the name
                     //for both module to file and file to module mappings.
@@ -421,7 +452,7 @@ function (file,           pragma,   parse,   lang,   logger,   commonJs) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
                 url = normalizeUrlWithBase(context, id, map.url);
-                if (!layer.pathAdded[url] && layer.buildPathMap[id]) {
+                if (!layer.pathAdded[url] && getOwn(layer.buildPathMap, id)) {
                     //Remember the list of dependencies for this layer.
                     layer.buildFilePaths.push(url);
                     layer.pathAdded[url] = true;

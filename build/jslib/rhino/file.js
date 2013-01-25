@@ -5,10 +5,10 @@
  */
 //Helper functions to deal with file I/O.
 
-/*jslint plusplus: false, strict: true */
+/*jslint plusplus: false */
 /*global java: false, define: false */
 
-define(function () {
+define(['prim'], function (prim) {
     var file = {
         backSlashRegExp: /\\/g,
 
@@ -200,6 +200,16 @@ define(function () {
             } finally {
                 input.close();
             }
+        },
+
+        readFileAsync: function (path, encoding) {
+            var d = prim();
+            try {
+                d.resolve(file.readFile(path, encoding));
+            } catch (e) {
+                d.reject(e);
+            }
+            return d.promise;
         },
 
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {

@@ -1,16 +1,17 @@
 
-var AUX = {
+var PAX = {
     toUp: function (value) {
         return value.toUpperCase();
     }
 };
-define("aux", (function (global) {
+define("pax", (function (global) {
     return function () {
-        return global.AUX;
-    }
+        var ret, fn;
+        return ret || global.PAX;
+    };
 }(this)));
 
-define('plug',['aux'], function (aux) {
+define('plug',['pax'], function (pax) {
     var buildMap = {};
 
     function jsEscape(content) {
@@ -24,7 +25,7 @@ define('plug',['aux'], function (aux) {
 
     return {
         load: function (id, require, load, config) {
-            var converted = aux.toUp(id);
+            var converted = pax.toUp(id);
             buildMap[id] = converted;
             load(converted);
         },

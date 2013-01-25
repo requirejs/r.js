@@ -1,4 +1,4 @@
-define(['aux'], function (aux) {
+define(['pax'], function (pax) {
     var buildMap = {};
 
     function jsEscape(content) {
@@ -12,7 +12,7 @@ define(['aux'], function (aux) {
 
     return {
         load: function (id, require, load, config) {
-            var converted = aux.toUp(id);
+            var converted = pax.toUp(id);
             buildMap[id] = converted;
             load(converted);
         },

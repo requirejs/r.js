@@ -53,16 +53,15 @@ http.createServer(function (req, res) {
     req.on('end', function () {
         //Does not matter what the request is,
         //the answer is always OPTIMIZED JS!
-        try {
-            requirejs.optimize(config, function (buildResponse) {
-                //buildResponse is just a text output of the modules
-                //included. Load the built file for the contents.
-                var contents = fs.readFileSync(config.out, 'utf8');
-                respond(res, 200, contents);
-            });
-        } catch (e) {
+        requirejs.optimize(config, function (buildResponse) {
+            //buildResponse is just a text output of the modules
+            //included. Load the built file for the contents.
+            var contents = fs.readFileSync(config.out, 'utf8');
+            respond(res, 200, contents);
+        }, function (e) {
+            //As of r.js 2.1.2, errors are returned via an errback
             respond(res, 500, e.toString());
-        }
+        });
     });
 
 }).listen(port, host);

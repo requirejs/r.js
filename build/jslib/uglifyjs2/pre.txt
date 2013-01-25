@@ -1,0 +1,3 @@
+//Distributed under the BSD license:
+//Copyright 2012 (c) Mihai Bazon <mihai.bazon@gmail.com>
+define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, logger) {

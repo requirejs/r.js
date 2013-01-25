@@ -25,9 +25,9 @@
     baseUrl: "./",
 
     //By default all the configuration for optimization happens from the command
-    //line or by properties in the a config file, and configuration that was
+    //line or by properties in the config file, and configuration that was
     //passed to requirejs as part of the app's runtime "main" JS file is *not*
-    //considered. However, if you prefer for the that "main" JS file configuration
+    //considered. However, if you prefer the "main" JS file configuration
     //to be read for the build so that you do not have to duplicate the values
     //in a separate configuration, set this property to the location of that
     //main JS file. The first requirejs({}), require({}), requirejs.config({}),
@@ -48,13 +48,20 @@
 
     //Configure CommonJS packages. See http://requirejs.org/docs/api.html#packages
     //for more information.
-    packagePaths: [],
     packages: [],
 
     //The directory path to save the output. If not specified, then
     //the path will default to be a directory called "build" as a sibling
     //to the build file. All relative paths are relative to the build file.
     dir: "../some/path",
+
+    //If shim config is used in the app during runtime, duplicate the config
+    //here. Necessary if shim config is used, so that the shim's dependencies
+    //are included in the build. Using "mainConfigFile" is a better way to
+    //pass this information though, so that it is only listed in one place.
+    //However, if mainConfigFile is not an option, the shim config can be
+    //inlined in the build config.
+    shim: {},
 
     //As of RequireJS 2.0.2, the dir above will be deleted before the
     //build starts again. If you have a big build and are not doing
@@ -74,6 +81,7 @@
     //Right now only the following values
     //are supported:
     //- "uglify": (default) uses UglifyJS to minify the code.
+    //- "uglify2": in version 2.1.2+. Uses UglifyJS2.
     //- "closure": uses Google's Closure Compiler in simple optimization
     //mode to minify the code. Only available if running the optimizer using
     //Java.
@@ -81,6 +89,48 @@
     //in the minified files.
     //- "none": no minification will be done.
     optimize: "uglify",
+
+    //Introduced in 2.1.2: If using "dir" for an output directory, normally the
+    //optimize setting is used to optimize the build layers (the "modules"
+    //section of the config) and any other JS file in the directory. However, if
+    //the non-build layer JS files will not be loaded after a build, you can
+    //skip the optimization of those files, to speed up builds. Set this value
+    //to true if you want to skip optimizing those other non-build layer JS
+    //files.
+    skipDirOptimize: false,
+
+    //Introduced in 2.1.2 and considered experimental.
+    //If the minifier specified in the "optimize" option supports generating
+    //source maps for the minfied code, then generate them. The source maps
+    //generated only translate minified JS to non-minified JS, it does not do
+    //anything magical for translating minfied JS to transpiled source code.
+    //Currently only optimize: "uglify2" is supported when running in node or
+    //rhino, and if running in rhino, "closure" with a closure compiler jar
+    //build after r1592 (20111114 release).
+    //The source files will show up in a browser developer tool that supports
+    //source maps as ".js.src" files.
+    generateSourceMaps: false,
+
+    //Introduced in 2.1.1: If a full directory optimization ("dir" is used), and
+    //optimize is not "none", and skipDirOptimize is false, then normally all JS
+    //files in the directory will be minified, and this value is automatically
+    //set to "all". For JS files to properly work after a minification, the
+    //optimizer will parse for define() calls and insert any dependency arrays
+    //that are missing. However, this can be a bit slow if there are many/larger
+    //JS files. So this transport normalization is not done (automatically set
+    //to "skip") if optimize is set to "none". Cases where you may want to
+    //manually set this value:
+    //1) Optimizing later: if you plan on minifying the non-build layer JS files
+    //after the optimizer runs (so not as part of running the optimizer), then
+    //you should explicitly this value to "all".
+    //2) Optimizing, but not dynamically loading later: you want to do a full
+    //project optimization, but do not plan on dynamically loading non-build
+    //layer JS files later. In this case, the normalization just slows down
+    //builds, so you can explicitly set this value to "skip".
+    //Finally, all build layers (specified in the "modules" or "out" setting)
+    //automatically get normalization, so this setting does not apply to those
+    //files.
+    normalizeDirDefines: "skip",
 
     //If using UglifyJS for script optimization, these config options can be
     //used to pass configuration values to UglifyJS.
@@ -91,10 +141,35 @@
         beautify: true,
         max_line_length: 1000,
 
+        //How to pass uglifyjs defined symbols for AST symbol replacement,
+        //see "defines" options for ast_mangle in the uglifys docs.
+        defines: {
+            DEBUG: ['name', 'false']
+        },
+
         //Custom value supported by r.js but done differently
         //in uglifyjs directly:
         //Skip the processor.ast_mangle() part of the uglify call (r.js 2.0.5+)
         no_mangle: true
+    },
+
+    //If using UglifyJS for script optimization, these config options can be
+    //used to pass configuration values to UglifyJS.
+    //For possible values see:
+    //http://lisperator.net/uglifyjs/codegen
+    //http://lisperator.net/uglifyjs/compress
+    uglify2: {
+        //Example of a specialized config. If you are fine
+        //with the default options, no need to specify
+        //any of these properties.
+        output: {
+            beautify: true
+        },
+        compress: {
+            sequences: false
+        },
+        warnings: true,
+        mangle: false
     },
 
     //If using Closure Compiler for script optimization, these config options
@@ -119,9 +194,9 @@
     optimizeCss: "standard.keepLines",
 
     //If optimizeCss is in use, a list of of files to ignore for the @import
-    //inlining. The value of this option should be a comma separated list
-    //of CSS file names to ignore. The file names should match whatever
-    //strings are used in the @import calls.
+    //inlining. The value of this option should be a string of comma separated
+    //CSS file names to ignore (like 'a.css,b.css'. The file names should match
+    //whatever strings are used in the @import calls.
     cssImportIgnore: null,
 
     //cssIn is typically used as a command line option. It can be used
@@ -363,8 +438,16 @@
     //File paths are relative to the build file, or if running a commmand
     //line build, the current directory.
     wrap: {
-        startFile: "part/start.frag",
+        startFile: "parts/start.frag",
         endFile: "parts/end.frag"
+    },
+
+    //As of r.js 2.1.0, startFile and endFile can be arrays of files, and
+    //they will all be loaded and inserted at the start or end, respectively,
+    //of the build layer.
+    wrap: {
+        startFile: ["parts/startOne.frag", "parts/startTwo.frag"],
+        endFile: ["parts/endOne.frag", "parts/endTwo.frag"]
     },
 
     //When the optimizer copies files from the source location to the
@@ -397,6 +480,16 @@
     //Default is 0.
     logLevel: 0,
 
+    //Introduced in 2.1.3: Some situations do not throw and stop the optimizer
+    //when an error occurs. However, you may want to have the optimizer stop
+    //on certain kinds of errors and you can configure those situations via
+    //this option
+    throwWhen: {
+        //If there is an error calling the minifier for some JavaScript,
+        //instead of just skipping that file throw an error.
+        optimize: true
+    },
+
     //A function that if defined will be called for every file read in the
     //build that is done to trace JS dependencies. This allows transforms of
     //the content.
@@ -412,6 +505,14 @@
         //Always return a value.
         //This is just a contrived example.
         return contents.replace(/bar/g, 'foo');
+    },
+
+    //Introduced in 2.1.3: Seed raw text contents for the listed module IDs.
+    //These text contents will be used instead of doing a file IO call for
+    //those modules. Useful is some module ID contents are dynamically
+    //based on user input, which is common in web build tools.
+    rawText: {
+        'some/id': 'define(["another/id"], function () {});'
     },
 
     //Introduced in 2.0.2: if set to true, then the optimizer will add a
