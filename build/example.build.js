@@ -538,5 +538,12 @@
     //http://en.wikipedia.org/wiki/Conditional_comment#Conditional_comments_in_JScript
     //2) It is only useful in optimize: 'none' scenarios. The goal is to allow
     //easier built layer debugging, which goes against minification desires.
-    useSourceUrl: true
+    useSourceUrl: true,
+
+    //Defines the loading time for modules. Depending on the complexity of the
+    //dependencies and the size of the involved libraries, increasing the wait
+    //interval may be required. Default is 7 seconds. Setting the value to 0
+    //disables the waiting interval.
+    waitSeconds: 7
+
 })
