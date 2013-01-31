@@ -206,6 +206,11 @@ var requirejs, require, define;
                         requirejs._cacheReset();
                     }
 
+                    // Ensure errors get propagated to the errback
+                    if (result instanceof Error) {
+                      throw result;
+                    }
+
                     return result;
                 }
 
