@@ -66,7 +66,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                         //it.
                         lastRange = defineRanges.length &&
                             defineRanges[defineRanges.length - 1];
-                        if (lastRange) {
+                        if (lastRange && !lastRange.defineEndRange) {
                             lastRange.defineEndRange = token.range;
                         }
                     }

@@ -1776,4 +1776,22 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Make sure multiple named modules do not mess up toTransport
+    //https://github.com/jrburke/r.js/issues/366
+    doh.register("iife",
+        [
+            function iife(t) {
+                file.deleteFile("lib/iife/main-built.js");
+
+                build(["lib/iife/build.js"]);
+
+                t.is(nol(c("lib/iife/expected.js")),
+                     nol(c("lib/iife/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

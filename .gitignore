@@ -23,6 +23,7 @@ build/tests/lib/dormant213/main-built.js
 build/tests/lib/dotpackage/built
 build/tests/lib/empty/built
 build/tests/lib/hasOwnProperty/built.js
+build/tests/lib/iife/main-built.js
 build/tests/lib/insertRequire/main-built.js
 build/tests/lib/intDefine/main-built.js
 build/tests/lib/jqueryConfig/main-built.js
