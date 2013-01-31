@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Thu, 31 Jan 2013 08:03:12 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Thu, 31 Jan 2013 20:32:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.4+ Thu, 31 Jan 2013 08:03:12 GMT',
+        version = '2.1.4+ Thu, 31 Jan 2013 20:32:07 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23835,6 +23835,11 @@ define('build', function (require) {
                     if (requirejs._buildReset) {
                         requirejs._buildReset();
                         requirejs._cacheReset();
+                    }
+
+                    // Ensure errors get propagated to the errback
+                    if (result instanceof Error) {
+                      throw result;
                     }
 
                     return result;
