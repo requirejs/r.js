@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Thu, 31 Jan 2013 06:05:49 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Thu, 31 Jan 2013 08:03:12 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.4+ Thu, 31 Jan 2013 06:05:49 GMT',
+        version = '2.1.4+ Thu, 31 Jan 2013 08:03:12 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -20291,7 +20291,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                         //it.
                         lastRange = defineRanges.length &&
                             defineRanges[defineRanges.length - 1];
-                        if (lastRange) {
+                        if (lastRange && !lastRange.defineEndRange) {
                             lastRange.defineEndRange = token.range;
                         }
                     }
