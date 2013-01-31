@@ -678,6 +678,7 @@ define(function (require) {
         has: true,
         hasOnSave: true,
         uglify: true,
+        uglify2: true,
         closure: true,
         map: true,
         throwWhen: true
