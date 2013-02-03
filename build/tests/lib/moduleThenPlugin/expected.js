@@ -7,7 +7,7 @@ require(['sub1'], function (sub1) {});
 define("main", function(){});
 
 /**
- * @license RequireJS text 2.0.4 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS text 2.0.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/requirejs/text for details
  */
@@ -31,7 +31,7 @@ define('text',['module'], function (module) {
         masterConfig = (module.config && module.config()) || {};
 
     text = {
-        version: '2.0.4',
+        version: '2.0.5',
 
         strip: function (content) {
             //Strips <?xml ...?> declarations so that external SVG and XML
@@ -259,9 +259,18 @@ define('text',['module'], function (module) {
         };
     } else if (masterConfig.env === 'xhr' || (!masterConfig.env &&
             text.createXhr())) {
-        text.get = function (url, callback, errback) {
-            var xhr = text.createXhr();
+        text.get = function (url, callback, errback, headers) {
+            var xhr = text.createXhr(), header;
             xhr.open('GET', url, true);
+
+            //Allow plugins direct access to xhr headers
+            if (headers) {
+                for (header in headers) {
+                    if (headers.hasOwnProperty(header)) {
+                        xhr.setRequestHeader(header.toLowerCase(), headers[header]);
+                    }
+                }
+            }
 
             //Allow overrides specified in config
             if (masterConfig.onXhr) {
