@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Thu, 31 Jan 2013 20:32:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Tue, 05 Feb 2013 19:06:57 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21,7 +21,7 @@ var requirejs, require, define;
 
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.4+ Thu, 31 Jan 2013 20:32:07 GMT',
+        version = '2.1.4+ Tue, 05 Feb 2013 19:06:57 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -20270,7 +20270,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
             }
 
             //Find the define calls and their position in the files.
-            tokens.forEach(function (token, i) {
+            tokens.some(function (token, i) {
                 var prev, prev2, next, next2, next3, next4, next5,
                     needsId, depAction, nameCommaRange, foundId,
                     sourceUrlData, range,
@@ -20470,8 +20470,11 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                     //set for transport form.
                     if (range.needsId) {
                         if (foundAnon) {
-                            throw new Error(path +
-                                ' has two many anonymous modules in it.');
+                            logger.trace(path + ' has more than one anonymous ' +
+                                'define. May be a built file from another ' +
+                                'build system like, Ender. Skipping normalization.');
+                            defineRanges = [];
+                            return true;
                         } else {
                             foundAnon = range;
                             defineRanges.push(range);
