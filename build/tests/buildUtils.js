@@ -11,6 +11,27 @@ define(['build'], function (build) {
                     bad3 = 'this.define(function () {});',
                     bad4 = 'define(fields, callback);',
                     bad5 = 'define(a[0]);',
+                    bad6 = '(function () {\n' +
+                        '    (function () {\n' +
+                        '        var module = { exports: {} }, exports = module.exports;\n' +
+                        '        (function (name, context, definition) {\n' +
+                        '            if (typeof module != \'undefined\' && module.exports) module.exports = definition()\n' +
+                        '            else if (typeof define == \'function\' && define.amd) define(definition)\n' +
+                        '            else context[name] = definition()\n' +
+                        '        })(\'qwery\', this, function () {\n' +
+                        '        });\n' +
+                        '    }());\n' +
+                        '    (function () {\n' +
+                        '        var module = { exports: {} }, exports = module.exports;\n' +
+                        '        (function (name, context, definition) {\n' +
+                        '            if (typeof module != \'undefined\' && module.exports) module.exports = definition()\n' +
+                        '            else if (typeof define == \'function\' && define.amd) define(definition)\n' +
+                        '            else context[name] = definition()\n' +
+                        '        })(\'bonzo\', this, function () {\n' +
+                        '        });\n' +
+                        '    }());\n' +
+                        '}());',
+
                     good1 = 'if (typeof define === "function" && define.amd) {\n' +
                             '    define(definition);\n' +
                             '}',
@@ -74,6 +95,7 @@ define(['build'], function (build) {
                 t.is(bad3, build.toTransport('', 'bad/3', 'bad3', bad3));
                 t.is(bad4, build.toTransport('', 'bad/4', 'bad4', bad4));
                 t.is(bad5, build.toTransport('', 'bad/5', 'bad5', bad5));
+                t.is(bad6, build.toTransport('', 'bad/6', 'bad6', bad6));
                 t.is(goodExpected1, build.toTransport('', 'good/1', 'good1', good1));
                 t.is(goodExpected2, build.toTransport('', 'good/2', 'good2', good2));
                 t.is(multi, build.toTransport('', 'multi', 'multi', multi));

@@ -45,7 +45,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
             }
 
             //Find the define calls and their position in the files.
-            tokens.forEach(function (token, i) {
+            tokens.some(function (token, i) {
                 var prev, prev2, next, next2, next3, next4, next5,
                     needsId, depAction, nameCommaRange, foundId,
                     sourceUrlData, range,
@@ -245,8 +245,11 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                     //set for transport form.
                     if (range.needsId) {
                         if (foundAnon) {
-                            throw new Error(path +
-                                ' has two many anonymous modules in it.');
+                            logger.trace(path + ' has more than one anonymous ' +
+                                'define. May be a built file from another ' +
+                                'build system like, Ender. Skipping normalization.');
+                            defineRanges = [];
+                            return true;
                         } else {
                             foundAnon = range;
                             defineRanges.push(range);
