@@ -27,6 +27,7 @@ var requirejs, require, define;
         useLibLoaded = {},
         //Used by jslib/rhino/args.js
         rhinoArgs = args,
+        ringoSandbox,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     function showHelp() {
@@ -50,35 +51,68 @@ var requirejs, require, define;
             return false;
         };
 
-    } else if (typeof Packages !== 'undefined') {
-        env = 'rhino';
-
-        fileName = args[0];
-
-        if (fileName && fileName.indexOf('-') === 0) {
-            commandOption = fileName.substring(1);
+    } else if (typeof environment === "object" && ({}).toString.call(environment) === "[object Environment]") {
+        if (environment['ringo.home'] !== undefined) {
+            env = 'ringo';
             fileName = args[1];
-        }
 
-        //Set up execution context.
-        rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
+            if (fileName && fileName.indexOf('-') === 0) {
+                commandOption = fileName.substring(1);
+                fileName = args[2];
+            }
 
-        exec = function (string, name) {
-            return rhinoContext.evaluateString(this, string, name, 0, null);
-        };
+            ringoSandbox = require('ringo/engine').createSandbox(
+                require.paths.slice(0), // module path
+                {"sys": require('system')}, // globals
+                {systemModules: ["modules"]} // options
+            );
 
-        exists = function (fileName) {
-            return (new java.io.File(fileName)).exists();
-        };
+            exec = function(string, name) {
+               var cx = ringoSandbox.contextFactory.enterContext();
+               cx.setOptimizationLevel(-1);
+               try {
+                  var res = new Packages.org.ringojs.repository.StringResource("<expr>", string, 1);
+                  var script = new Packages.org.ringojs.engine.ReloadableScript(res, ringoSandbox);
+                  return ringoSandbox.mainWorker.evaluateScript(cx, script, ringoSandbox.getScope());
+               } finally{
+                  cx.exit();
+               }
+            }
+            exists = require('fs').exists;
+            readFile = require('fs').read;
+            // once we have loaded requirejs into the sandbox
+            // the normal `require()` is broken and we can
+            // no longer load any ringo modules so preload fs now
+            exec('var ringoFs = require("fs");');
+            exec('require = undefined;');
+        } else {
+            env = 'rhino';
+            fileName = args[0];
 
-        //Define a console.log for easier logging. Don't
-        //get fancy though.
-        if (typeof console === 'undefined') {
-            console = {
-                log: function () {
-                    print.apply(undefined, arguments);
-                }
+            if (fileName && fileName.indexOf('-') === 0) {
+                commandOption = fileName.substring(1);
+                fileName = args[1];
+            }
+            //Set up execution context.
+            rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
+
+            exec = function (string, name) {
+                return rhinoContext.evaluateString(this, string, name, 0, null);
             };
+
+            exists = function (fileName) {
+                return (new java.io.File(fileName)).exists();
+            };
+
+            //Define a console.log for easier logging. Don't
+            //get fancy though.
+            if (typeof console === 'undefined') {
+                console = {
+                    log: function () {
+                        print.apply(undefined, arguments);
+                    }
+                };
+            }
         }
     } else if (typeof process !== 'undefined') {
         env = 'node';
@@ -122,12 +156,28 @@ var requirejs, require, define;
         }
     }
 
-    //INSERT require.js
+    if (env === 'ringo') {
+        exec(readFile(module.resolve('./require.js')));
+    } else {
+        //INSERT require.js
+    }
 
     if (env === 'browser') {
         //INSERT build/jslib/browser.js
     } else if (env === 'rhino') {
+        this.requirejsVars = {
+            require: require,
+            requirejs: require,
+            define: define
+        };
         //INSERT build/jslib/rhino.js
+    } else if (env === 'ringo') {
+        this.requirejsVars = {
+            require: require,
+            requirejs: require,
+            define: define
+        };
+        exec(readFile(module.resolve('./build/jslib/ringo.js')))
     } else if (env === 'node') {
         this.requirejsVars = {
             require: require,
@@ -297,7 +347,6 @@ var requirejs, require, define;
         }
 
         setBaseUrl(fileName);
-
         if (exists(fileName)) {
             exec(readFile(fileName), fileName);
         } else {

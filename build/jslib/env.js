@@ -16,15 +16,18 @@
     var pathRegExp = /(\/|^)env\/|\{env\}/,
         env = 'unknown';
 
-    if (typeof Packages !== 'undefined') {
-        env = 'rhino';
+    if (typeof environment === "object" && ({}).toString.call(environment) === "[object Environment]") {
+       if (environment['ringo.home'] !== undefined) {
+            env = 'ringo';
+        } else {
+            env = 'rhino';
+        }
     } else if (typeof process !== 'undefined') {
         env = 'node';
     } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
             (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
     }
-
     define({
         load: function (name, req, load, config) {
             //Allow override in the config.
