@@ -127,6 +127,11 @@ var requirejs, require, define;
     if (env === 'browser') {
         //INSERT build/jslib/browser.js
     } else if (env === 'rhino') {
+        this.requirejsVars = {
+            require: require,
+            requirejs: require,
+            define: define
+        };
         //INSERT build/jslib/rhino.js
     } else if (env === 'node') {
         this.requirejsVars = {
