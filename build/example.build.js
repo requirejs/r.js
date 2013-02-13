@@ -166,7 +166,10 @@
             beautify: true
         },
         compress: {
-            sequences: false
+            sequences: false,
+            global_defs: {
+                DEBUG: false
+            }
         },
         warnings: true,
         mangle: false
