@@ -6,7 +6,7 @@
 
 /**
  * Run the tests in Node with this command:
- * ../../bin/x all.js
+ * node ../../r.js all.js
  */
 
 /*jslint plusplus: false, strict: false */

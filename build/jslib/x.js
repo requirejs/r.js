@@ -14,7 +14,7 @@
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false, requirejsVars, navigator,
-document, importScripts, self, location */
+document, importScripts, self, location, Components, FileUtils */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
@@ -27,6 +27,8 @@ var requirejs, require, define;
         useLibLoaded = {},
         //Used by jslib/rhino/args.js
         rhinoArgs = args,
+        //Used by jslib/xpconnect/args.js
+        xpconnectArgs = args,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     function showHelp() {
@@ -120,30 +122,53 @@ var requirejs, require, define;
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
         }
+    } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
+        env = 'xpconnect';
+
+        Components.utils['import']("resource://gre/modules/FileUtils.jsm");
+
+        fileName = arguments[0];
+
+        exec = function (string, name) {
+            return eval(string);
+        };
+
+        exists = function (fileName) {
+            return (new FileUtils.File(fileName)).exists();
+        };
+
+        //Define a console.log for easier logging. Don't
+        //get fancy though.
+        if (typeof console === 'undefined') {
+            console = {
+                log: function () {
+                    print.apply(undefined, arguments);
+                }
+            };
+        }
     }
 
     //INSERT require.js
 
+
+    this.requirejsVars = {
+        require: require,
+        requirejs: require,
+        define: define
+    };
+
     if (env === 'browser') {
         //INSERT build/jslib/browser.js
     } else if (env === 'rhino') {
-        this.requirejsVars = {
-            require: require,
-            requirejs: require,
-            define: define
-        };
         //INSERT build/jslib/rhino.js
     } else if (env === 'node') {
-        this.requirejsVars = {
-            require: require,
-            requirejs: require,
-            define: define,
-            nodeRequire: nodeRequire
-        };
+        this.requirejsVars.nodeRequire = nodeRequire;
         require.nodeRequire = nodeRequire;
 
         //INSERT build/jslib/node.js
 
+    } else if (env === 'xpconnect') {
+        //INSERT build/jslib/xpconnect.js
     }
 
     //Support a default file name to execute. Useful for hosted envs

@@ -26,6 +26,13 @@ From then on, you can use `r.js` on the command line to run the optimizer.
 Download the latest release from the
 [RequireJS download page](http://requirejs.org/docs/download.html#rjs).
 
+## xpcshell
+
+TODO: need an xpcshell.
+
+For running tests, put xpcshell in env/xpcshell/ as a directory, that contains
+all the files needed for it to run, including the xpcshell binary.
+
 ## From this repo
 
 r.js is made up of a series of modules that are built into one file for
