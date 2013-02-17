@@ -14,7 +14,8 @@
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false, requirejsVars, navigator,
-document, importScripts, self, location, Components, FileUtils */
+document, importScripts, self, location, Components, FileUtils, WScript,
+ActiveXObject */
 
 var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
@@ -229,6 +230,49 @@ var requirejs, require, define, xpcUtil;
                 }
             };
         }
+    } else if (typeof WScript !== 'undefined' &&
+               typeof ActiveXObject !== 'undefined') {
+        env = 'wsh';
+
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+        readFile = function (path) {
+            var contents,
+                stream = new ActiveXObject("ADODB.Stream");
+
+            stream.Open();
+            stream.Type = 2;
+            stream.Charset = 'utf-8';
+            stream.LoadFromFile(path);
+            contents = stream.ReadText(-1);
+            stream.Close();
+            return contents;
+        };
+
+        exec = function (string, name) {
+            return eval(string);
+        };
+
+        exists = function (fileName) {
+            return fso.FileExists(fileName);
+        };
+
+        //Define a console.log for easier logging. Don't
+        //get fancy though.
+        if (typeof console === 'undefined') {
+            console = {
+                log: function () {
+                    WScript.Echo.apply(undefined, arguments);
+                }
+            };
+        }
+
+        fileName = WScript.Arguments.Item(0);
+
+        if (fileName && fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = WScript.Arguments.Item(1);
+        }
     }
 
     //INSERT require.js
@@ -252,7 +296,10 @@ var requirejs, require, define, xpcUtil;
 
     } else if (env === 'xpconnect') {
         //INSERT build/jslib/xpconnect.js
+    } else if (env === 'wsh') {
+        //INSERT build/jslib/wsh.js
     }
+
 
     //Support a default file name to execute. Useful for hosted envs
     //like Joyent where it defaults to a server.js as the only executed
