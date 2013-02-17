@@ -12,7 +12,7 @@ var jsLibRhinoArgs = (typeof rhinoArgs !== 'undefined' && rhinoArgs) || [].conca
 define(function () {
     var args = jsLibRhinoArgs;
 
-    //Ignore any command option used for rq.js
+    //Ignore any command option used for r.js
     if (args[0] && args[0].indexOf('-' === 0)) {
         args = args.slice(1);
     }

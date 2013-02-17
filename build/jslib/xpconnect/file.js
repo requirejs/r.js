@@ -15,6 +15,53 @@ define(['prim'], function (prim) {
 
     Components.utils['import']('resource://gre/modules/FileUtils.jsm');
 
+    function cwd() {
+        return FileUtils.getFile("CurWorkD", []).path;
+    }
+
+    //Remove . and .. from paths, normalize on front slashes
+    function normalize(path) {
+        //There has to be an easier way to do this.
+        var i, part, ary,
+            firstChar = path.charAt(0);
+
+        if (firstChar !== '/' &&
+                firstChar !== '\\' &&
+                path.indexOf(':') === -1) {
+            //A relative path. Use the current working directory.
+            path = cwd() + '/' + path;
+        }
+
+        ary = path.replace(/\\/g, '/').split('/');
+
+        for (i = 0; i < ary.length; i += 1) {
+            part = ary[i];
+            if (part === '.') {
+                ary.splice(i, 1);
+                i -= 1;
+            } else if (part === '..') {
+                ary.splice(i - 1, 2);
+                i -= 2;
+            }
+        }
+        return ary.join('/');
+    }
+
+    function xpfile(path) {
+        try {
+            return new FileUtils.File(normalize(path));
+        } catch (e) {
+            throw new Error(path + ' failed: ' + e);
+        }
+    }
+
+    function mkFullDir(dirObj) {
+        //1 is DIRECTORY_TYPE, 511 is 0777 permissions
+        if (!dirObj.exists()) {
+            dirObj.create(1, 511);
+        }
+    }
+
     file = {
         backSlashRegExp: /\\/g,
 
@@ -28,11 +75,11 @@ define(['prim'], function (prim) {
                         '\r\n' : '\n',
 
         exists: function (fileName) {
-            return (new FileUtils.File(fileName)).exists();
+            return xpfile(fileName).exists();
         },
 
         parent: function (fileName) {
-            return file.absPath(new FileUtils.File(fileName));
+            return xpfile(fileName).parent;
         },
 
         normalize: function (fileName) {
@@ -40,11 +87,11 @@ define(['prim'], function (prim) {
         },
 
         isFile: function (path) {
-            return (new FileUtils.File(path)).isFile();
+            return xpfile(path).isFile();
         },
 
         isDirectory: function (path) {
-            return (new FileUtils.File(path)).isDirectory();
+            return xpfile(path).isDirectory();
         },
 
         /**
@@ -54,9 +101,9 @@ define(['prim'], function (prim) {
          */
         absPath: function (fileObj) {
             if (typeof fileObj === "string") {
-                fileObj = new FileUtils.File(fileObj);
+                fileObj = xpfile(fileObj);
             }
-            return (fileObj.path + "").replace(file.backSlashRegExp, "/");
+            return fileObj.path;
         },
 
         getFilteredFileList: function (/*String*/startDir, /*RegExp*/regExpFilters, /*boolean?*/makeUnixPaths, /*boolean?*/startDirIsObject) {
@@ -70,7 +117,7 @@ define(['prim'], function (prim) {
 
             topDir = startDir;
             if (!startDirIsObject) {
-                topDir = new FileUtils.File(startDir);
+                topDir = xpfile(startDir);
             }
 
             regExpInclude = regExpFilters.include || regExpFilters;
@@ -134,7 +181,8 @@ define(['prim'], function (prim) {
         copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
             //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
             //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
-            var destFile = new FileUtils.File(destFileName), srcFile;
+            var destFile = xpfile(destFileName),
+            srcFile = xpfile(srcFileName);
 
             //logger.trace("Src filename: " + srcFileName);
             //logger.trace("Dest filename: " + destFileName);
@@ -142,13 +190,12 @@ define(['prim'], function (prim) {
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
             if (onlyCopyNew) {
-                srcFile = new FileUtils.File(srcFileName);
                 if (destFile.exists() && destFile.lastModifiedTime >= srcFile.lastModifiedTime) {
                     return false; //Boolean
                 }
             }
 
-            srcFile.copyTo(destFile.parent);
+            srcFile.copyTo(destFile.parent, destFile.leafName);
 
             return true; //Boolean
         },
@@ -157,16 +204,17 @@ define(['prim'], function (prim) {
          * Renames a file. May fail if "to" already exists or is on another drive.
          */
         renameFile: function (from, to) {
-            return (new FileUtils.File(from)).moveTo((new FileUtils.File(to)).parent);
+            var toFile = xpfile(to);
+            return xpfile(from).moveTo(toFile.parent, toFile.leafName);
         },
 
         readFile: function (/*String*/path, /*String?*/encoding) {
             //A file read function that can deal with BOMs
             encoding = encoding || "utf-8";
 
-            var inStream, convertStream, count,
+            var inStream, convertStream,
                 readData = {},
-                fileObj = new FileUtils.File(path);
+                fileObj = xpfile(path);
 
             //XPCOM, you so crazy
             try {
@@ -179,8 +227,7 @@ define(['prim'], function (prim) {
                 convertStream.init(inStream, encoding, inStream.available(),
                 Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
 
-                convertStream.readString(count, inStream.available());
-
+                convertStream.readString(inStream.available(), readData);
                 return readData.value;
             } catch (e) {
                 throw new Error((fileObj && fileObj.path || '') + ': ' + e);
@@ -211,7 +258,9 @@ define(['prim'], function (prim) {
 
         saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
             var outStream, convertStream,
-                fileObj = new FileUtils.File(fileName);
+                fileObj = xpfile(fileName);
+
+            mkFullDir(fileObj.parent);
 
             try {
                 outStream = Cc['@mozilla.org/network/file-output-stream;1']
@@ -224,6 +273,8 @@ define(['prim'], function (prim) {
 
                 convertStream.init(outStream, encoding, 0, 0);
                 convertStream.writeString(fileContents);
+            } catch (e) {
+                throw new Error((fileObj && fileObj.path || '') + ': ' + e);
             } finally {
                 if (convertStream) {
                     convertStream.close();
@@ -236,8 +287,7 @@ define(['prim'], function (prim) {
 
         deleteFile: function (/*String*/fileName) {
             //summary: deletes a file or directory if it exists.
-
-            var fileObj = new FileUtils.File(fileName);
+            var fileObj = xpfile(fileName);
             if (fileObj.exists()) {
                 fileObj.remove(true);
             }
@@ -253,7 +303,7 @@ define(['prim'], function (prim) {
                 dirFileArray, fileObj;
 
             if (!startDirIsObject) {
-                topDir = new FileUtils.File(startDir);
+                topDir = xpfile(startDir);
             }
 
             if (topDir.exists()) {
