@@ -16,11 +16,10 @@
 console: false, java: false, module: false, requirejsVars, navigator,
 document, importScripts, self, location, Components, FileUtils */
 
-var requirejs, require, define;
+var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        cwd, normalize, xpfile,
         version = '2.1.4+',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
@@ -136,85 +135,89 @@ var requirejs, require, define;
             fileName = args[1];
         }
 
-        cwd = function () {
-            return FileUtils.getFile("CurWorkD", []).path;
-        };
+        xpcUtil = {
+            cwd: function () {
+                return FileUtils.getFile("CurWorkD", []).path;
+            },
 
-        //Remove . and .. from paths, normalize on front slashes
-        normalize = function (path) {
-            //There has to be an easier way to do this.
-            var i, part, ary,
-                firstChar = path.charAt(0);
+            //Remove . and .. from paths, normalize on front slashes
+            normalize: function (path) {
+                //There has to be an easier way to do this.
+                var i, part, ary,
+                    firstChar = path.charAt(0);
 
-            if (firstChar !== '/' &&
-                    firstChar !== '\\' &&
-                    path.indexOf(':') === -1) {
-                //A relative path. Use the current working directory.
-                path = cwd() + '/' + path;
-            }
+                if (firstChar !== '/' &&
+                        firstChar !== '\\' &&
+                        path.indexOf(':') === -1) {
+                    //A relative path. Use the current working directory.
+                    path = xpcUtil.cwd() + '/' + path;
+                }
 
-            ary = path.replace(/\\/g, '/').split('/');
+                ary = path.replace(/\\/g, '/').split('/');
 
-            for (i = 0; i < ary.length; i += 1) {
-                part = ary[i];
-                if (part === '.') {
-                    ary.splice(i, 1);
-                    i -= 1;
-                } else if (part === '..') {
-                    ary.splice(i - 1, 2);
-                    i -= 2;
+                for (i = 0; i < ary.length; i += 1) {
+                    part = ary[i];
+                    if (part === '.') {
+                        ary.splice(i, 1);
+                        i -= 1;
+                    } else if (part === '..') {
+                        ary.splice(i - 1, 2);
+                        i -= 2;
+                    }
+                }
+                return ary.join('/');
+            },
+
+            xpfile: function (path) {
+                try {
+                    return new FileUtils.File(xpcUtil.normalize(path));
+                } catch (e) {
+                    throw new Error(path + ' failed: ' + e);
+                }
+            },
+
+            readFile: function (/*String*/path, /*String?*/encoding) {
+                //A file read function that can deal with BOMs
+                encoding = encoding || "utf-8";
+
+                var inStream, convertStream,
+                    readData = {},
+                    fileObj = xpcUtil.xpfile(path);
+
+                //XPCOM, you so crazy
+                try {
+                    inStream = Cc['@mozilla.org/network/file-input-stream;1']
+                               .createInstance(Ci.nsIFileInputStream);
+                    inStream.init(fileObj, 1, 0, false);
+
+                    convertStream = Cc['@mozilla.org/intl/converter-input-stream;1']
+                                    .createInstance(Ci.nsIConverterInputStream);
+                    convertStream.init(inStream, encoding, inStream.available(),
+                    Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
+
+                    convertStream.readString(inStream.available(), readData);
+                    return readData.value;
+                } catch (e) {
+                    throw new Error((fileObj && fileObj.path || '') + ': ' + e);
+                } finally {
+                    if (convertStream) {
+                        convertStream.close();
+                    }
+                    if (inStream) {
+                        inStream.close();
+                    }
                 }
             }
-            return ary.join('/');
         };
 
-        xpfile = function (path) {
-            try {
-                return new FileUtils.File(normalize(path));
-            } catch (e) {
-                throw new Error(path + ' failed: ' + e);
-            }
-        };
-
-        readFile = function (/*String*/path, /*String?*/encoding) {
-            //A file read function that can deal with BOMs
-            encoding = encoding || "utf-8";
-
-            var inStream, convertStream,
-                readData = {},
-                fileObj = xpfile(path);
-
-            //XPCOM, you so crazy
-            try {
-                inStream = Cc['@mozilla.org/network/file-input-stream;1']
-                           .createInstance(Ci.nsIFileInputStream);
-                inStream.init(fileObj, 1, 0, false);
-
-                convertStream = Cc['@mozilla.org/intl/converter-input-stream;1']
-                                .createInstance(Ci.nsIConverterInputStream);
-                convertStream.init(inStream, encoding, inStream.available(),
-                Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-
-                convertStream.readString(inStream.available(), readData);
-                return readData.value;
-            } catch (e) {
-                throw new Error((fileObj && fileObj.path || '') + ': ' + e);
-            } finally {
-                if (convertStream) {
-                    convertStream.close();
-                }
-                if (inStream) {
-                    inStream.close();
-                }
-            }
-        };
+        readFile = xpcUtil.readFile;
 
         exec = function (string) {
             return eval(string);
         };
 
         exists = function (fileName) {
-            return xpfile(fileName).exists();
+            return xpcUtil.xpfile(fileName).exists();
         };
 
         //Define a console.log for easier logging. Don't

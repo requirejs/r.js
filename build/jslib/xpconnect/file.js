@@ -6,54 +6,14 @@
 //Helper functions to deal with file I/O.
 
 /*jslint plusplus: false */
-/*global define, Components, FileUtils */
+/*global define, Components, xpcUtil */
 
 define(['prim'], function (prim) {
     var file,
         Cc = Components.classes,
-        Ci = Components.interfaces;
-
-    Components.utils['import']('resource://gre/modules/FileUtils.jsm');
-
-    function cwd() {
-        return FileUtils.getFile("CurWorkD", []).path;
-    }
-
-    //Remove . and .. from paths, normalize on front slashes
-    function normalize(path) {
-        //There has to be an easier way to do this.
-        var i, part, ary,
-            firstChar = path.charAt(0);
-
-        if (firstChar !== '/' &&
-                firstChar !== '\\' &&
-                path.indexOf(':') === -1) {
-            //A relative path. Use the current working directory.
-            path = cwd() + '/' + path;
-        }
-
-        ary = path.replace(/\\/g, '/').split('/');
-
-        for (i = 0; i < ary.length; i += 1) {
-            part = ary[i];
-            if (part === '.') {
-                ary.splice(i, 1);
-                i -= 1;
-            } else if (part === '..') {
-                ary.splice(i - 1, 2);
-                i -= 2;
-            }
-        }
-        return ary.join('/');
-    }
-
-    function xpfile(path) {
-        try {
-            return new FileUtils.File(normalize(path));
-        } catch (e) {
-            throw new Error(path + ' failed: ' + e);
-        }
-    }
+        Ci = Components.interfaces,
+        //Depends on xpcUtil which is set up in x.js
+        xpfile = xpcUtil.xpfile;
 
     function mkFullDir(dirObj) {
         //1 is DIRECTORY_TYPE, 511 is 0777 permissions
@@ -208,38 +168,7 @@ define(['prim'], function (prim) {
             return xpfile(from).moveTo(toFile.parent, toFile.leafName);
         },
 
-        readFile: function (/*String*/path, /*String?*/encoding) {
-            //A file read function that can deal with BOMs
-            encoding = encoding || "utf-8";
-
-            var inStream, convertStream,
-                readData = {},
-                fileObj = xpfile(path);
-
-            //XPCOM, you so crazy
-            try {
-                inStream = Cc['@mozilla.org/network/file-input-stream;1']
-                           .createInstance(Ci.nsIFileInputStream);
-                inStream.init(fileObj, 1, 0, false);
-
-                convertStream = Cc['@mozilla.org/intl/converter-input-stream;1']
-                                .createInstance(Ci.nsIConverterInputStream);
-                convertStream.init(inStream, encoding, inStream.available(),
-                Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-
-                convertStream.readString(inStream.available(), readData);
-                return readData.value;
-            } catch (e) {
-                throw new Error((fileObj && fileObj.path || '') + ': ' + e);
-            } finally {
-                if (convertStream) {
-                    convertStream.close();
-                }
-                if (inStream) {
-                    inStream.close();
-                }
-            }
-        },
+        readFile: xpcUtil.readFile,
 
         readFileAsync: function (path, encoding) {
             var d = prim();
