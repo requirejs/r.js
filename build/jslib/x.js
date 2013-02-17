@@ -17,7 +17,7 @@ console: false, java: false, module: false, requirejsVars, navigator,
 document, importScripts, self, location, Components, FileUtils, WScript,
 ActiveXObject */
 
-var requirejs, require, define, xpcUtil;
+var requirejs, require, define, requirejsEnvUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
@@ -25,10 +25,6 @@ var requirejs, require, define, xpcUtil;
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
-        //Used by jslib/rhino/args.js
-        rhinoArgs = args,
-        //Used by jslib/xpconnect/args.js
-        xpconnectArgs = args,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     function showHelp() {
@@ -136,7 +132,7 @@ var requirejs, require, define, xpcUtil;
             fileName = args[1];
         }
 
-        xpcUtil = {
+        requirejsEnvUtil = {
             cwd: function () {
                 return FileUtils.getFile("CurWorkD", []).path;
             },
@@ -151,7 +147,7 @@ var requirejs, require, define, xpcUtil;
                         firstChar !== '\\' &&
                         path.indexOf(':') === -1) {
                     //A relative path. Use the current working directory.
-                    path = xpcUtil.cwd() + '/' + path;
+                    path = requirejsEnvUtil.cwd() + '/' + path;
                 }
 
                 ary = path.replace(/\\/g, '/').split('/');
@@ -171,7 +167,7 @@ var requirejs, require, define, xpcUtil;
 
             xpfile: function (path) {
                 try {
-                    return new FileUtils.File(xpcUtil.normalize(path));
+                    return new FileUtils.File(requirejsEnvUtil.normalize(path));
                 } catch (e) {
                     throw new Error(path + ' failed: ' + e);
                 }
@@ -183,7 +179,7 @@ var requirejs, require, define, xpcUtil;
 
                 var inStream, convertStream,
                     readData = {},
-                    fileObj = xpcUtil.xpfile(path);
+                    fileObj = requirejsEnvUtil.xpfile(path);
 
                 //XPCOM, you so crazy
                 try {
@@ -211,14 +207,14 @@ var requirejs, require, define, xpcUtil;
             }
         };
 
-        readFile = xpcUtil.readFile;
+        readFile = requirejsEnvUtil.readFile;
 
         exec = function (string) {
             return eval(string);
         };
 
         exists = function (fileName) {
-            return xpcUtil.xpfile(fileName).exists();
+            return requirejsEnvUtil.xpfile(fileName).exists();
         };
 
         //Define a console.log for easier logging. Don't
@@ -232,29 +228,35 @@ var requirejs, require, define, xpcUtil;
         }
     } else if (typeof WScript !== 'undefined' &&
                typeof ActiveXObject !== 'undefined') {
+        //WScript ref:
+        //http://msdn.microsoft.com/en-us/library/98591fh7%28v=vs.85%29.aspx
         env = 'wsh';
 
-        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        requirejsEnvUtil = {
+            fso: new ActiveXObject("Scripting.FileSystemObject"),
 
-        readFile = function (path) {
-            var contents,
-                stream = new ActiveXObject("ADODB.Stream");
+            readFile: function (path) {
+                var contents,
+                    stream = new ActiveXObject("ADODB.Stream");
 
-            stream.Open();
-            stream.Type = 2;
-            stream.Charset = 'utf-8';
-            stream.LoadFromFile(path);
-            contents = stream.ReadText(-1);
-            stream.Close();
-            return contents;
+                stream.Open();
+                stream.Type = 2;
+                stream.Charset = 'utf-8';
+                stream.LoadFromFile(path);
+                contents = stream.ReadText(-1);
+                stream.Close();
+                return contents;
+            }
         };
 
-        exec = function (string, name) {
+        readFile = readFile;
+
+        exec = function (string) {
             return eval(string);
         };
 
         exists = function (fileName) {
-            return fso.FileExists(fileName);
+            return requirejsEnvUtil.fso.FileExists(fileName);
         };
 
         //Define a console.log for easier logging. Don't

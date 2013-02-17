@@ -5,9 +5,9 @@
  */
 
 /*jslint strict: false */
-/*global define, xpconnectArgs */
+/*global define */
 
-var jsLibXpConnectArgs = (typeof xpconnectArgs !== 'undefined' && xpconnectArgs) || [].concat(Array.prototype.slice.call(arguments, 0));
+var jsLibXpConnectArgs = [].concat(Array.prototype.slice.call(arguments, 0));
 
 define(function () {
     var args = jsLibXpConnectArgs;

@@ -6,14 +6,14 @@
 //Helper functions to deal with file I/O.
 
 /*jslint plusplus: false */
-/*global define, Components, xpcUtil */
+/*global define, Components, requirejsEnvUtil */
 
 define(['prim'], function (prim) {
     var file,
         Cc = Components.classes,
         Ci = Components.interfaces,
-        //Depends on xpcUtil which is set up in x.js
-        xpfile = xpcUtil.xpfile;
+        //Depends on requirejsEnvUtil which is set up in x.js
+        xpfile = requirejsEnvUtil.xpfile;
 
     function mkFullDir(dirObj) {
         //1 is DIRECTORY_TYPE, 511 is 0777 permissions
@@ -168,7 +168,7 @@ define(['prim'], function (prim) {
             return xpfile(from).moveTo(toFile.parent, toFile.leafName);
         },
 
-        readFile: xpcUtil.readFile,
+        readFile: requirejsEnvUtil.readFile,
 
         readFileAsync: function (path, encoding) {
             var d = prim();

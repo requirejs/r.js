@@ -4,14 +4,15 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint */
-/*global require, load */
+/*jshint evil: true */
+/*global require, requirejsEnvUtil */
 
 (function () {
     'use strict';
     require.load = function (context, moduleName, url) {
 
-        //?load(url);
+        var contents = requirejsEnvUtil.readFile(url);
+        eval(contents);
 
         //Support anonymous modules.
         context.completeLoad(moduleName);

@@ -1,16 +1,20 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint strict: false */
-/*global define */
-
-var jsLibRhinoArgs = [].concat(Array.prototype.slice.call(arguments, 0));
+/*jslint */
+/*global define WScript */
 
 define(function () {
-    var args = jsLibRhinoArgs;
+    var i,
+        args = [],
+        wargs = WScript.Arguments;
+
+    for (i = 0; i < wargs.length; i++) {
+        args.push(wargs(i));
+    }
 
     //Ignore any command option used for r.js
     if (args[0] && args[0].indexOf('-' === 0)) {
