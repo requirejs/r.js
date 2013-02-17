@@ -18,8 +18,6 @@ document, importScripts, self, location, Components, FileUtils */
 
 var requirejs, require, define;
 (function (console, args, readFileFunc) {
-
-print('ARGS are: ', args);
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
         cwd, normalize, xpfile,

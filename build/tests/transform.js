@@ -1,10 +1,12 @@
 /*jslint */
-/*global doh, define, java, Packages */
+/*global doh, define, java, Packages, Components */
 
 define(['transform', 'env!env/file'], function (transform, file) {
     'use strict';
 
-    var isRhino = typeof java !== 'undefined' && typeof Packages !== 'undefined';
+    var isRhino = typeof java !== 'undefined' && typeof Packages !== 'undefined',
+        isXpConnect = typeof Components !== 'undefined' && Components.classes &&
+                      Components.interfaces;
 
     //Remove line returns to make comparisons easier.
     function nol(contents) {
@@ -22,6 +24,8 @@ define(['transform', 'env!env/file'], function (transform, file) {
     doh.register("transformModifyConfig",
         [
             function transformModifyConfig(t) {
+                var overideName = '';
+
                 file.deleteFile('transform/results');
 
                 test(t, 'addPath.js', function (config) {
@@ -34,11 +38,18 @@ define(['transform', 'env!env/file'], function (transform, file) {
 
                 //Rhino's Function.toString strips comments and
                 //does not maintain indentation, so need a different
-                //comparison file to use for the results.
+                //comparison file to use for the results. xpconnect
+                //version is also different.
+                if (isRhino) {
+                    overideName = 'indentedArrayFunc-rhino.js';
+                } else if (isXpConnect) {
+                    overideName = 'indentedArrayFunc-xpconnect.js';
+                }
+
                 test(t, 'indentedArrayFunc.js', function (config) {
                     config.waitSeconds = 0;
                     return config;
-                }, isRhino ? 'indentedArrayFunc-rhino.js' : '');
+                }, overideName);
             }
         ]
     );
