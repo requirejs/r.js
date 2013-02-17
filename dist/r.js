@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Fri, 08 Feb 2013 18:18:39 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Sun, 17 Feb 2013 07:33:14 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -14,19 +14,20 @@
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false, requirejsVars, navigator,
-document, importScripts, self, location */
+document, importScripts, self, location, Components, FileUtils */
 
-var requirejs, require, define;
+var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
-
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
-        version = '2.1.4+ Fri, 08 Feb 2013 18:18:39 GMT',
+        nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
+        version = '2.1.4+ Sun, 17 Feb 2013 07:33:14 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
         //Used by jslib/rhino/args.js
         rhinoArgs = args,
+        //Used by jslib/xpconnect/args.js
+        xpconnectArgs = args,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     function showHelp() {
@@ -41,11 +42,11 @@ var requirejs, require, define;
             return fs.readFileSync(path, 'utf8');
         };
 
-        exec = function (string, name) {
+        exec = function (string) {
             return eval(string);
         };
 
-        exists = function (fileName) {
+        exists = function () {
             console.log('x.js exists not applicable in browser env');
             return false;
         };
@@ -119,6 +120,114 @@ var requirejs, require, define;
         if (fileName && fileName.indexOf('-') === 0) {
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
+        }
+    } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
+        env = 'xpconnect';
+
+        Components.utils['import']('resource://gre/modules/FileUtils.jsm');
+        Cc = Components.classes;
+        Ci = Components.interfaces;
+
+        fileName = args[0];
+
+        if (fileName && fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = args[1];
+        }
+
+        xpcUtil = {
+            cwd: function () {
+                return FileUtils.getFile("CurWorkD", []).path;
+            },
+
+            //Remove . and .. from paths, normalize on front slashes
+            normalize: function (path) {
+                //There has to be an easier way to do this.
+                var i, part, ary,
+                    firstChar = path.charAt(0);
+
+                if (firstChar !== '/' &&
+                        firstChar !== '\\' &&
+                        path.indexOf(':') === -1) {
+                    //A relative path. Use the current working directory.
+                    path = xpcUtil.cwd() + '/' + path;
+                }
+
+                ary = path.replace(/\\/g, '/').split('/');
+
+                for (i = 0; i < ary.length; i += 1) {
+                    part = ary[i];
+                    if (part === '.') {
+                        ary.splice(i, 1);
+                        i -= 1;
+                    } else if (part === '..') {
+                        ary.splice(i - 1, 2);
+                        i -= 2;
+                    }
+                }
+                return ary.join('/');
+            },
+
+            xpfile: function (path) {
+                try {
+                    return new FileUtils.File(xpcUtil.normalize(path));
+                } catch (e) {
+                    throw new Error(path + ' failed: ' + e);
+                }
+            },
+
+            readFile: function (/*String*/path, /*String?*/encoding) {
+                //A file read function that can deal with BOMs
+                encoding = encoding || "utf-8";
+
+                var inStream, convertStream,
+                    readData = {},
+                    fileObj = xpcUtil.xpfile(path);
+
+                //XPCOM, you so crazy
+                try {
+                    inStream = Cc['@mozilla.org/network/file-input-stream;1']
+                               .createInstance(Ci.nsIFileInputStream);
+                    inStream.init(fileObj, 1, 0, false);
+
+                    convertStream = Cc['@mozilla.org/intl/converter-input-stream;1']
+                                    .createInstance(Ci.nsIConverterInputStream);
+                    convertStream.init(inStream, encoding, inStream.available(),
+                    Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
+
+                    convertStream.readString(inStream.available(), readData);
+                    return readData.value;
+                } catch (e) {
+                    throw new Error((fileObj && fileObj.path || '') + ': ' + e);
+                } finally {
+                    if (convertStream) {
+                        convertStream.close();
+                    }
+                    if (inStream) {
+                        inStream.close();
+                    }
+                }
+            }
+        };
+
+        readFile = xpcUtil.readFile;
+
+        exec = function (string) {
+            return eval(string);
+        };
+
+        exists = function (fileName) {
+            return xpcUtil.xpfile(fileName).exists();
+        };
+
+        //Define a console.log for easier logging. Don't
+        //get fancy though.
+        if (typeof console === 'undefined') {
+            console = {
+                log: function () {
+                    print.apply(undefined, arguments);
+                }
+            };
         }
     }
 
@@ -2124,6 +2233,13 @@ var requirejs, require, define;
 }(this));
 
 
+
+    this.requirejsVars = {
+        require: require,
+        requirejs: require,
+        define: define
+    };
+
     if (env === 'browser') {
         /**
  * @license RequireJS rhino Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
@@ -2154,11 +2270,6 @@ var requirejs, require, define;
     };
 }());
     } else if (env === 'rhino') {
-        this.requirejsVars = {
-            require: require,
-            requirejs: require,
-            define: define
-        };
         /**
  * @license RequireJS rhino Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
@@ -2180,12 +2291,7 @@ var requirejs, require, define;
 
 }());
     } else if (env === 'node') {
-        this.requirejsVars = {
-            require: require,
-            requirejs: require,
-            define: define,
-            nodeRequire: nodeRequire
-        };
+        this.requirejsVars.nodeRequire = nodeRequire;
         require.nodeRequire = nodeRequire;
 
         /**
@@ -2337,6 +2443,28 @@ var requirejs, require, define;
     };
 }());
 
+    } else if (env === 'xpconnect') {
+        /**
+ * @license RequireJS xpconnect Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint */
+/*global require, load */
+
+(function () {
+    'use strict';
+    require.load = function (context, moduleName, url) {
+
+        load(url);
+
+        //Support anonymous modules.
+        context.completeLoad(moduleName);
+    };
+
+}());
+
     }
 
     //Support a default file name to execute. Useful for hosted envs
@@ -2376,6 +2504,8 @@ var requirejs, require, define;
     } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
             (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
+    } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
+        env = 'xpconnect';
     }
 
     define('env', {
@@ -2789,6 +2919,23 @@ define('rhino/assert', function () {
 
 }
 
+if(env === 'xpconnect') {
+/**
+ * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, load: false */
+
+//Just a stub for use with uglify's consolidator.js
+define('xpconnect/assert', function () {
+    return {};
+});
+
+}
+
 if(env === 'browser') {
 /**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
@@ -2845,7 +2992,32 @@ var jsLibRhinoArgs = (typeof rhinoArgs !== 'undefined' && rhinoArgs) || [].conca
 define('rhino/args', function () {
     var args = jsLibRhinoArgs;
 
-    //Ignore any command option used for rq.js
+    //Ignore any command option used for r.js
+    if (args[0] && args[0].indexOf('-' === 0)) {
+        args = args.slice(1);
+    }
+
+    return args;
+});
+
+}
+
+if(env === 'xpconnect') {
+/**
+ * @license Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define, xpconnectArgs */
+
+var jsLibXpConnectArgs = (typeof xpconnectArgs !== 'undefined' && xpconnectArgs) || [].concat(Array.prototype.slice.call(arguments, 0));
+
+define('xpconnect/args', function () {
+    var args = jsLibXpConnectArgs;
+
+    //Ignore any command option used for r.js
     if (args[0] && args[0].indexOf('-' === 0)) {
         args = args.slice(1);
     }
@@ -2907,6 +3079,22 @@ if(env === 'rhino') {
 /*global define: false, load: false */
 
 define('rhino/load', function () {
+    return load;
+});
+
+}
+
+if(env === 'xpconnect') {
+/**
+ * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, load: false */
+
+define('xpconnect/load', function () {
     return load;
 });
 
@@ -3694,6 +3882,268 @@ define('rhino/file', ['prim'], function (prim) {
 
 }
 
+if(env === 'xpconnect') {
+/**
+ * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+//Helper functions to deal with file I/O.
+
+/*jslint plusplus: false */
+/*global define, Components, xpcUtil */
+
+define('xpconnect/file', ['prim'], function (prim) {
+    var file,
+        Cc = Components.classes,
+        Ci = Components.interfaces,
+        //Depends on xpcUtil which is set up in x.js
+        xpfile = xpcUtil.xpfile;
+
+    function mkFullDir(dirObj) {
+        //1 is DIRECTORY_TYPE, 511 is 0777 permissions
+        if (!dirObj.exists()) {
+            dirObj.create(1, 511);
+        }
+    }
+
+    file = {
+        backSlashRegExp: /\\/g,
+
+        exclusionRegExp: /^\./,
+
+        getLineSeparator: function () {
+            return file.lineSeparator;
+        },
+
+        lineSeparator: ('@mozilla.org/windows-registry-key;1' in Cc) ?
+                        '\r\n' : '\n',
+
+        exists: function (fileName) {
+            return xpfile(fileName).exists();
+        },
+
+        parent: function (fileName) {
+            return xpfile(fileName).parent;
+        },
+
+        normalize: function (fileName) {
+            return file.absPath(fileName);
+        },
+
+        isFile: function (path) {
+            return xpfile(path).isFile();
+        },
+
+        isDirectory: function (path) {
+            return xpfile(path).isDirectory();
+        },
+
+        /**
+         * Gets the absolute file path as a string, normalized
+         * to using front slashes for path separators.
+         * @param {java.io.File||String} file
+         */
+        absPath: function (fileObj) {
+            if (typeof fileObj === "string") {
+                fileObj = xpfile(fileObj);
+            }
+            return fileObj.path;
+        },
+
+        getFilteredFileList: function (/*String*/startDir, /*RegExp*/regExpFilters, /*boolean?*/makeUnixPaths, /*boolean?*/startDirIsObject) {
+            //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
+            //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
+            //and it will be treated as the "include" case.
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
+            var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
+                fileObj, filePath, ok, dirFiles;
+
+            topDir = startDir;
+            if (!startDirIsObject) {
+                topDir = xpfile(startDir);
+            }
+
+            regExpInclude = regExpFilters.include || regExpFilters;
+            regExpExclude = regExpFilters.exclude || null;
+
+            if (topDir.exists()) {
+                dirFileArray = topDir.directoryEntries;
+                while (dirFileArray.hasMoreElements()) {
+                    fileObj = dirFileArray.getNext().QueryInterface(Ci.nsILocalFile);
+                    if (fileObj.isFile()) {
+                        filePath = fileObj.path;
+                        if (makeUnixPaths) {
+                            if (filePath.indexOf("/") === -1) {
+                                filePath = filePath.replace(/\\/g, "/");
+                            }
+                        }
+
+                        ok = true;
+                        if (regExpInclude) {
+                            ok = filePath.match(regExpInclude);
+                        }
+                        if (ok && regExpExclude) {
+                            ok = !filePath.match(regExpExclude);
+                        }
+
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileObj.leafName))) {
+                            files.push(filePath);
+                        }
+                    } else if (fileObj.isDirectory() &&
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.leafName))) {
+                        dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
+                        files.push.apply(files, dirFiles);
+                    }
+                }
+            }
+
+            return files; //Array
+        },
+
+        copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
+            //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
+            //file should be copied. Returns a list file name strings of the destinations that were copied.
+            regExpFilter = regExpFilter || /\w/;
+
+            var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
+            copiedFiles = [], i, srcFileName, destFileName;
+
+            for (i = 0; i < fileNames.length; i += 1) {
+                srcFileName = fileNames[i];
+                destFileName = srcFileName.replace(srcDir, destDir);
+
+                if (file.copyFile(srcFileName, destFileName, onlyCopyNew)) {
+                    copiedFiles.push(destFileName);
+                }
+            }
+
+            return copiedFiles.length ? copiedFiles : null; //Array or null
+        },
+
+        copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
+            //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
+            //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
+            var destFile = xpfile(destFileName),
+            srcFile = xpfile(srcFileName);
+
+            //logger.trace("Src filename: " + srcFileName);
+            //logger.trace("Dest filename: " + destFileName);
+
+            //If onlyCopyNew is true, then compare dates and only copy if the src is newer
+            //than dest.
+            if (onlyCopyNew) {
+                if (destFile.exists() && destFile.lastModifiedTime >= srcFile.lastModifiedTime) {
+                    return false; //Boolean
+                }
+            }
+
+            srcFile.copyTo(destFile.parent, destFile.leafName);
+
+            return true; //Boolean
+        },
+
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            var toFile = xpfile(to);
+            return xpfile(from).moveTo(toFile.parent, toFile.leafName);
+        },
+
+        readFile: xpcUtil.readFile,
+
+        readFileAsync: function (path, encoding) {
+            var d = prim();
+            try {
+                d.resolve(file.readFile(path, encoding));
+            } catch (e) {
+                d.reject(e);
+            }
+            return d.promise;
+        },
+
+        saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
+            //summary: saves a file using UTF-8 encoding.
+            file.saveFile(fileName, fileContents, "utf-8");
+        },
+
+        saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
+            var outStream, convertStream,
+                fileObj = xpfile(fileName);
+
+            mkFullDir(fileObj.parent);
+
+            try {
+                outStream = Cc['@mozilla.org/network/file-output-stream;1']
+                             .createInstance(Ci.nsIFileOutputStream);
+                //438 is decimal for 0777
+                outStream.init(fileObj, 0x02 | 0x08 | 0x20, 511, 0);
+
+                convertStream = Cc['@mozilla.org/intl/converter-output-stream;1']
+                                  .createInstance(Ci.nsIConverterOutputStream);
+
+                convertStream.init(outStream, encoding, 0, 0);
+                convertStream.writeString(fileContents);
+            } catch (e) {
+                throw new Error((fileObj && fileObj.path || '') + ': ' + e);
+            } finally {
+                if (convertStream) {
+                    convertStream.close();
+                }
+                if (outStream) {
+                    outStream.close();
+                }
+            }
+        },
+
+        deleteFile: function (/*String*/fileName) {
+            //summary: deletes a file or directory if it exists.
+            var fileObj = xpfile(fileName);
+            if (fileObj.exists()) {
+                fileObj.remove(true);
+            }
+        },
+
+        /**
+         * Deletes any empty directories under the given directory.
+         * The startDirIsJavaObject is private to this implementation's
+         * recursion needs.
+         */
+        deleteEmptyDirs: function (startDir, startDirIsObject) {
+            var topDir = startDir,
+                dirFileArray, fileObj;
+
+            if (!startDirIsObject) {
+                topDir = xpfile(startDir);
+            }
+
+            if (topDir.exists()) {
+                dirFileArray = topDir.directoryEntries;
+                while (dirFileArray.hasMoreElements()) {
+                    fileObj = dirFileArray.getNext().QueryInterface(Ci.nsILocalFile);
+
+                    if (fileObj.isDirectory()) {
+                        file.deleteEmptyDirs(fileObj, true);
+                    }
+                }
+
+                //If the directory is empty now, delete it.
+                dirFileArray = topDir.directoryEntries;
+                if (!dirFileArray.hasMoreElements()) {
+                    file.deleteFile(topDir.path);
+                }
+            }
+        }
+    };
+
+    return file;
+});
+
+}
+
 if(env === 'browser') {
 /*global process */
 define('browser/quit', function () {
@@ -3716,6 +4166,17 @@ define('node/quit', function () {
 if(env === 'rhino') {
 /*global quit */
 define('rhino/quit', function () {
+    'use strict';
+    return function (code) {
+        return quit(code);
+    };
+});
+
+}
+
+if(env === 'xpconnect') {
+/*global quit */
+define('xpconnect/quit', function () {
     'use strict';
     return function (code) {
         return quit(code);
@@ -3775,6 +4236,22 @@ if(env === 'rhino') {
 /*global define: false, print: false */
 
 define('rhino/print', function () {
+    return print;
+});
+
+}
+
+if(env === 'xpconnect') {
+/**
+ * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, print: false */
+
+define('xpconnect/print', function () {
     return print;
 });
 
@@ -21171,6 +21648,10 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
     return optimize;
 });
 }
+
+if(env === 'xpconnect') {
+define('xpconnect/optimize', {});
+}
 /**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
@@ -23971,5 +24452,6 @@ function (args,            build) {
     }
 
 }((typeof console !== 'undefined' ? console : undefined),
-    (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
+    (typeof Packages !== 'undefined' || (typeof Components !== 'undefined' && Components.interfaces) ?
+        Array.prototype.slice.call(arguments, 0) : []),
     (typeof readFile !== 'undefined' ? readFile : undefined)));
