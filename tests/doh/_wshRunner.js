@@ -1,4 +1,6 @@
-doh.debug = print;
+doh.debug = function () {
+    WScript.Echo.apply(undefined, arguments);
+};
 
 //Define a console.log for easier logging. Don't
 //get fancy though.
