@@ -4,11 +4,11 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*global define, WScript */
+/*global define, WScript, requirejsEnvUtil */
 
 define(function () {
-    function print(msg) {
-        WScript.Echo(msg);
+    function print() {
+        WScript.Echo(requirejsEnvUtil.wshFormatArgs(arguments));
     }
     return print;
 });

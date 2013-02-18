@@ -246,6 +246,21 @@ var requirejs, require, define, requirejsEnvUtil;
                 contents = stream.ReadText(-1);
                 stream.Close();
                 return contents;
+            },
+
+            //wsh cannot seem to handle passing Echo multiple args,
+            //at via apply, and when printing errors, will just do
+            //the dumb [Object Error] instead of the more helpful
+            //message
+            wshFormatArgs: function (args) {
+                var i, item,
+                    ary = [];
+                for (i = 0; i < args.length; i += 1) {
+                    item = args[i];
+                    ary.push(item.message || item);
+                }
+
+                return ary.join(' ');
             }
         };
 
@@ -263,8 +278,8 @@ var requirejs, require, define, requirejsEnvUtil;
         //get fancy though.
         if (typeof console === 'undefined') {
             console = {
-                log: function (msg) {
-                    WScript.Echo(msg);
+                log: function () {
+                    WScript.Echo(requirejsEnvUtil.wshFormatArgs(arguments));
                 }
             };
         }
