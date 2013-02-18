@@ -5,8 +5,9 @@
  */
 
 /*jslint strict: false */
-/*global Packages: false, process: false, window: false, navigator: false,
-  document: false, define: false */
+/*global Packages: false, process: false, navigator: false,
+  document: false, define: false, WScript, ActiveXObject, Components,
+  self, importScripts */
 
 /**
  * A plugin that modifies any /env/ path to be the right path based on
@@ -25,6 +26,8 @@
         env = 'browser';
     } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
         env = 'xpconnect';
+    } else if (typeof WScript !== 'undefined' && typeof ActiveXObject !== 'undefined') {
+        env = 'wsh';
     }
 
     define({

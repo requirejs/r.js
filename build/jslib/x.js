@@ -249,7 +249,7 @@ var requirejs, require, define, requirejsEnvUtil;
             }
         };
 
-        readFile = readFile;
+        readFile = requirejsEnvUtil.readFile;
 
         exec = function (string) {
             return eval(string);
