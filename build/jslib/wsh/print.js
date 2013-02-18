@@ -7,8 +7,8 @@
 /*global define, WScript */
 
 define(function () {
-    function print() {
-        WScript.Echo.apply(undefined, arguments);
+    function print(msg) {
+        WScript.Echo(msg);
     }
     return print;
 });

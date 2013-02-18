@@ -1,13 +1,13 @@
-doh.debug = function () {
-    WScript.Echo.apply(undefined, arguments);
+doh.debug = function (msg) {
+    WScript.Echo(msg);
 };
 
 //Define a console.log for easier logging. Don't
 //get fancy though.
 if (typeof console === 'undefined') {
     console = {
-        log: function () {
-            WScript.Echo.apply(undefined, arguments);
+        log: function (msg) {
+            WScript.Echo(msg);
         }
     };
 }

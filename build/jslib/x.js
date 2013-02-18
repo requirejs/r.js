@@ -263,8 +263,8 @@ var requirejs, require, define, requirejsEnvUtil;
         //get fancy though.
         if (typeof console === 'undefined') {
             console = {
-                log: function () {
-                    WScript.Echo.apply(undefined, arguments);
+                log: function (msg) {
+                    WScript.Echo(msg);
                 }
             };
         }
