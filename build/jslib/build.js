@@ -5,7 +5,7 @@
  */
 
 /*jslint plusplus: true, nomen: true, regexp: true  */
-/*global define, require, requirejs */
+/*global define, requirejs */
 
 
 define(function (require) {
@@ -20,8 +20,8 @@ define(function (require) {
         optimize = require('optimize'),
         pragma = require('pragma'),
         transform = require('transform'),
-        load = require('env!env/load'),
         requirePatch = require('requirePatch'),
+        env = require('env'),
         quit = require('env!env/quit'),
         commonJs = require('commonJs'),
         hasProp = lang.hasProp,
@@ -209,7 +209,7 @@ define(function (require) {
         var buildPaths, fileName, fileNames,
             paths, i,
             baseConfig, config,
-            modules, builtModule, srcPath, buildContext,
+            modules, srcPath, buildContext,
             destPath, moduleMap, parentModuleMap, context,
             resources, resource, plugin, fileContents,
             pluginProcessed = {},
@@ -217,7 +217,7 @@ define(function (require) {
             pluginCollector = {};
 
         return prim().start(function () {
-            var prop, moduleName;
+            var prop;
 
             //Can now run the patches to require.js to allow it to be used for
             //build generation. Do it here instead of at the top of the module
@@ -389,7 +389,6 @@ define(function (require) {
                 //of those modules end up being one of the excluded values.
                 actions = modules.map(function (module) {
                     return function () {
-                        var actions;
                         if (module.exclude) {
                             module.excludeLayers = [];
                             return prim.serial(module.exclude.map(function (exclude, i) {
@@ -508,7 +507,7 @@ define(function (require) {
 
                 //JS optimizations.
                 fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
-                fileNames.forEach(function (fileName, i) {
+                fileNames.forEach(function (fileName) {
                     var cfg, override, moduleIndex;
 
                     //Generate the module name from the config.dir root.
@@ -654,8 +653,7 @@ define(function (require) {
      * name=value splitting has already happened.
      */
     function stringDotToObj(result, name, value) {
-        var parts = name.split('.'),
-            prop = parts[0];
+        var parts = name.split('.');
 
         parts.forEach(function (prop, i) {
             if (i === parts.length - 1) {
@@ -876,7 +874,7 @@ define(function (require) {
     build.createConfig = function (cfg) {
         /*jslint evil: true */
         var config = {}, buildFileContents, buildFileConfig, mainConfig,
-            mainConfigFile, mainConfigPath, prop, buildFile, absFilePath;
+            mainConfigFile, mainConfigPath, buildFile, absFilePath;
 
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
@@ -1218,14 +1216,12 @@ define(function (require) {
      */
     build.traceDependencies = function (module, config) {
         var include, override, layer, context, baseConfig, oldContext,
-            registry, id, idParts, pluginId, mod, errUrl, rawTextByIds,
-            errMessage = '',
-            failedPluginMap = {},
-            failedPluginIds = [],
-            errIds = [],
-            errUrlMap = {},
-            errUrlConflicts = {},
-            hasErrUrl = false,
+            rawTextByIds,
+            syncChecks = {
+                rhino: true,
+                node: true,
+                xpconnect: true
+            },
             deferred = prim();
 
         //Reset some state set up in requirePatch.js, and clean up require's
@@ -1273,75 +1269,100 @@ define(function (require) {
         deferred.reject.__requireJsBuild = true;
         require(include, deferred.resolve, deferred.reject);
 
-        return deferred.promise.then(function () {
-            var id, prop;
+        //If a sync build environment, check for errors here, instead of
+        //in the then callback below, since some errors, like two IDs pointed
+        //to same URL but only one anon ID will leave the loader in an
+        //unresolved state since a setTimeout cannot be used to check for
+        //timeout.
+        if (syncChecks[env.get()]) {
+            try {
+                build.checkForErrors(context);
+            } catch (e) {
+                deferred.reject(e);
+            }
+        }
 
+        return deferred.promise.then(function () {
             //Reset config
             if (module.override) {
                 require(baseConfig);
             }
 
-            //Check to see if it all loaded. If not, then stop, and give
-            //a message on what is left.
-            registry = context.registry;
-            for (id in registry) {
-                if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
-                    mod = getOwn(registry, id);
-                    if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
-                        errIds.push(id);
-                        errUrl = mod.map.url;
-
-                        if (errUrlMap[errUrl]) {
-                            hasErrUrl = true;
-                            //This error module has the same URL as another
-                            //error module, could be misconfiguration.
-                            if (!errUrlConflicts[errUrl]) {
-                                errUrlConflicts[errUrl] = [];
-                                //Store the original module that had the same URL.
-                                errUrlConflicts[errUrl].push(errUrlMap[errUrl]);
-                            }
-                            errUrlConflicts[errUrl].push(id);
-                        } else {
-                            errUrlMap[errUrl] = id;
-                        }
-                    }
-
-                    //Look for plugins that did not call load()
-                    idParts = id.split('!');
-                    pluginId = idParts[0];
-                    if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
-                        failedPluginIds.push(pluginId);
-                        failedPluginMap[pluginId] = true;
-                    }
-                }
-            }
-
-            if (errIds.length || failedPluginIds.length) {
-                if (failedPluginIds.length) {
-                    errMessage += 'Loader plugin' +
-                        (failedPluginIds.length === 1 ? '' : 's') +
-                        ' did not call ' +
-                        'the load callback in the build: ' +
-                        failedPluginIds.join(', ') + '\n';
-                }
-                errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
-
-                if (hasErrUrl) {
-                    errMessage += '\nThe following modules share the same URL. This ' +
-                                  'could be a misconfiguration if that URL only has ' +
-                                  'one anonymous module in it:';
-                    for (prop in errUrlConflicts) {
-                        if (hasProp(errUrlConflicts, prop)) {
-                            errMessage += '\n' + prop + ': ' +
-                                          errUrlConflicts[prop].join(', ');
-                        }
-                    }
-                }
-                throw new Error(errMessage);
-            }
+            build.checkForErrors(context);
 
             return layer;
         });
+    };
+
+    build.checkForErrors = function (context) {
+        //Check to see if it all loaded. If not, then throw, and give
+        //a message on what is left.
+        var id, prop, mod, errUrl, idParts, pluginId,
+            errMessage = '',
+            failedPluginMap = {},
+            failedPluginIds = [],
+            errIds = [],
+            errUrlMap = {},
+            errUrlConflicts = {},
+            hasErrUrl = false,
+            registry = context.registry;
+
+        for (id in registry) {
+            if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
+                mod = getOwn(registry, id);
+                if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
+                    errIds.push(id);
+                    errUrl = mod.map.url;
+
+                    if (errUrlMap[errUrl]) {
+                        hasErrUrl = true;
+                        //This error module has the same URL as another
+                        //error module, could be misconfiguration.
+                        if (!errUrlConflicts[errUrl]) {
+                            errUrlConflicts[errUrl] = [];
+                            //Store the original module that had the same URL.
+                            errUrlConflicts[errUrl].push(errUrlMap[errUrl]);
+                        }
+                        errUrlConflicts[errUrl].push(id);
+                    } else {
+                        errUrlMap[errUrl] = id;
+                    }
+                }
+
+                //Look for plugins that did not call load()
+                idParts = id.split('!');
+                pluginId = idParts[0];
+                if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
+                    failedPluginIds.push(pluginId);
+                    failedPluginMap[pluginId] = true;
+                }
+            }
+        }
+
+        if (errIds.length || failedPluginIds.length) {
+            if (failedPluginIds.length) {
+                errMessage += 'Loader plugin' +
+                    (failedPluginIds.length === 1 ? '' : 's') +
+                    ' did not call ' +
+                    'the load callback in the build: ' +
+                    failedPluginIds.join(', ') + '\n';
+            }
+            errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
+
+            if (hasErrUrl) {
+                errMessage += '\nThe following modules share the same URL. This ' +
+                              'could be a misconfiguration if that URL only has ' +
+                              'one anonymous module in it:';
+                for (prop in errUrlConflicts) {
+                    if (hasProp(errUrlConflicts, prop)) {
+                        errMessage += '\n' + prop + ': ' +
+                                      errUrlConflicts[prop].join(', ');
+                    }
+                }
+            }
+            throw new Error(errMessage);
+        }
+
     };
 
     build.createOverrideConfig = function (config, override) {
@@ -1381,11 +1402,10 @@ define(function (require) {
             buildFileContents = '';
 
         return prim().start(function () {
-            var path, reqIndex, currContents,
-                i, moduleName, shim, packageConfig, nonPackageName,
-                parts, builder, writeApi, tempPragmas,
+            var reqIndex, currContents,
+                moduleName, shim, packageConfig, nonPackageName,
+                parts, builder, writeApi,
                 namespace, namespaceWithDot, stubModulesByName,
-                newConfig = {},
                 context = layer.context,
                 onLayerEnds = [],
                 onLayerEndAdded = {};

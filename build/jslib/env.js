@@ -28,6 +28,10 @@
     }
 
     define({
+        get: function () {
+            return env;
+        },
+
         load: function (name, req, load, config) {
             //Allow override in the config.
             if (config.env) {

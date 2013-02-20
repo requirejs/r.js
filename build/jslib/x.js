@@ -419,6 +419,7 @@ var requirejs, require, define, xpcUtil;
     }
 
 }((typeof console !== 'undefined' ? console : undefined),
-    (typeof Packages !== 'undefined' || (typeof Components !== 'undefined' && Components.interfaces) ?
+    (typeof Packages !== 'undefined' || (typeof window === 'undefined' &&
+        typeof Components !== 'undefined' && Components.interfaces) ?
         Array.prototype.slice.call(arguments, 0) : []),
     (typeof readFile !== 'undefined' ? readFile : undefined)));
