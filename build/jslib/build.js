@@ -473,10 +473,15 @@ define(function (require) {
                         //Be sure not to remove other build layers.
                         if (config.removeCombined) {
                             module.layer.buildFilePaths.forEach(function (path) {
-                                if (file.exists(path) && !modules.some(function (mod) {
-                                        return mod._buildPath === path;
-                                    })) {
-                                    file.deleteFile(path);
+                                if (file.exists(path)) {
+                                    var pathMatched;
+                                    lang.each(modules, function (mod) {
+                                        pathMatched = mod._buildPath === path;
+                                        return pathMatched;
+                                    });
+                                    if (!pathMatched) {
+                                        file.deleteFile(path);
+                                    }
                                 }
                             });
                         }
@@ -1220,7 +1225,8 @@ define(function (require) {
             syncChecks = {
                 rhino: true,
                 node: true,
-                xpconnect: true
+                xpconnect: true,
+                wsh: true
             },
             deferred = prim();
 

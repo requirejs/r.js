@@ -7,6 +7,50 @@
 /*jslint plusplus: true */
 /*global define */
 
+(function () {
+    //Add some array extras for tools like esprima and uglify to work.
+    //Inspired by https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/reduce
+    //but rewritten for brevity, and to be good enough for use by UglifyJS.
+    if (!Array.prototype.reduce) {
+        Array.prototype.reduce = function (fn /*, initialValue */) {
+            var i = 0,
+                length = this.length,
+                accumulator;
+
+            if (arguments.length >= 2) {
+                accumulator = arguments[1];
+            } else {
+                if (length) {
+                    while (!(i in this)) {
+                        i++;
+                    }
+                    accumulator = this[i++];
+                }
+            }
+
+            for (; i < length; i++) {
+                if (i in this) {
+                    accumulator = fn.call(undefined, accumulator, this[i], i, this);
+                }
+            }
+
+            return accumulator;
+        };
+    }
+
+    //From
+    //https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/forEach
+    if (!Array.prototype.forEach) {
+        Array.prototype.forEach = function(fn, scope) {
+            var i,
+                len = this.length;
+            for (i = 0; i < len; i += 1) {
+                fn.call(scope, this[i], i, this);
+            }
+        };
+    }
+}());
+
 define(function () {
     'use strict';
 
@@ -49,8 +93,8 @@ define(function () {
         _mixin: function(dest, source, override){
             var name;
             for (name in source) {
-                if(source.hasOwnProperty(name)
-                    && (override || !dest.hasOwnProperty(name))) {
+                if(source.hasOwnProperty(name) &&
+                    (override || !dest.hasOwnProperty(name))) {
                     dest[name] = source[name];
                 }
             }

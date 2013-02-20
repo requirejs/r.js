@@ -8,37 +8,6 @@
 /*global define, java, Packages, com */
 
 define(['logger', 'env!env/file'], function (logger, file) {
-
-    //Add .reduce to Rhino so UglifyJS can run in Rhino,
-    //inspired by https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/reduce
-    //but rewritten for brevity, and to be good enough for use by UglifyJS.
-    if (!Array.prototype.reduce) {
-        Array.prototype.reduce = function (fn /*, initialValue */) {
-            var i = 0,
-                length = this.length,
-                accumulator;
-
-            if (arguments.length >= 2) {
-                accumulator = arguments[1];
-            } else {
-                if (length) {
-                    while (!(i in this)) {
-                        i++;
-                    }
-                    accumulator = this[i++];
-                }
-            }
-
-            for (; i < length; i++) {
-                if (i in this) {
-                    accumulator = fn.call(undefined, accumulator, this[i], i, this);
-                }
-            }
-
-            return accumulator;
-        };
-    }
-
     var JSSourceFilefromCode, optimize,
         mapRegExp = /"file":"[^"]+"/;
 

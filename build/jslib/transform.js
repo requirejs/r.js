@@ -45,7 +45,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
             }
 
             //Find the define calls and their position in the files.
-            tokens.some(function (token, i) {
+            lang.each(tokens, function (token, i) {
                 var prev, prev2, next, next2, next3, next4, next5,
                     needsId, depAction, nameCommaRange, foundId,
                     sourceUrlData, range,

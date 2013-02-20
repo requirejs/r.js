@@ -7,7 +7,7 @@
 /*jslint plusplus: true */
 /*global define: false */
 
-define(['./esprima'], function (esprima) {
+define(['./esprima', 'lang'], function (esprima, lang) {
     'use strict';
 
     //This string is saved off because JSLint complains
@@ -56,7 +56,7 @@ define(['./esprima'], function (esprima) {
 
         var deps = [];
 
-        node.elements.some(function (elem) {
+        lang.each(node.elements, function (elem) {
             if (elem.type === 'Literal') {
                 deps.push(elem.value);
             }
