@@ -1,5 +1,5 @@
 @import url("sub/one.css");
-@import url("two.css");
+@IMPORT url("two.css");
 
 .main {
 
