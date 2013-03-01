@@ -13827,8 +13827,8 @@ define('source-map/source-node', function (require, exports, module) {
           }
         });
       }
-      chunk.split('').forEach(function (char) {
-        if (char === '\n') {
+      chunk.split('').forEach(function (chars) {
+        if (chars === '\n') {
           generated.line++;
           generated.column = 0;
         } else {
