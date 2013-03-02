@@ -51,7 +51,7 @@
     }
 }());
 
-define(['es5-shim'], function () {
+define(['es5-shim', 'es5-sham'], function () {
     'use strict';
 
     var lang,

@@ -32,6 +32,7 @@ var fs = require('fs'),
     libFiles = [
         'build/jslib/env.js',
         'build/jslib/es5-shim.js',
+        'build/jslib/es5-sham.js',
         'build/jslib/lang.js',
         'build/jslib/prim.js',
         'env!env/assert',
