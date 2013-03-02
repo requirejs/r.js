@@ -1,0 +1,8 @@
+es5-shimsham is a combination of es5-shim and es5-sham, version 2.0.5.
+
+From https://github.com/kriskowal/es5-shim, MIT licensed.
+
+Look for this comment for the boundary between shim and sham:
+
+// START SHAM
+
