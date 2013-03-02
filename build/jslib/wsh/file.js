@@ -83,7 +83,7 @@ define(['prim'], function (prim) {
                 while (!ne.atEnd()) {
                     fileObj = ne.item();
 
-                    filePath = fileObj.GetAbsolutePathName();
+                    filePath = fileObj.Path;
                     if (makeUnixPaths) {
                         if (filePath.indexOf("/") === -1) {
                             filePath = filePath.replace(/\\/g, "/");
@@ -99,7 +99,7 @@ define(['prim'], function (prim) {
                     }
 
                     if (ok && (!file.exclusionRegExp ||
-                        !file.exclusionRegExp.test(fileObj.GetFileName()))) {
+                        !file.exclusionRegExp.test(fileObj.Name))) {
                         files.push(filePath);
                     }
 
@@ -112,7 +112,7 @@ define(['prim'], function (prim) {
                     fileObj = ne.item();
 
                     if (!file.exclusionRegExp ||
-                            !file.exclusionRegExp.test(fileObj.GetFileName())) {
+                            !file.exclusionRegExp.test(fileObj.Name)) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
                         files.push.apply(files, dirFiles);
                     }
@@ -222,7 +222,7 @@ define(['prim'], function (prim) {
                 topDir = fso.GetFolder(startDir);
             }
 
-            if (fsoFolderExists(topDir.Path)) {
+            if (fso.FolderExists(topDir.Path)) {
                 //Folders in the directory
                 ne = new Enumerator(topDir.SubFolders);
                 while (!ne.atEnd()) {
