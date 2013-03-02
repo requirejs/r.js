@@ -51,7 +51,7 @@
     }
 }());
 
-define(function () {
+define(['es5-shimsham'], function () {
     'use strict';
 
     var lang,
