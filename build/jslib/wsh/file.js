@@ -147,13 +147,18 @@ define(['prim'], function (prim) {
         copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
             //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
             //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
-            var destFile = fso.GetFile(destFileName),
-            srcFile = fso.GetFile(srcFileName);
+            var destFile,
+                srcFile = fso.GetFile(srcFileName);
+
+            if (file.exists(destFileName)) {
+                destFile = fso.GetFile(destFileName);
+            }
+
 
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
-            if (onlyCopyNew) {
-                if (destFile.FileExists() && destFile.DateLastModified >= srcFile.DateLastModified) {
+            if (destFile && onlyCopyNew) {
+                if (destFile.DateLastModified >= srcFile.DateLastModified) {
                     return false; //Boolean
                 }
             }
