@@ -157,6 +157,10 @@ define(function (require) {
             return build._run(cmdConfig);
         }).then(null, function (e) {
             errorMsg = e.toString();
+            //In wsh, get an unhelpful toString, so adjust
+            if  (errorMsg === '[object Error]') {
+                errorMsg = e.message + ': ' + e.description;
+            }
             errorTree = e.moduleTree;
             stackMatch = stackRegExp.exec(errorMsg);
 

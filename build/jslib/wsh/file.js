@@ -9,10 +9,15 @@
 
 define(['prim'], function (prim) {
     var file,
+        endSlashRegExp = /\/$/,
         //Depends on requirejsEnvUtil which is set up in x.js
         //Defined via new ActiveXObject("Scripting.FileSystemObject")
         //http://msdn.microsoft.com/en-us/library/hww8txat%28v=vs.84%29.aspx
         fso = requirejsEnvUtil.fso;
+
+    function trimEndSlash(path) {
+        return path.replace(endSlashRegExp, '');
+    }
 
     file = {
         backSlashRegExp: /\\/g,
@@ -71,7 +76,7 @@ define(['prim'], function (prim) {
             regExpInclude = regExpFilters.include || regExpFilters;
             regExpExclude = regExpFilters.exclude || null;
 
-            if (topDir.FolderExists()) {
+            if (file.exists(topDir.Path)) {
                 ne = new Enumerator(topDir.Files);
 
                 //Files in the directory
@@ -200,7 +205,7 @@ define(['prim'], function (prim) {
             if (fso.FileExists(fileName)) {
                 fso.DeleteFile(fileName);
             } else if (fso.FolderExists(fileName)) {
-                fso.DeleteFolder(fileName);
+                fso.DeleteFolder(trimEndSlash(fileName));
             }
         },
 
@@ -217,7 +222,7 @@ define(['prim'], function (prim) {
                 topDir = fso.GetFolder(startDir);
             }
 
-            if (topDir.FolderExists()) {
+            if (fsoFolderExists(topDir.Path)) {
                 //Folders in the directory
                 ne = new Enumerator(topDir.SubFolders);
                 while (!ne.atEnd()) {
