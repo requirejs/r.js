@@ -31,7 +31,7 @@ var fs = require('fs'),
     //since it is loaded separately.
     libFiles = [
         'build/jslib/env.js',
-        'build/jslib/es5-shimsham.js',
+        'build/jslib/json2.js',
         'build/jslib/lang.js',
         'build/jslib/prim.js',
         'env!env/assert',

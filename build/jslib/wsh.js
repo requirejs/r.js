@@ -8,6 +8,13 @@
 /*global require, requirejsEnvUtil */
 
 (function () {
+
+    //source-map uses defineProperty, but just for an informational property,
+    //does not seem to be critical, so just stub out the call.
+    if (!Object.defineProperty) {
+        Object.defineProperty = function () {};
+    }
+
     'use strict';
     require.load = function (context, moduleName, url) {
 
