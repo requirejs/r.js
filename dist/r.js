@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Sun, 03 Mar 2013 22:30:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Sun, 03 Mar 2013 23:01:21 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.4+ Sun, 03 Mar 2013 22:30:34 GMT',
+        version = '2.1.4+ Sun, 03 Mar 2013 23:01:21 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2370,19 +2370,21 @@ var requirejs, require, define, xpcUtil;
                         //Now that plugin is loaded, can regenerate the moduleMap
                         //to get the final, normalized ID.
                         moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap, false, true);
-
-                        //The above calls are sync, so can do the next thing safely.
-                        ret = context.defined[moduleMap.id];
+                        moduleName = moduleMap.id;
                     } else {
                         //Try to dynamically fetch it.
                         req.load(context, moduleName, moduleMap.url);
 
                         //Enable the module
                         context.enable(moduleMap, relModuleMap);
-
-                        //The above calls are sync, so can do the next thing safely.
-                        ret = context.defined[moduleName];
                     }
+
+                    //Break any cycles by requiring it normally, but this will
+                    //finish synchronously
+                    require([moduleName]);
+
+                    //The above calls are sync, so can do the next thing safely.
+                    ret = context.defined[moduleName];
                 } finally {
                     context.nextTick = oldTick;
                 }
