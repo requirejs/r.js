@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Wed, 20 Feb 2013 06:35:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Sun, 03 Mar 2013 22:30:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.4+ Wed, 20 Feb 2013 06:35:07 GMT',
+        version = '2.1.4+ Sun, 03 Mar 2013 22:30:34 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -232,7 +232,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.4 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.4+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -245,7 +245,7 @@ var requirejs, require, define, xpcUtil;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.4',
+        version = '2.1.4+',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -424,15 +424,21 @@ var requirejs, require, define, xpcUtil;
         var inCheckLoaded, Module, context, handlers,
             checkLoadedTimeoutId,
             config = {
+                //Defaults. Do not set a default for map
+                //config to speed up normalize(), which
+                //will run faster if there is no default.
                 waitSeconds: 7,
                 baseUrl: './',
                 paths: {},
                 pkgs: {},
                 shim: {},
-                map: {},
                 config: {}
             },
             registry = {},
+            //registry of just enabled modules, to speed
+            //cycle breaking code when lots of modules
+            //are registered, but not activated.
+            enabledRegistry = {},
             undefEvents = {},
             defQueue = [],
             defined = {},
@@ -528,7 +534,7 @@ var requirejs, require, define, xpcUtil;
             }
 
             //Apply map config if available.
-            if (applyMap && (baseParts || starMap) && map) {
+            if (applyMap && map && (baseParts || starMap)) {
                 nameParts = name.split('/');
 
                 for (i = nameParts.length; i > 0; i -= 1) {
@@ -809,6 +815,7 @@ var requirejs, require, define, xpcUtil;
         function cleanRegistry(id) {
             //Clean up machinery used for waiting modules.
             delete registry[id];
+            delete enabledRegistry[id];
         }
 
         function breakCycle(mod, traced, processed) {
@@ -857,7 +864,7 @@ var requirejs, require, define, xpcUtil;
             inCheckLoaded = true;
 
             //Figure out the state of all the modules.
-            eachProp(registry, function (mod) {
+            eachProp(enabledRegistry, function (mod) {
                 map = mod.map;
                 modId = map.id;
 
@@ -1116,7 +1123,7 @@ var requirejs, require, define, xpcUtil;
                         }
 
                         //Clean up
-                        delete registry[id];
+                        cleanRegistry(id);
 
                         this.defined = true;
                     }
@@ -1282,6 +1289,7 @@ var requirejs, require, define, xpcUtil;
             },
 
             enable: function () {
+                enabledRegistry[this.map.id] = this;
                 this.enabled = true;
 
                 //Set flag mentioning that the module is enabling,
@@ -1467,6 +1475,9 @@ var requirejs, require, define, xpcUtil;
                 eachProp(cfg, function (value, prop) {
                     if (objs[prop]) {
                         if (prop === 'map') {
+                            if (!config.map) {
+                                config.map = {};
+                            }
                             mixin(config[prop], value, true, true);
                         } else {
                             mixin(config[prop], value, true);
@@ -1578,7 +1589,7 @@ var requirejs, require, define, xpcUtil;
                         //Synchronous access to one module. If require.get is
                         //available (as in the Node adapter), prefer that.
                         if (req.get) {
-                            return req.get(context, deps, relMap);
+                            return req.get(context, deps, relMap, localRequire);
                         }
 
                         //Normalize module name, if it contains . or ..
@@ -1629,7 +1640,7 @@ var requirejs, require, define, xpcUtil;
                      * plain URLs like nameToUrl.
                      */
                     toUrl: function (moduleNamePlusExt) {
-                        var ext, url,
+                        var ext,
                             index = moduleNamePlusExt.lastIndexOf('.'),
                             segment = moduleNamePlusExt.split('/')[0],
                             isRelative = segment === '.' || segment === '..';
@@ -1641,9 +1652,8 @@ var requirejs, require, define, xpcUtil;
                             moduleNamePlusExt = moduleNamePlusExt.substring(0, index);
                         }
 
-                        url = context.nameToUrl(normalize(moduleNamePlusExt,
-                                                relMap && relMap.id, true), ext || '.fake');
-                        return ext ? url : url.substring(0, url.length - 5);
+                        return context.nameToUrl(normalize(moduleNamePlusExt,
+                                                relMap && relMap.id, true), ext,  true);
                     },
 
                     defined: function (id) {
@@ -1762,7 +1772,7 @@ var requirejs, require, define, xpcUtil;
              * it is assumed to have already been normalized. This is an
              * internal API, not a public one. Use toUrl for the public API.
              */
-            nameToUrl: function (moduleName, ext) {
+            nameToUrl: function (moduleName, ext, skipExt) {
                 var paths, pkgs, pkg, pkgPath, syms, i, parentModule, url,
                     parentPath;
 
@@ -1811,7 +1821,7 @@ var requirejs, require, define, xpcUtil;
 
                     //Join the path parts together, then figure out if baseUrl is needed.
                     url = syms.join('/');
-                    url += (ext || (/\?/.test(url) ? '' : '.js'));
+                    url += (ext || (/\?/.test(url) || skipExt ? '' : '.js'));
                     url = (url.charAt(0) === '/' || url.match(/^[\w\+\.\-]+:/) ? '' : config.baseUrl) + url;
                 }
 
@@ -2050,7 +2060,7 @@ var requirejs, require, define, xpcUtil;
                 node.attachEvent('onreadystatechange', context.onScriptLoad);
                 //It would be great to add an error handler here to catch
                 //404s in IE9+. However, onreadystatechange will fire before
-                //the error handler, so that does not help. If addEvenListener
+                //the error handler, so that does not help. If addEventListener
                 //is used, then IE will fire error before load, but we cannot
                 //use that pathway given the connect.microsoft.com issue
                 //mentioned above about not doing the 'script execute,
@@ -2332,13 +2342,13 @@ var requirejs, require, define, xpcUtil;
     }
 
     //Supply an implementation that allows synchronous get of a module.
-    req.get = function (context, moduleName, relModuleMap) {
+    req.get = function (context, moduleName, relModuleMap, localRequire) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
             req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
         }
 
         var ret, oldTick,
-            moduleMap = context.makeModuleMap(moduleName, relModuleMap);
+            moduleMap = context.makeModuleMap(moduleName, relModuleMap, false, true);
 
         //Normalize module name, if it contains . or ..
         moduleName = moduleMap.id;
@@ -2355,11 +2365,11 @@ var requirejs, require, define, xpcUtil;
                         //A plugin, call requirejs to handle it. Now that
                         //nextTick is syncTick, the require will complete
                         //synchronously.
-                        context.require([moduleMap.originalName]);
+                        localRequire([moduleMap.originalName]);
 
                         //Now that plugin is loaded, can regenerate the moduleMap
                         //to get the final, normalized ID.
-                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap);
+                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap, false, true);
 
                         //The above calls are sync, so can do the next thing safely.
                         ret = context.defined[moduleMap.id];
@@ -23097,12 +23107,11 @@ define('build', function (require) {
                             //get the nested dependencies for it via a matching entry
                             //in the module.excludeLayers array.
                             module.exclude.forEach(function (excludeModule, i) {
-                                var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
-                                for (prop in map) {
-                                    if (hasProp(map, prop)) {
-                                        build.removeModulePath(prop, map[prop], module.layer);
-                                    }
-                                }
+                                var excludeLayer = module.excludeLayers[i].layer,
+                                    map = excludeLayer.buildFileToModule;
+                                excludeLayer.buildFilePaths.forEach(function(filePath){
+                                    build.removeModulePath(map[filePath], filePath, module.layer);
+                                });
                             });
                         }
                         if (module.excludeShallow) {
