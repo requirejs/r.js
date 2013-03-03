@@ -36,13 +36,13 @@
     }
 
     //Supply an implementation that allows synchronous get of a module.
-    req.get = function (context, moduleName, relModuleMap) {
+    req.get = function (context, moduleName, relModuleMap, localRequire) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
             req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
         }
 
         var ret, oldTick,
-            moduleMap = context.makeModuleMap(moduleName, relModuleMap);
+            moduleMap = context.makeModuleMap(moduleName, relModuleMap, false, true);
 
         //Normalize module name, if it contains . or ..
         moduleName = moduleMap.id;
@@ -59,11 +59,11 @@
                         //A plugin, call requirejs to handle it. Now that
                         //nextTick is syncTick, the require will complete
                         //synchronously.
-                        context.require([moduleMap.originalName]);
+                        localRequire([moduleMap.originalName]);
 
                         //Now that plugin is loaded, can regenerate the moduleMap
                         //to get the final, normalized ID.
-                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap);
+                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap, false, true);
 
                         //The above calls are sync, so can do the next thing safely.
                         ret = context.defined[moduleMap.id];
