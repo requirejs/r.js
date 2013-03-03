@@ -1,0 +1,2 @@
+define (require) ->
+  'dep'
