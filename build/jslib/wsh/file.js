@@ -9,6 +9,7 @@
 
 define(['prim'], function (prim) {
     var file,
+        windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
         endSlashRegExp = /\/$/,
         //Depends on requirejsEnvUtil which is set up in x.js
         //Defined via new ActiveXObject("Scripting.FileSystemObject")
@@ -17,6 +18,30 @@ define(['prim'], function (prim) {
 
     function trimEndSlash(path) {
         return path.replace(endSlashRegExp, '');
+    }
+
+    function mkDir(dir) {
+        if (!file.exists(dir) && !windowsDriveRegExp.test(dir)) {
+            fso.createFolder(dir);
+        }
+    }
+
+    function mkFullDirForFile(path) {
+        var parts = path.split('/'),
+            currDir = '';
+
+        //Pop off the file name.
+        parts.pop();
+
+        parts.forEach(function (part) {
+            currDir += part;
+
+            if (part) {
+                mkDir(currDir);
+            }
+
+            currDir += '/';
+        });
     }
 
     file = {
@@ -163,6 +188,8 @@ define(['prim'], function (prim) {
                 }
             }
 
+            mkFullDirForFile(destFileName);
+
             srcFile.Copy(destFileName);
 
             return true; //Boolean
@@ -198,6 +225,8 @@ define(['prim'], function (prim) {
             //-1 for unicode, -2 system default
             var tristate = !encoding || encoding === "utf-8" ? -1 : -2,
                 handle;
+
+            mkFullDirForFile(fileName);
 
             //2 is write permission
             handle = fso.OpenTextFile(fileName, 2, true, tristate);
