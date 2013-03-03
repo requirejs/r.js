@@ -421,12 +421,11 @@ define(function (require) {
                             //get the nested dependencies for it via a matching entry
                             //in the module.excludeLayers array.
                             module.exclude.forEach(function (excludeModule, i) {
-                                var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
-                                for (prop in map) {
-                                    if (hasProp(map, prop)) {
-                                        build.removeModulePath(prop, map[prop], module.layer);
-                                    }
-                                }
+                                var excludeLayer = module.excludeLayers[i].layer,
+                                    map = excludeLayer.buildFileToModule;
+                                excludeLayer.buildFilePaths.forEach(function(filePath){
+                                    build.removeModulePath(map[filePath], filePath, module.layer);
+                                });
                             });
                         }
                         if (module.excludeShallow) {

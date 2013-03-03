@@ -1333,6 +1333,28 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    // Tests https://github.com/jrburke/r.js/pull/322 multiple modules with shared excludes
+    doh.register("modulesExclude",
+        [
+            function modulesExclude(t) {
+                file.deleteFile("lib/modulesExclude/built");
+
+                build(["lib/modulesExclude/build.js"]);
+
+                t.is(nol(c("lib/modulesExclude/expected/a.js")),
+                     nol(c("lib/modulesExclude/built/a.js")));
+                t.is(nol(c("lib/modulesExclude/expected/b.js")),
+                     nol(c("lib/modulesExclude/built/b.js")));
+                t.is(nol(c("lib/modulesExclude/expected/z.js")),
+                     nol(c("lib/modulesExclude/built/z.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
     //Tests https://github.com/jrburke/r.js/issues/116 stub modules
     doh.register("stubModules",
         [
