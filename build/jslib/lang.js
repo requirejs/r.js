@@ -137,6 +137,18 @@ define(['es5-shimsham'], function () {
         }()),
 
         /**
+         * cscript's error.toString() is really not helpful, so use .message
+         * instead if so.
+         */
+        errString: function (e) {
+            var str = e.toString();
+            if (str === '[object Error]') {
+                str = e.message;
+            }
+            return str;
+        },
+
+        /**
          * Helper function for iterating over an array. If the func returns
          * a true value, it will break out of the loop.
          */

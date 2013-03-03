@@ -40,7 +40,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                 }).tokens;
             } catch (e) {
                 logger.trace('toTransport skipping ' + path + ': ' +
-                             e.toString());
+                             lang.errString(e));
                 return contents;
             }
 
