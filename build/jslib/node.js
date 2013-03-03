@@ -64,19 +64,21 @@
                         //Now that plugin is loaded, can regenerate the moduleMap
                         //to get the final, normalized ID.
                         moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap, false, true);
-
-                        //The above calls are sync, so can do the next thing safely.
-                        ret = context.defined[moduleMap.id];
+                        moduleName = moduleMap.id;
                     } else {
                         //Try to dynamically fetch it.
                         req.load(context, moduleName, moduleMap.url);
 
                         //Enable the module
                         context.enable(moduleMap, relModuleMap);
-
-                        //The above calls are sync, so can do the next thing safely.
-                        ret = context.defined[moduleName];
                     }
+
+                    //Break any cycles by requiring it normally, but this will
+                    //finish synchronously
+                    require([moduleName]);
+
+                    //The above calls are sync, so can do the next thing safely.
+                    ret = context.defined[moduleName];
                 } finally {
                     context.nextTick = oldTick;
                 }
