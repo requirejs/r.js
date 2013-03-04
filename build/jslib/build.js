@@ -228,10 +228,6 @@ define(function (require) {
             config = build.createConfig(cmdConfig);
             paths = config.paths;
 
-            if (config.logLevel) {
-                logger.logLevel(config.logLevel);
-            }
-
             //Remove the previous build dir, in case it contains source transforms,
             //like the ones done with onBuildRead and onBuildWrite.
             if (config.dir && !config.keepBuildDir && file.exists(config.dir)) {
@@ -833,6 +829,12 @@ define(function (require) {
                 }
             }
         }
+
+        //Set up log level since it can affect if errors are thrown
+        //or caught and passed to errbacks while doing config setup.
+        if (lang.hasProp(target, 'logLevel')) {
+            logger.logLevel(target.logLevel);
+        }
     }
 
     /**
@@ -882,6 +884,12 @@ define(function (require) {
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
+
+        //Set up log level early since it can affect if errors are thrown
+        //or caught and passed to errbacks, even while constructing config.
+        if (lang.hasProp(config, 'logLevel')) {
+            logger.logLevel(config.logLevel);
+        }
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
