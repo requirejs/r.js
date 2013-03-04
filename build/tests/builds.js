@@ -695,6 +695,25 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Make sure a nested function declaration for a define function is not
+    //renamed: https://github.com/jrburke/r.js/issues/388
+    doh.register("nameInsertionNested",
+        [
+            function nameInsertionNested(t) {
+                file.deleteFile("lib/nameInsertion/nested/built.js");
+
+                build(["lib/nameInsertion/nested/build.js"]);
+
+                t.is(nol(c("lib/nameInsertion/nested/expected.js")),
+                     nol(c("lib/nameInsertion/nested/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("moduleThenPlugin",
         [
             function moduleThenPlugin(t) {

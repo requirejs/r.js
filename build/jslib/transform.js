@@ -103,6 +103,12 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                         return;
                     }
 
+                    if (prev && prev.type === 'Keyword' &&
+                            prev.value === 'function') {
+                        //A declaration of a define function. Skip it.
+                        return;
+                    }
+
                     next2 = tokens[i + 2];
                     if (!next2) {
                         return;
