@@ -374,6 +374,15 @@ var requirejs, require, define, xpcUtil;
         setBaseUrl(location.href);
         createRjsApi();
         return;
+    } else if ((env === 'rhino' || env === 'xpconnect') &&
+            //User sets up requirejsAsLib variable to indicate it is loaded
+            //via load() to be used as a library.
+            typeof requirejsAsLib !== 'undefined' && requirejsAsLib) {
+        //This script is loaded via rhino's load() method, expose the
+        //API and get out.
+        setBaseUrl(fileName);
+        createRjsApi();
+        return;
     }
 
     if (commandOption === 'o') {
