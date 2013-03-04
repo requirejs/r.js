@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Sun, 03 Mar 2013 23:01:21 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Mon, 04 Mar 2013 01:14:52 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.4+ Sun, 03 Mar 2013 23:01:21 GMT',
+        version = '2.1.4+ Mon, 04 Mar 2013 01:14:52 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1045,7 +1045,7 @@ var requirejs, require, define, xpcUtil;
             },
 
             /**
-             * Checks is the module is ready to define itself, and if so,
+             * Checks if the module is ready to define itself, and if so,
              * define it.
              */
             check: function () {
@@ -20826,6 +20826,12 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                         return;
                     }
 
+                    if (prev && prev.type === 'Keyword' &&
+                            prev.value === 'function') {
+                        //A declaration of a define function. Skip it.
+                        return;
+                    }
+
                     next2 = tokens[i + 2];
                     if (!next2) {
                         return;
@@ -23707,6 +23713,11 @@ define('build', function (require) {
                             ' Use "out" if you are targeting a single file for' +
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
+        }
+        if (config.dir && config.appDir && config.dir === config.appDir) {
+            throw new Error('"dir" and "appDir" set to the same directory.' +
+                            ' This could result in the deletion of appDir.' +
+                            ' Stopping.');
         }
 
         if (config.insertRequire && !lang.isArray(config.insertRequire)) {
