@@ -1,5 +1,5 @@
 /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.4+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -12,7 +12,7 @@ var requirejs, require, define;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.4+',
+        version = '2.1.5',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -1216,6 +1216,7 @@ var requirejs, require, define;
             Module: Module,
             makeModuleMap: makeModuleMap,
             nextTick: req.nextTick,
+            onError: onError,
 
             /**
              * Set a configuration for the context.
@@ -1856,16 +1857,24 @@ var requirejs, require, define;
 
             return node;
         } else if (isWebWorker) {
-            //In a web worker, use importScripts. This is not a very
-            //efficient use of importScripts, importScripts will block until
-            //its script is downloaded and evaluated. However, if web workers
-            //are in play, the expectation that a build has been done so that
-            //only one script needs to be loaded anyway. This may need to be
-            //reevaluated if other use cases become common.
-            importScripts(url);
+            try {
+                //In a web worker, use importScripts. This is not a very
+                //efficient use of importScripts, importScripts will block until
+                //its script is downloaded and evaluated. However, if web workers
+                //are in play, the expectation that a build has been done so that
+                //only one script needs to be loaded anyway. This may need to be
+                //reevaluated if other use cases become common.
+                importScripts(url);
 
-            //Account for anonymous modules
-            context.completeLoad(moduleName);
+                //Account for anonymous modules
+                context.completeLoad(moduleName);
+            } catch (e) {
+                context.onError(makeError('importscripts',
+                                'importScripts failed for ' +
+                                    moduleName + ' at ' + url,
+                                e,
+                                [moduleName]));
+            }
         }
     };
 
