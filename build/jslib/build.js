@@ -1020,6 +1020,11 @@ define(function (require) {
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
         }
+        if (config.dir && config.appDir && config.dir === config.appDir) {
+            throw new Error('"dir" and "appDir" set to the same directory.' +
+                            ' This could result in the deletion of appDir.' +
+                            ' Stopping.');
+        }
 
         if (config.insertRequire && !lang.isArray(config.insertRequire)) {
             throw new Error('insertRequire should be a list of module IDs' +
