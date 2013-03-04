@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Mon, 04 Mar 2013 22:36:36 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Mon, 04 Mar 2013 22:54:20 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Mon, 04 Mar 2013 22:36:36 GMT',
+        version = '2.1.5+ Mon, 04 Mar 2013 22:54:20 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2454,8 +2454,10 @@ var requirejs, require, define, xpcUtil;
                 try {
                     return (context.config.nodeRequire || req.nodeRequire)(originalName);
                 } catch (e) {
-                    err = new Error('Calling node\'s require("' +
-                                        originalName + '") failed with error: ' + e);
+                    err = new Error('Tried loading "' + moduleName + '" at ' +
+                                     url + ' then tried node\'s require("' +
+                                        originalName + '") and it failed ' +
+                                     'with error: ' + e);
                     err.originalError = e;
                     err.moduleName = originalName;
                     return req.onError(err);
