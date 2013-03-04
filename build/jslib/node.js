@@ -121,9 +121,20 @@
         } else {
             def(moduleName, function () {
                 //Get the original name, since relative requires may be
-                //resolved differently in node (issue #202)
-                var originalName = hasProp(context.registry, moduleName) &&
-                            context.registry[moduleName].map.originalName;
+                //resolved differently in node (issue #202). Also, if relative,
+                //make it relative to the URL of the item requesting it
+                //(issue #393)
+                var dirName,
+                    map = hasProp(context.registry, moduleName) &&
+                            context.registry[moduleName].map,
+                    parentMap = map && map.parentMap,
+                    originalName = map && map.originalName;
+
+                if (originalName.charAt(0) === '.' && parentMap) {
+                    dirName = parentMap.url.split('/');
+                    dirName.pop();
+                    originalName = dirName.join('/') + '/' + originalName;
+                }
 
                 try {
                     return (context.config.nodeRequire || req.nodeRequire)(originalName);
