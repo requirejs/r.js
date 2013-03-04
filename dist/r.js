@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Mon, 04 Mar 2013 22:36:36 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5',
+        version = '2.1.5+ Mon, 04 Mar 2013 22:36:36 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2436,9 +2436,20 @@ var requirejs, require, define, xpcUtil;
         } else {
             def(moduleName, function () {
                 //Get the original name, since relative requires may be
-                //resolved differently in node (issue #202)
-                var originalName = hasProp(context.registry, moduleName) &&
-                            context.registry[moduleName].map.originalName;
+                //resolved differently in node (issue #202). Also, if relative,
+                //make it relative to the URL of the item requesting it
+                //(issue #393)
+                var dirName,
+                    map = hasProp(context.registry, moduleName) &&
+                            context.registry[moduleName].map,
+                    parentMap = map && map.parentMap,
+                    originalName = map && map.originalName;
+
+                if (originalName.charAt(0) === '.' && parentMap) {
+                    dirName = parentMap.url.split('/');
+                    dirName.pop();
+                    originalName = dirName.join('/') + '/' + originalName;
+                }
 
                 try {
                     return (context.config.nodeRequire || req.nodeRequire)(originalName);
