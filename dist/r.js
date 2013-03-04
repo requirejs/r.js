@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Mon, 04 Mar 2013 02:45:14 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Mon, 04 Mar 2013 05:49:00 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.4+ Mon, 04 Mar 2013 02:45:14 GMT',
+        version = '2.1.4+ Mon, 04 Mar 2013 05:49:00 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24433,6 +24433,15 @@ define('build', function (require) {
     } else if (env === 'browser') {
         //Only option is to use the API.
         setBaseUrl(location.href);
+        createRjsApi();
+        return;
+    } else if ((env === 'rhino' || env === 'xpconnect') &&
+            //User sets up requirejsAsLib variable to indicate it is loaded
+            //via load() to be used as a library.
+            typeof requirejsAsLib !== 'undefined' && requirejsAsLib) {
+        //This script is loaded via rhino's load() method, expose the
+        //API and get out.
+        setBaseUrl(fileName);
         createRjsApi();
         return;
     }
