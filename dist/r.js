@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.4+ Mon, 04 Mar 2013 01:14:52 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.4+ Mon, 04 Mar 2013 02:45:14 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.4+ Mon, 04 Mar 2013 01:14:52 GMT',
+        version = '2.1.4+ Mon, 04 Mar 2013 02:45:14 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22922,10 +22922,6 @@ define('build', function (require) {
             config = build.createConfig(cmdConfig);
             paths = config.paths;
 
-            if (config.logLevel) {
-                logger.logLevel(config.logLevel);
-            }
-
             //Remove the previous build dir, in case it contains source transforms,
             //like the ones done with onBuildRead and onBuildWrite.
             if (config.dir && !config.keepBuildDir && file.exists(config.dir)) {
@@ -23527,6 +23523,12 @@ define('build', function (require) {
                 }
             }
         }
+
+        //Set up log level since it can affect if errors are thrown
+        //or caught and passed to errbacks while doing config setup.
+        if (lang.hasProp(target, 'logLevel')) {
+            logger.logLevel(target.logLevel);
+        }
     }
 
     /**
@@ -23576,6 +23578,12 @@ define('build', function (require) {
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
+
+        //Set up log level early since it can affect if errors are thrown
+        //or caught and passed to errbacks, even while constructing config.
+        if (lang.hasProp(config, 'logLevel')) {
+            logger.logLevel(config.logLevel);
+        }
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
