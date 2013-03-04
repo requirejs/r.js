@@ -139,8 +139,10 @@
                 try {
                     return (context.config.nodeRequire || req.nodeRequire)(originalName);
                 } catch (e) {
-                    err = new Error('Calling node\'s require("' +
-                                        originalName + '") failed with error: ' + e);
+                    err = new Error('Tried loading "' + moduleName + '" at ' +
+                                     url + ' then tried node\'s require("' +
+                                        originalName + '") and it failed ' +
+                                     'with error: ' + e);
                     err.originalError = e;
                     err.moduleName = originalName;
                     return req.onError(err);
