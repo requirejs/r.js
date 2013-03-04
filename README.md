@@ -28,10 +28,11 @@ Download the latest release from the
 
 ## xpcshell
 
-TODO: need an xpcshell.
+[xpcshell](https://developer.mozilla.org/en-US/docs/XPConnect/xpcshell) support
+was added in r.js version 2.1.5, so use that r.js version or later.
 
-For running tests, put xpcshell in env/xpcshell/ as a directory, that contains
-all the files needed for it to run, including the xpcshell binary.
+Download the latest release of r.js from the
+[RequireJS download page](http://requirejs.org/docs/download.html#rjs).
 
 ## From this repo
 
@@ -87,6 +88,19 @@ org.mozilla.javascript.tools.shell.Main with
 **org.mozilla.javascript.tools.debugger.Main**.
 
 All further examples will use the Node notation, but substitute **r.js** in the commands with the appropriate java command.
+
+## xpcshell
+
+To run the optimizer using a build config file or command line build options:
+
+    path/to/xpcshell path/to/r.js -o buildconfig.js
+
+r.js can also be used as a library in another .js file run via xpcshell.
+
+* [https://github.com/jrburke/r.js/blob/master/tests/xpcshell/run.js]: shows how
+to load AMD modules by using r.js as a library.
+* [https://github.com/jrburke/r.js/blob/master/tests/xpcshell/build.js]: shows
+how to trigger the optimizer from within another .js file.
 
 # Optimizer
 
@@ -190,6 +204,9 @@ and Java/Rhino:
     * cd ../build/tests
     * node ../../r.js all.js
     * java -classpath ../../lib/rhino/js.jar:../../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ../../r.js all.js
+
+For running tests, put xpcshell in env/xpcshell/ as a directory, that contains
+all the files needed for it to run, including the xpcshell binary.
 
 # Contributing code changes
 
