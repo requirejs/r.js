@@ -97,10 +97,10 @@ To run the optimizer using a build config file or command line build options:
 
 r.js can also be used as a library in another .js file run via xpcshell.
 
-* [https://github.com/jrburke/r.js/blob/master/tests/xpcshell/run.js]: shows how
-to load AMD modules by using r.js as a library.
-* [https://github.com/jrburke/r.js/blob/master/tests/xpcshell/build.js]: shows
-how to trigger the optimizer from within another .js file.
+* [tests/xpcshell/run.js](https://github.com/jrburke/r.js/blob/master/tests/xpcshell/run.js):
+shows how to load AMD modules by using r.js as a library.
+* [tests/xpcshell/build.js](https://github.com/jrburke/r.js/blob/master/tests/xpcshell/build.js):
+shows how to trigger the optimizer from within another .js file.
 
 # Optimizer
 
