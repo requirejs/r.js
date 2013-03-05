@@ -179,8 +179,8 @@ define(function (require, exports, module) {
           }
         });
       }
-      chunk.split('').forEach(function (char) {
-        if (char === '\n') {
+      chunk.split('').forEach(function (ch) {
+        if (ch === '\n') {
           generated.line++;
           generated.column = 0;
         } else {

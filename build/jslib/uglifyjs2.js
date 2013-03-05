@@ -940,6 +940,10 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         $documentation: "The `undefined` value",
         value: function() {}()
     }, AST_Atom);
+    var AST_Hole = DEFNODE("Hole", null, {
+        $documentation: "A hole in an array",
+        value: function() {}()
+    }, AST_Atom);
     var AST_Infinity = DEFNODE("Infinity", null, {
         $documentation: "The `Infinity` value",
         value: 1 / 0
@@ -1033,7 +1037,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
     var RE_OCT_NUMBER = /^0[0-7]+$/;
     var RE_DEC_NUMBER = /^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i;
     var OPERATORS = makePredicate([ "in", "instanceof", "typeof", "new", "void", "delete", "++", "--", "+", "-", "!", "~", "&", "|", "^", "*", "/", "%", ">>", "<<", ">>>", "<", ">", "<=", ">=", "==", "===", "!=", "!==", "?", "=", "+=", "-=", "/=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=", "&&", "||" ]);
-    var WHITESPACE_CHARS = makePredicate(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
+    var WHITESPACE_CHARS = makePredicate(characters("  \n\r	\f​᠎             　"));
     var PUNC_BEFORE_EXPRESSION = makePredicate(characters("[{(,.;:"));
     var PUNC_CHARS = makePredicate(characters("[]{}(),;:"));
     var REGEXP_MODIFIERS = makePredicate(characters("gmsiy"));
@@ -1563,7 +1567,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                   case "do":
                     return new AST_Do({
                         body: in_loop(statement),
-                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(),
+                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(), 
                         tmp)
                     });
 
@@ -1585,7 +1589,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                   case "return":
                     if (S.in_function == 0) croak("'return' outside of function");
                     return new AST_Return({
-                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true),
+                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true), 
                         semicolon(), tmp)
                     });
 
@@ -1952,7 +1956,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 if (first) first = false; else expect(",");
                 if (allow_trailing_comma && is("punc", closing)) break;
                 if (is("punc", ",") && allow_empty) {
-                    a.push(new AST_Undefined({
+                    a.push(new AST_Hole({
                         start: S.token,
                         end: S.token
                     }));
@@ -2174,7 +2178,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                         left: left,
                         operator: val,
                         right: maybe_assign(no_in),
-                        end: peek()
+                        end: prev()
                     });
                 }
                 croak("Invalid assignment");
@@ -2429,7 +2433,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             } else if (node instanceof AST_SymbolVar || node instanceof AST_SymbolConst) {
                 var def = scope.def_variable(node);
                 def.constant = node instanceof AST_SymbolConst;
-                def = tw.parent();
+                def.init = tw.parent().value;
             } else if (node instanceof AST_SymbolCatch) {
                 scope.def_variable(node);
             }
@@ -3071,6 +3075,10 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 if (start && !start._comments_dumped) {
                     start._comments_dumped = true;
                     var comments = start.comments_before;
+                    if (self instanceof AST_Exit && self.value && self.value.start.comments_before.length > 0) {
+                        comments = (comments || []).concat(self.value.start.comments_before);
+                        self.value.start.comments_before = [];
+                    }
                     if (c.test) {
                         comments = comments.filter(function(comment) {
                             return c.test(comment.value);
@@ -3149,7 +3157,15 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         });
         PARENS(AST_New, function(output) {
             var p = output.parent();
-            if (no_constructor_parens(this, output) && (p instanceof AST_Dot || p instanceof AST_Call && p.expression === this)) return true;
+            if (no_constructor_parens(this, output) && (p instanceof AST_PropAccess || p instanceof AST_Call && p.expression === this)) return true;
+        });
+        PARENS(AST_Number, function(output) {
+            var p = output.parent();
+            if (this.getValue() < 0 && p instanceof AST_PropAccess && p.expression === this) return true;
+        });
+        PARENS(AST_NaN, function(output) {
+            var p = output.parent();
+            if (p instanceof AST_PropAccess && p.expression === this) return true;
         });
         function assign_and_conditional_paren_rules(output) {
             var p = output.parent();
@@ -3510,7 +3526,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         DEFPRINT(AST_Dot, function(self, output) {
             var expr = self.expression;
             expr.print(output);
-            if (expr instanceof AST_Number) {
+            if (expr instanceof AST_Number && expr.getValue() >= 0) {
                 if (!/[xa-f.]/i.test(output.last())) {
                     output.print(".");
                 }
@@ -3558,7 +3574,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                 if (len > 0) output.space();
                 a.forEach(function(exp, i) {
                     if (i) output.comma();
-                    if (!(exp instanceof AST_Undefined)) exp.print(output);
+                    exp.print(output);
                 });
                 if (len > 0) output.space();
             });
@@ -3605,6 +3621,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
         DEFPRINT(AST_Undefined, function(self, output) {
             output.print("void 0");
         });
+        DEFPRINT(AST_Hole, noop);
         DEFPRINT(AST_Infinity, function(self, output) {
             output.print("1/0");
         });
@@ -3627,6 +3644,8 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             var str = self.getValue().toString();
             if (output.option("ascii_only")) str = output.to_ascii(str);
             output.print(str);
+            var p = output.parent();
+            if (p instanceof AST_Binary && /^in/.test(p.operator) && p.left === self) output.print(" ");
         });
         function force_statement(stat, output) {
             if (output.option("bracketize")) {
@@ -4230,7 +4249,9 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                     return ~ev(e);
 
                   case "-":
-                    return -ev(e);
+                    e = ev(e);
+                    if (e === 0) throw def;
+                    return -e;
 
                   case "+":
                     return +ev(e);
@@ -4316,12 +4337,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
             });
             def(AST_SymbolRef, function() {
                 var d = this.definition();
-                if (d && d.constant) {
-                    var orig = d.orig[0];
-                    if (orig) orig = orig.init[0];
-                    orig = orig && orig.value;
-                    if (orig) return ev(orig);
-                }
+                if (d && d.constant && d.init) return ev(d.init);
                 throw def;
             });
         })(function(node, func) {
@@ -5154,6 +5170,9 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
                         break;
 
                       case "String":
+                        if (self.args.length == 0) return make_node(AST_String, self, {
+                            value: ""
+                        });
                         return make_node(AST_Binary, self, {
                             left: self.args[0],
                             operator: "+",
@@ -5296,7 +5315,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
 
               case "==":
               case "!=":
-                if (self.left instanceof AST_String && self.left.value == "undefined" && self.right instanceof AST_UnaryPrefix && self.right.operator == "typeof") {
+                if (self.left instanceof AST_String && self.left.value == "undefined" && self.right instanceof AST_UnaryPrefix && self.right.operator == "typeof" && compressor.option("unsafe")) {
                     if (!(self.right.expression instanceof AST_SymbolRef) || !self.right.expression.undeclared()) {
                         self.left = self.right.expression;
                         self.right = make_node(AST_Undefined, self.left).optimize(compressor);
@@ -5847,6 +5866,7 @@ define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, lo
     exports["AST_Null"] = AST_Null;
     exports["AST_NaN"] = AST_NaN;
     exports["AST_Undefined"] = AST_Undefined;
+    exports["AST_Hole"] = AST_Hole;
     exports["AST_Infinity"] = AST_Infinity;
     exports["AST_Boolean"] = AST_Boolean;
     exports["AST_False"] = AST_False;
