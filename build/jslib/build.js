@@ -453,6 +453,14 @@ define(function (require) {
                                     baseName = baseName.pop();
                                     finalText += '\n//@ sourceMappingURL=' + baseName + '.map';
                                     file.saveUtf8File(module._buildPath + '.map', builtModule.sourceMap);
+
+                                    //If the build target is part of the map,
+                                    //save its source separately
+                                    if (builtModule.sourceMapSrcSuffix) {
+                                        file.copyFile(module._buildPath,
+                                                      module._buildPath +
+                                                      builtModule.sourceMapSrcSuffix);
+                                    }
                                 }
                                 file.saveUtf8File(module._buildPath + '-temp', finalText);
 
@@ -809,6 +817,40 @@ define(function (require) {
 
         build.makeAbsObject(["out", "cssIn"], config, absFilePath);
         build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
+    };
+
+    /**
+     * Creates a relative path to targetPath from refPath.
+     * Only deals with file paths, not folders. If folders,
+     * make sure paths end in a trailing '/'.
+     */
+    build.makeRelativeFilePath = function (refPath, targetPath) {
+        var i, dotLength, finalParts,
+            refParts = refPath.split('/'),
+            targetParts = targetPath.split('/'),
+            //Pull off file name
+            refName = refParts.pop(),
+            targetName = targetParts.pop(),
+            length = refParts.length,
+            dotParts = [];
+
+        for (i = 0; i < length; i += 1) {
+            if (refParts[i] !== targetParts[i]) {
+                break;
+            }
+        }
+
+        //Now i is the index in which they diverge.
+        finalParts = targetParts.slice(i);
+
+        dotLength = length - i;
+        for (i = 0; i > -1 && i < dotLength; i += 1) {
+            dotParts.push('..');
+        }
+
+        return dotParts.join('/') + (dotParts.length ? '/' : '') +
+               finalParts.join('/') + (finalParts.length ? '/' : '') +
+               targetName;
     };
 
     build.nestedMix = {
@@ -1423,7 +1465,7 @@ define(function (require) {
      */
     build.flattenModule = function (module, layer, config) {
         var fileContents, sourceMapGenerator, sourceMapLineNumber,
-            sourceMapBase,
+            sourceMapBase, sourceMapSrcSuffix,
             buildFileContents = '';
 
         return prim().start(function () {
@@ -1572,6 +1614,8 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
+                        var sourceMapPath;
+
                         buildFileContents += path.replace(config.dir, "") + "\n";
                         //Some files may not have declared a require module, and if so,
                         //put in a placeholder call so the require does not try to load them
@@ -1592,6 +1636,13 @@ define(function (require) {
 
                         //Add to the source map
                         if (sourceMapGenerator) {
+                            if (module._buildPath === path) {
+                                sourceMapSrcSuffix = '.srcmap.js';
+                                sourceMapPath = path.split('/').pop() + sourceMapSrcSuffix;
+                            } else {
+                                sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
+                            }
+
                             lineCount = singleContents.split('\n').length;
                             for (var i = 1; i <= lineCount; i++) {
                                 sourceMapGenerator.addMapping({
@@ -1603,7 +1654,7 @@ define(function (require) {
                                         line: i,
                                         column: 0
                                     },
-                                    source: path.replace(sourceMapBase, '')
+                                    source: sourceMapPath
                                 });
                             }
                         }
@@ -1643,7 +1694,10 @@ define(function (require) {
                         config.wrap.start + fileContents + config.wrap.end :
                         fileContents,
                 buildText: buildFileContents,
-                sourceMap: JSON.stringify(sourceMapGenerator.toJSON(), null, '  ')
+                sourceMap: sourceMapGenerator ?
+                              JSON.stringify(sourceMapGenerator.toJSON(), null, '  ') :
+                              undefined,
+                sourceMapSrcSuffix: sourceMapSrcSuffix
             };
         });
     };

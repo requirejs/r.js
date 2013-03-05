@@ -2,10 +2,10 @@
   "version": 3,
   "file": "js/main.js",
   "sources": [
-    "js/a.js",
-    "js/b.js",
-    "js/main.js"
+    "a.js",
+    "b.js",
+    "main.js.srcmap.js"
   ],
   "names": [],
-  "mappings": "ACKA,ADLA,AAEA,AACA,AACA,AACA,AACA,AACA,ACPA,AACA,AACA,AACA,AACA,ADHA,ACKA,AACA,ACPA,AACA,AACA,AACA,AACA,AACA,AACA,AACA,AACA,AACA,AACA"
+  "mappings": "ACKA,ADLA,AAEA,AACA,AACA,AACA,AACA,AACA,AACA,ACRA,AACA,AACA,AACA,AACA,ADHA,ACKA,AACA,ACPA,AACA,AACA,AACA,AACA,AACA,AACA,AACA,AACA,AACA,AACA"
 }

@@ -106,4 +106,25 @@ define(['build'], function (build) {
             }
         ]);
     doh.run();
+
+    doh.register("makeRelativeFilePath",
+        [
+            function makeRelativeFilePath(t) {
+                t.is('sibling.js',
+                    build.makeRelativeFilePath('/some/other/www-built/js/main.js',
+                                               '/some/other/www-built/js/sibling.js'));
+                t.is('sub/thing/other.js',
+                    build.makeRelativeFilePath('/some/other/www-built/js/main.js',
+                                               '/some/other/www-built/js/sub/thing/other.js'));
+
+                t.is('../parent/thing/other.js',
+                    build.makeRelativeFilePath('/some/other/www-built/js/main.js',
+                                               '/some/other/www-built/parent/thing/other.js'));
+
+                t.is('../../../Applications/foo/',
+                    build.makeRelativeFilePath('/Users/some/thing/',
+                                           '/Applications/foo/'));
+            }
+        ]);
+    doh.run();
 });
