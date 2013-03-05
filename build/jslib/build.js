@@ -1020,7 +1020,8 @@ define(function (require) {
         if (config.appDir && config.out) {
             throw new Error('"appDir" is not compatible with "out". Use "dir" ' +
                             'instead. appDir is used to copy whole projects, ' +
-                            'where "out" is used to just optimize to one file.');
+                            'where "out" with "baseUrl" is used to just ' +
+                            'optimize to one file.');
         }
         if (config.out && config.dir) {
             throw new Error('The "out" and "dir" options are incompatible.' +
