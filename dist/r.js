@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Mon, 04 Mar 2013 22:54:20 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Tue, 05 Mar 2013 18:46:58 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Mon, 04 Mar 2013 22:54:20 GMT',
+        version = '2.1.5+ Tue, 05 Mar 2013 18:46:58 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23736,7 +23736,8 @@ define('build', function (require) {
         if (config.appDir && config.out) {
             throw new Error('"appDir" is not compatible with "out". Use "dir" ' +
                             'instead. appDir is used to copy whole projects, ' +
-                            'where "out" is used to just optimize to one file.');
+                            'where "out" with "baseUrl" is used to just ' +
+                            'optimize to one file.');
         }
         if (config.out && config.dir) {
             throw new Error('The "out" and "dir" options are incompatible.' +
