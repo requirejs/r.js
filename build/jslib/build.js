@@ -24,6 +24,7 @@ define(function (require) {
         env = require('env'),
         quit = require('env!env/quit'),
         commonJs = require('commonJs'),
+        SourceMapGenerator = require('source-map/source-map-generator'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
@@ -438,13 +439,23 @@ define(function (require) {
 
                         //Flatten them and collect the build output for each module.
                         return build.flattenModule(module, module.layer, config).then(function (builtModule) {
+                            var finalText, baseName;
                             //Save it to a temp file for now, in case there are other layers that
                             //contain optimized content that should not be included in later
                             //layer optimizations. See issue #56.
                             if (module._buildPath === 'FUNCTION') {
                                 module._buildText = builtModule.text;
+                                module._buildSourceMap = builtModule.sourceMap;
                             } else {
-                                file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
+                                finalText = builtModule.text;
+                                if (builtModule.sourceMap) {
+                                    baseName = module._buildPath.split('/');
+                                    baseName = baseName.pop();
+                                    finalText += '\n//@ sourceMappingURL=' + baseName + '.map';
+                                    file.saveUtf8File(module._buildPath + '.map', builtModule.sourceMap);
+                                }
+                                file.saveUtf8File(module._buildPath + '-temp', finalText);
+
                             }
                             buildFileContents += builtModule.buildText;
                         });
@@ -1410,7 +1421,8 @@ define(function (require) {
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
-        var fileContents,
+        var fileContents, sourceMapGenerator, sourceMapLineNumber,
+            sourceMapBase,
             buildFileContents = '';
 
         return prim().start(function () {
@@ -1446,10 +1458,21 @@ define(function (require) {
                 }
             }
 
+            if (config.generateSourceMaps) {
+                sourceMapBase = config.dir || config.baseUrl;
+                sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
+                    file: module._buildPath.replace(sourceMapBase, '')
+                });
+                sourceMapLineNumber = 1;
+            }
+
             //Write the built module to disk, and build up the build output.
             fileContents = "";
             return prim.serial(layer.buildFilePaths.map(function (path) {
                 return function () {
+                    var lineCount,
+                        singleContents = '';
+
                     moduleName = layer.buildFileToModule[path];
                     //If the moduleName is for a package main, then update it to the
                     //real main value.
@@ -1473,18 +1496,18 @@ define(function (require) {
 
                             if (builder.write) {
                                 writeApi = function (input) {
-                                    fileContents += "\n" + addSemiColon(input);
+                                    singleContents += "\n" + addSemiColon(input);
                                     if (config.onBuildWrite) {
-                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                                        singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
                                 };
                                 writeApi.asModule = function (moduleName, input) {
-                                    fileContents += "\n" +
+                                    singleContents += "\n" +
                                         addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
                                             useSourceUrl: layer.context.config.useSourceUrl
                                         }));
                                     if (config.onBuildWrite) {
-                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                                        singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
                                 };
                                 builder.write(parts.prefix, parts.name, writeApi);
@@ -1544,7 +1567,7 @@ define(function (require) {
 
                                 //Semicolon is for files that are not well formed when
                                 //concatenated with other content.
-                                fileContents += "\n" + addSemiColon(currContents);
+                                singleContents += "\n" + addSemiColon(currContents);
                             });
                         }
                     }).then(function () {
@@ -1556,15 +1579,36 @@ define(function (require) {
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
                             shim = config.shim && (getOwn(config.shim, moduleName) || (packageConfig && getOwn(config.shim, nonPackageName)));
                             if (shim) {
-                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                                  (shim.deps && shim.deps.length ?
                                                         build.makeJsArrayString(shim.deps) + ', ' : '') +
                                                  (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
                                                  ');\n';
                             } else {
-                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
+                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }
                         }
+
+                        //Add to the source map
+                        if (sourceMapGenerator) {
+                            lineCount = singleContents.split('\n').length;
+                            for (var i = 1; i <= lineCount; i++) {
+                                sourceMapGenerator.addMapping({
+                                    generated: {
+                                        line: sourceMapLineNumber,
+                                        column: 0
+                                    },
+                                    original: {
+                                        line: i,
+                                        column: 0
+                                    },
+                                    source: path.replace(sourceMapBase, '')
+                                });
+                            }
+                        }
+
+                        //Add the file to the final contents
+                        fileContents += singleContents;
                     });
                 };
             })).then(function () {
@@ -1597,7 +1641,8 @@ define(function (require) {
                 text: config.wrap ?
                         config.wrap.start + fileContents + config.wrap.end :
                         fileContents,
-                buildText: buildFileContents
+                buildText: buildFileContents,
+                sourceMap: JSON.stringify(sourceMapGenerator.toJSON(), null, '  ')
             };
         });
     };
