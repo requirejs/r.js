@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Tue, 05 Mar 2013 18:46:58 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Wed, 06 Mar 2013 05:31:03 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Tue, 05 Mar 2013 18:46:58 GMT',
+        version = '2.1.5+ Wed, 06 Mar 2013 05:31:03 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13861,8 +13861,8 @@ define('source-map/source-node', function (require, exports, module) {
           }
         });
       }
-      chunk.split('').forEach(function (char) {
-        if (char === '\n') {
+      chunk.split('').forEach(function (ch) {
+        if (ch === '\n') {
           generated.line++;
           generated.column = 0;
         } else {
@@ -14870,6 +14870,10 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         $documentation: "The `undefined` value",
         value: function() {}()
     }, AST_Atom);
+    var AST_Hole = DEFNODE("Hole", null, {
+        $documentation: "A hole in an array",
+        value: function() {}()
+    }, AST_Atom);
     var AST_Infinity = DEFNODE("Infinity", null, {
         $documentation: "The `Infinity` value",
         value: 1 / 0
@@ -14963,7 +14967,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
     var RE_OCT_NUMBER = /^0[0-7]+$/;
     var RE_DEC_NUMBER = /^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i;
     var OPERATORS = makePredicate([ "in", "instanceof", "typeof", "new", "void", "delete", "++", "--", "+", "-", "!", "~", "&", "|", "^", "*", "/", "%", ">>", "<<", ">>>", "<", ">", "<=", ">=", "==", "===", "!=", "!==", "?", "=", "+=", "-=", "/=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=", "&&", "||" ]);
-    var WHITESPACE_CHARS = makePredicate(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
+    var WHITESPACE_CHARS = makePredicate(characters("  \n\r	\f​᠎             　"));
     var PUNC_BEFORE_EXPRESSION = makePredicate(characters("[{(,.;:"));
     var PUNC_CHARS = makePredicate(characters("[]{}(),;:"));
     var REGEXP_MODIFIERS = makePredicate(characters("gmsiy"));
@@ -15493,7 +15497,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                   case "do":
                     return new AST_Do({
                         body: in_loop(statement),
-                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(),
+                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(), 
                         tmp)
                     });
 
@@ -15515,7 +15519,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                   case "return":
                     if (S.in_function == 0) croak("'return' outside of function");
                     return new AST_Return({
-                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true),
+                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true), 
                         semicolon(), tmp)
                     });
 
@@ -15882,7 +15886,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                 if (first) first = false; else expect(",");
                 if (allow_trailing_comma && is("punc", closing)) break;
                 if (is("punc", ",") && allow_empty) {
-                    a.push(new AST_Undefined({
+                    a.push(new AST_Hole({
                         start: S.token,
                         end: S.token
                     }));
@@ -16104,7 +16108,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                         left: left,
                         operator: val,
                         right: maybe_assign(no_in),
-                        end: peek()
+                        end: prev()
                     });
                 }
                 croak("Invalid assignment");
@@ -16359,7 +16363,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             } else if (node instanceof AST_SymbolVar || node instanceof AST_SymbolConst) {
                 var def = scope.def_variable(node);
                 def.constant = node instanceof AST_SymbolConst;
-                def = tw.parent();
+                def.init = tw.parent().value;
             } else if (node instanceof AST_SymbolCatch) {
                 scope.def_variable(node);
             }
@@ -17001,6 +17005,10 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                 if (start && !start._comments_dumped) {
                     start._comments_dumped = true;
                     var comments = start.comments_before;
+                    if (self instanceof AST_Exit && self.value && self.value.start.comments_before.length > 0) {
+                        comments = (comments || []).concat(self.value.start.comments_before);
+                        self.value.start.comments_before = [];
+                    }
                     if (c.test) {
                         comments = comments.filter(function(comment) {
                             return c.test(comment.value);
@@ -17079,7 +17087,15 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         });
         PARENS(AST_New, function(output) {
             var p = output.parent();
-            if (no_constructor_parens(this, output) && (p instanceof AST_Dot || p instanceof AST_Call && p.expression === this)) return true;
+            if (no_constructor_parens(this, output) && (p instanceof AST_PropAccess || p instanceof AST_Call && p.expression === this)) return true;
+        });
+        PARENS(AST_Number, function(output) {
+            var p = output.parent();
+            if (this.getValue() < 0 && p instanceof AST_PropAccess && p.expression === this) return true;
+        });
+        PARENS(AST_NaN, function(output) {
+            var p = output.parent();
+            if (p instanceof AST_PropAccess && p.expression === this) return true;
         });
         function assign_and_conditional_paren_rules(output) {
             var p = output.parent();
@@ -17440,7 +17456,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         DEFPRINT(AST_Dot, function(self, output) {
             var expr = self.expression;
             expr.print(output);
-            if (expr instanceof AST_Number) {
+            if (expr instanceof AST_Number && expr.getValue() >= 0) {
                 if (!/[xa-f.]/i.test(output.last())) {
                     output.print(".");
                 }
@@ -17488,7 +17504,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                 if (len > 0) output.space();
                 a.forEach(function(exp, i) {
                     if (i) output.comma();
-                    if (!(exp instanceof AST_Undefined)) exp.print(output);
+                    exp.print(output);
                 });
                 if (len > 0) output.space();
             });
@@ -17535,6 +17551,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         DEFPRINT(AST_Undefined, function(self, output) {
             output.print("void 0");
         });
+        DEFPRINT(AST_Hole, noop);
         DEFPRINT(AST_Infinity, function(self, output) {
             output.print("1/0");
         });
@@ -17557,6 +17574,8 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             var str = self.getValue().toString();
             if (output.option("ascii_only")) str = output.to_ascii(str);
             output.print(str);
+            var p = output.parent();
+            if (p instanceof AST_Binary && /^in/.test(p.operator) && p.left === self) output.print(" ");
         });
         function force_statement(stat, output) {
             if (output.option("bracketize")) {
@@ -18160,7 +18179,9 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                     return ~ev(e);
 
                   case "-":
-                    return -ev(e);
+                    e = ev(e);
+                    if (e === 0) throw def;
+                    return -e;
 
                   case "+":
                     return +ev(e);
@@ -18246,12 +18267,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             });
             def(AST_SymbolRef, function() {
                 var d = this.definition();
-                if (d && d.constant) {
-                    var orig = d.orig[0];
-                    if (orig) orig = orig.init[0];
-                    orig = orig && orig.value;
-                    if (orig) return ev(orig);
-                }
+                if (d && d.constant && d.init) return ev(d.init);
                 throw def;
             });
         })(function(node, func) {
@@ -19084,6 +19100,9 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                         break;
 
                       case "String":
+                        if (self.args.length == 0) return make_node(AST_String, self, {
+                            value: ""
+                        });
                         return make_node(AST_Binary, self, {
                             left: self.args[0],
                             operator: "+",
@@ -19226,7 +19245,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
 
               case "==":
               case "!=":
-                if (self.left instanceof AST_String && self.left.value == "undefined" && self.right instanceof AST_UnaryPrefix && self.right.operator == "typeof") {
+                if (self.left instanceof AST_String && self.left.value == "undefined" && self.right instanceof AST_UnaryPrefix && self.right.operator == "typeof" && compressor.option("unsafe")) {
                     if (!(self.right.expression instanceof AST_SymbolRef) || !self.right.expression.undeclared()) {
                         self.left = self.right.expression;
                         self.right = make_node(AST_Undefined, self.left).optimize(compressor);
@@ -19777,6 +19796,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
     exports["AST_Null"] = AST_Null;
     exports["AST_NaN"] = AST_NaN;
     exports["AST_Undefined"] = AST_Undefined;
+    exports["AST_Hole"] = AST_Hole;
     exports["AST_Infinity"] = AST_Infinity;
     exports["AST_Boolean"] = AST_Boolean;
     exports["AST_False"] = AST_False;
@@ -22740,6 +22760,7 @@ define('build', function (require) {
         env = require('env'),
         quit = require('env!env/quit'),
         commonJs = require('commonJs'),
+        SourceMapGenerator = require('source-map/source-map-generator'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
@@ -23154,13 +23175,31 @@ define('build', function (require) {
 
                         //Flatten them and collect the build output for each module.
                         return build.flattenModule(module, module.layer, config).then(function (builtModule) {
+                            var finalText, baseName;
                             //Save it to a temp file for now, in case there are other layers that
                             //contain optimized content that should not be included in later
                             //layer optimizations. See issue #56.
                             if (module._buildPath === 'FUNCTION') {
                                 module._buildText = builtModule.text;
+                                module._buildSourceMap = builtModule.sourceMap;
                             } else {
-                                file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
+                                finalText = builtModule.text;
+                                if (builtModule.sourceMap) {
+                                    baseName = module._buildPath.split('/');
+                                    baseName = baseName.pop();
+                                    finalText += '\n//@ sourceMappingURL=' + baseName + '.map';
+                                    file.saveUtf8File(module._buildPath + '.map', builtModule.sourceMap);
+
+                                    //If the build target is part of the map,
+                                    //save its source separately
+                                    if (builtModule.sourceMapSrcSuffix) {
+                                        file.copyFile(module._buildPath,
+                                                      module._buildPath +
+                                                      builtModule.sourceMapSrcSuffix);
+                                    }
+                                }
+                                file.saveUtf8File(module._buildPath + '-temp', finalText);
+
                             }
                             buildFileContents += builtModule.buildText;
                         });
@@ -23514,6 +23553,40 @@ define('build', function (require) {
 
         build.makeAbsObject(["out", "cssIn"], config, absFilePath);
         build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
+    };
+
+    /**
+     * Creates a relative path to targetPath from refPath.
+     * Only deals with file paths, not folders. If folders,
+     * make sure paths end in a trailing '/'.
+     */
+    build.makeRelativeFilePath = function (refPath, targetPath) {
+        var i, dotLength, finalParts,
+            refParts = refPath.split('/'),
+            targetParts = targetPath.split('/'),
+            //Pull off file name
+            refName = refParts.pop(),
+            targetName = targetParts.pop(),
+            length = refParts.length,
+            dotParts = [];
+
+        for (i = 0; i < length; i += 1) {
+            if (refParts[i] !== targetParts[i]) {
+                break;
+            }
+        }
+
+        //Now i is the index in which they diverge.
+        finalParts = targetParts.slice(i);
+
+        dotLength = length - i;
+        for (i = 0; i > -1 && i < dotLength; i += 1) {
+            dotParts.push('..');
+        }
+
+        return dotParts.join('/') + (dotParts.length ? '/' : '') +
+               finalParts.join('/') + (finalParts.length ? '/' : '') +
+               targetName;
     };
 
     build.nestedMix = {
@@ -24127,7 +24200,8 @@ define('build', function (require) {
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
-        var fileContents,
+        var fileContents, sourceMapGenerator, sourceMapLineNumber,
+            sourceMapBase, sourceMapSrcSuffix,
             buildFileContents = '';
 
         return prim().start(function () {
@@ -24163,10 +24237,21 @@ define('build', function (require) {
                 }
             }
 
+            if (config.generateSourceMaps) {
+                sourceMapBase = config.dir || config.baseUrl;
+                sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
+                    file: module._buildPath.replace(sourceMapBase, '')
+                });
+                sourceMapLineNumber = 1;
+            }
+
             //Write the built module to disk, and build up the build output.
             fileContents = "";
             return prim.serial(layer.buildFilePaths.map(function (path) {
                 return function () {
+                    var lineCount,
+                        singleContents = '';
+
                     moduleName = layer.buildFileToModule[path];
                     //If the moduleName is for a package main, then update it to the
                     //real main value.
@@ -24190,18 +24275,18 @@ define('build', function (require) {
 
                             if (builder.write) {
                                 writeApi = function (input) {
-                                    fileContents += "\n" + addSemiColon(input);
+                                    singleContents += "\n" + addSemiColon(input);
                                     if (config.onBuildWrite) {
-                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                                        singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
                                 };
                                 writeApi.asModule = function (moduleName, input) {
-                                    fileContents += "\n" +
+                                    singleContents += "\n" +
                                         addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
                                             useSourceUrl: layer.context.config.useSourceUrl
                                         }));
                                     if (config.onBuildWrite) {
-                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
+                                        singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
                                 };
                                 builder.write(parts.prefix, parts.name, writeApi);
@@ -24261,10 +24346,12 @@ define('build', function (require) {
 
                                 //Semicolon is for files that are not well formed when
                                 //concatenated with other content.
-                                fileContents += "\n" + addSemiColon(currContents);
+                                singleContents += "\n" + addSemiColon(currContents);
                             });
                         }
                     }).then(function () {
+                        var sourceMapPath;
+
                         buildFileContents += path.replace(config.dir, "") + "\n";
                         //Some files may not have declared a require module, and if so,
                         //put in a placeholder call so the require does not try to load them
@@ -24273,15 +24360,45 @@ define('build', function (require) {
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
                             shim = config.shim && (getOwn(config.shim, moduleName) || (packageConfig && getOwn(config.shim, nonPackageName)));
                             if (shim) {
-                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                                  (shim.deps && shim.deps.length ?
                                                         build.makeJsArrayString(shim.deps) + ', ' : '') +
                                                  (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
                                                  ');\n';
                             } else {
-                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
+                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }
                         }
+
+                        //Add to the source map
+                        if (sourceMapGenerator) {
+                            if (module._buildPath === path) {
+                                sourceMapSrcSuffix = '.src.js';
+                                sourceMapPath = path.split('/').pop() + sourceMapSrcSuffix;
+                            } else {
+                                sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
+                            }
+
+                            lineCount = singleContents.split('\n').length;
+                            for (var i = 1; i <= lineCount; i += 1) {
+                                sourceMapGenerator.addMapping({
+                                    generated: {
+                                        line: sourceMapLineNumber,
+                                        column: 0
+                                    },
+                                    original: {
+                                        line: i,
+                                        column: 0
+                                    },
+                                    source: sourceMapPath
+                                });
+
+                                sourceMapLineNumber += 1;
+                            }
+                        }
+
+                        //Add the file to the final contents
+                        fileContents += singleContents;
                     });
                 };
             })).then(function () {
@@ -24314,7 +24431,11 @@ define('build', function (require) {
                 text: config.wrap ?
                         config.wrap.start + fileContents + config.wrap.end :
                         fileContents,
-                buildText: buildFileContents
+                buildText: buildFileContents,
+                sourceMap: sourceMapGenerator ?
+                              JSON.stringify(sourceMapGenerator.toJSON(), null, '  ') :
+                              undefined,
+                sourceMapSrcSuffix: sourceMapSrcSuffix
             };
         });
     };
