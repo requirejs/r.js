@@ -1644,7 +1644,7 @@ define(function (require) {
                             }
 
                             lineCount = singleContents.split('\n').length;
-                            for (var i = 1; i <= lineCount; i++) {
+                            for (var i = 1; i <= lineCount; i += 1) {
                                 sourceMapGenerator.addMapping({
                                     generated: {
                                         line: sourceMapLineNumber,
@@ -1656,6 +1656,8 @@ define(function (require) {
                                     },
                                     source: sourceMapPath
                                 });
+
+                                sourceMapLineNumber += 1;
                             }
                         }
 

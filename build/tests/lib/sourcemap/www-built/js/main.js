@@ -2,7 +2,6 @@
 /**
  * Module A
  */
-debugger;
 define('a',{
     name: 'a'
 });
