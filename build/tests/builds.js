@@ -1835,4 +1835,29 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Test source map generation for a bundled file,
+    //see https://github.com/jrburke/r.js/issues/397
+    doh.register("sourcemap",
+        [
+            function sourcemap(t) {
+                file.deleteFile("lib/sourcemap/www-built");
+
+                build(["lib/sourcemap/build.js"]);
+
+                t.is(nol(c("lib/sourcemap/expected/main.js")),
+                     nol(c("lib/sourcemap/www-built/js/main.js")));
+
+                t.is(nol(c("lib/sourcemap/expected/main.js.map")),
+                     nol(c("lib/sourcemap/www-built/js/main.js.map")));
+
+                t.is(nol(c("lib/sourcemap/expected/main.js.src.js")),
+                     nol(c("lib/sourcemap/www-built/js/main.js.src.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

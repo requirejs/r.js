@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "file": "js/main.js",
+  "sources": [
+    "a.js",
+    "b.js",
+    "main.js.src.js"
+  ],
+  "names": [],
+  "mappings": "AAAA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;ACPA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;ACPA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA"
+}

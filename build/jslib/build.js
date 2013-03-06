@@ -1637,7 +1637,7 @@ define(function (require) {
                         //Add to the source map
                         if (sourceMapGenerator) {
                             if (module._buildPath === path) {
-                                sourceMapSrcSuffix = '.srcmap.js';
+                                sourceMapSrcSuffix = '.src.js';
                                 sourceMapPath = path.split('/').pop() + sourceMapSrcSuffix;
                             } else {
                                 sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
