@@ -1094,7 +1094,7 @@ define(function (require) {
         }
 
         if (config.generateSourceMaps) {
-            if (config.preserveLicenseComments) {
+            if (config.preserveLicenseComments && config.optimize !== 'none') {
                 throw new Error('Cannot use preserveLicenseComments and ' +
                     'generateSourceMaps together. Either explcitly set ' +
                     'preserveLicenseComments to false (default is true) or ' +

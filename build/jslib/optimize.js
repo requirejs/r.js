@@ -407,6 +407,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             uglify2: function (fileName, fileContents, outFileName, keepLines, config) {
                 var result,
                     uconfig = {},
+                    existingMapPath = outFileName + '.map',
                     baseName = fileName && fileName.split('/').pop();
 
                 config = config || {};
@@ -417,6 +418,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 if (config.generateSourceMaps && outFileName) {
                     uconfig.outSourceMap = baseName;
+
+                    if (file.exists(existingMapPath)) {
+                        uconfig.inSourceMap = existingMapPath;
+                    }
                 }
 
                 logger.trace("Uglify2 file: " + fileName);
@@ -426,8 +431,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                     if (uconfig.outSourceMap && result.map) {
                         file.saveFile(outFileName + '.src', fileContents);
-                        file.saveFile(outFileName + '.map', result.map);
-                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".map";
+                        file.saveFile(outFileName + '.min.map', result.map);
+                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".min.map";
                     } else {
                         fileContents = result.code;
                     }
