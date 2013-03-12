@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Tue, 05 Mar 2013 18:46:58 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Tue, 12 Mar 2013 00:08:35 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Tue, 05 Mar 2013 18:46:58 GMT',
+        version = '2.1.5+ Tue, 12 Mar 2013 00:08:35 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -19959,8 +19959,20 @@ exports.describe_ast = function() {
 /*jslint plusplus: true */
 /*global define: false */
 
-define('parse', ['./esprima'], function (esprima) {
+define('parse', ['./esprima', 'lang'], function (esprima, lang) {
     'use strict';
+
+    function arrayToString(ary) {
+        var output = '[';
+        if (ary) {
+            ary.forEach(function (item, i) {
+                output += (i > 0 ? ',' : '') + '"' + lang.jsEscape(item) + '"';
+            });
+        }
+        output += ']';
+
+        return output;
+    }
 
     //This string is saved off because JSLint complains
     //about obj.arguments use, as 'reserved word'
@@ -20088,8 +20100,7 @@ define('parse', ['./esprima'], function (esprima) {
                     moduleDeps = [];
                 }
 
-                depString = moduleCall.deps.length ? '["' +
-                            moduleCall.deps.join('","') + '"]' : '[]';
+                depString = arrayToString(moduleCall.deps);
                 result += 'define("' + moduleCall.name + '",' +
                           depString + ');';
             }
@@ -20097,8 +20108,7 @@ define('parse', ['./esprima'], function (esprima) {
                 if (result) {
                     result += '\n';
                 }
-                depString = moduleDeps.length ? '["' + moduleDeps.join('","') +
-                            '"]' : '[]';
+                depString = arrayToString(moduleDeps);
                 result += 'define("' + moduleName + '",' + depString + ');';
             }
         }
