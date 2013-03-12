@@ -81,6 +81,7 @@ define(['parse', 'env!env/file'], function (parse, file) {
                     good8 = "(function (factory){\nif(typeof define === 'function' && define.amd){\ndefine('some/name', ['dep1', 'dep2'], factory);\n}else{\nfactory(this.dep);\n}\n}(function(dep){\n}));",
                     good9 = "define(function (require) {\n//Dependencies with no usable return value.\nrequire('plugin!some/value');\n});",
                     good10 = "define('good10', function (require) {\n//If have dependencies, get them here\nvar newt = require('newt');\nreturn {\nname: 'spell',\nnewtName: newt.name,\ntailName: newt.tailName,\neyeName: newt.eyeName\n};});",
+                    good11 = "define([\'plug!role=\"base something\"\'], function () {});",
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
                 t.is('define("one",["two","three"]);', parse("good1", "good1", good1));
@@ -93,6 +94,8 @@ define(['parse', 'env!env/file'], function (parse, file) {
                 t.is('define("some/name",["dep1","dep2"]);', parse("good8", "good8", good8));
                 t.is('define("good9",["require","plugin!some/value"]);', parse("good9", "good9", good9));
                 t.is('define("good10",["require","newt"]);', parse("good10", "good10", good10));
+                t.is('define("good11",["plug!role=\\"base something\\""]);', parse("good11", "good11", good11));
+
                 t.is('define("foo",[]);', parse("nested1", "nested1", nested1));
                 t.is('define("one",["me"]);', parse("bad1", "bad1", bad1));
 

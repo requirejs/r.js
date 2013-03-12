@@ -7,8 +7,20 @@
 /*jslint plusplus: true */
 /*global define: false */
 
-define(['./esprima'], function (esprima) {
+define(['./esprima', 'lang'], function (esprima, lang) {
     'use strict';
+
+    function arrayToString(ary) {
+        var output = '[';
+        if (ary) {
+            ary.forEach(function (item, i) {
+                output += (i > 0 ? ',' : '') + '"' + lang.jsEscape(item) + '"';
+            });
+        }
+        output += ']';
+
+        return output;
+    }
 
     //This string is saved off because JSLint complains
     //about obj.arguments use, as 'reserved word'
@@ -136,8 +148,7 @@ define(['./esprima'], function (esprima) {
                     moduleDeps = [];
                 }
 
-                depString = moduleCall.deps.length ? '["' +
-                            moduleCall.deps.join('","') + '"]' : '[]';
+                depString = arrayToString(moduleCall.deps);
                 result += 'define("' + moduleCall.name + '",' +
                           depString + ');';
             }
@@ -145,8 +156,7 @@ define(['./esprima'], function (esprima) {
                 if (result) {
                     result += '\n';
                 }
-                depString = moduleDeps.length ? '["' + moduleDeps.join('","') +
-                            '"]' : '[]';
+                depString = arrayToString(moduleDeps);
                 result += 'define("' + moduleName + '",' + depString + ');';
             }
         }
