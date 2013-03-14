@@ -994,7 +994,8 @@ define(function (require) {
             throw new Error('"main" passed as an option, but the ' +
                             'supported option is called "name".');
         }
-        if (!config.name && !config.modules && !config.include && !config.cssIn) {
+        if (config.out && !config.name && !config.modules && !config.include &&
+                !config.cssIn) {
             throw new Error('Missing either a "name", "include" or "modules" ' +
                             'option');
         }
