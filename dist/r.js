@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Thu, 14 Mar 2013 20:43:44 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Thu, 21 Mar 2013 04:00:45 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Thu, 14 Mar 2013 20:43:44 GMT',
+        version = '2.1.5+ Thu, 21 Mar 2013 04:00:45 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22361,7 +22361,8 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                                 return require._cacheReadAsync(url).then(function (text) {
                                     contents = text;
 
-                                    if (context.config.cjsTranslate) {
+                                    if (context.config.cjsTranslate &&
+                                        (!context.config.shim || !lang.hasProp(context.config.shim, moduleName))) {
                                         contents = commonJs.convert(url, contents);
                                     }
 
@@ -23257,7 +23258,8 @@ define('build', function (require) {
                         //For builds, if wanting cjs translation, do it now, so that
                         //the individual modules can be loaded cross domain via
                         //plain script tags.
-                        if (config.cjsTranslate) {
+                        if (config.cjsTranslate &&
+                            (!config.shim || !lang.hasProp(config.shim, moduleName))) {
                             fileContents = commonJs.convert(fileName, fileContents);
                         }
 
@@ -24239,7 +24241,8 @@ define('build', function (require) {
 
                                 currContents = text;
 
-                                if (config.cjsTranslate) {
+                                if (config.cjsTranslate &&
+                                    (!config.shim || !lang.hasProp(config.shim, moduleName))) {
                                     currContents = commonJs.convert(path, currContents);
                                 }
 
