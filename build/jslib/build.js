@@ -453,14 +453,6 @@ define(function (require) {
                                     baseName = baseName.pop();
                                     finalText += '\n//@ sourceMappingURL=' + baseName + '.map';
                                     file.saveUtf8File(module._buildPath + '.map', builtModule.sourceMap);
-
-                                    //If the build target is part of the map,
-                                    //save its source separately
-                                    if (builtModule.sourceMapSrcSuffix) {
-                                        file.copyFile(module._buildPath,
-                                                      module._buildPath +
-                                                      builtModule.sourceMapSrcSuffix);
-                                    }
                                 }
                                 file.saveUtf8File(module._buildPath + '-temp', finalText);
 
@@ -829,10 +821,13 @@ define(function (require) {
             refParts = refPath.split('/'),
             targetParts = targetPath.split('/'),
             //Pull off file name
-            refName = refParts.pop(),
             targetName = targetParts.pop(),
             length = refParts.length,
             dotParts = [];
+
+        //Also pop off the ref file name to make the matches against
+        //targetParts equivalent.
+        refParts.pop();
 
         for (i = 0; i < length; i += 1) {
             if (refParts[i] !== targetParts[i]) {
@@ -1465,7 +1460,7 @@ define(function (require) {
      */
     build.flattenModule = function (module, layer, config) {
         var fileContents, sourceMapGenerator, sourceMapLineNumber,
-            sourceMapBase, sourceMapSrcSuffix,
+            sourceMapBase,
             buildFileContents = '';
 
         return prim().start(function () {
@@ -1636,12 +1631,7 @@ define(function (require) {
 
                         //Add to the source map
                         if (sourceMapGenerator) {
-                            if (module._buildPath === path) {
-                                sourceMapSrcSuffix = '.src.js';
-                                sourceMapPath = path.split('/').pop() + sourceMapSrcSuffix;
-                            } else {
-                                sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
-                            }
+                            sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
 
                             lineCount = singleContents.split('\n').length;
                             for (var i = 1; i <= lineCount; i += 1) {
@@ -1659,6 +1649,12 @@ define(function (require) {
 
                                 sourceMapLineNumber += 1;
                             }
+
+                            //Store the content of the original in the source
+                            //map since other transforms later like minification
+                            //can mess up translating back to the original
+                            //source
+                            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
                         }
 
                         //Add the file to the final contents
@@ -1698,8 +1694,7 @@ define(function (require) {
                 buildText: buildFileContents,
                 sourceMap: sourceMapGenerator ?
                               JSON.stringify(sourceMapGenerator.toJSON(), null, '  ') :
-                              undefined,
-                sourceMapSrcSuffix: sourceMapSrcSuffix
+                              undefined
             };
         });
     };
