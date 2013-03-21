@@ -7,6 +7,8 @@
 
 define(function (require, exports, module) {
 
+  var util = require('./util');
+
   /**
    * A data structure which is a combination of an array and a set. Adding a new
    * member is O(1), testing for membership is O(1), and finding the index of an
@@ -30,19 +32,6 @@ define(function (require, exports, module) {
   };
 
   /**
-   * Because behavior goes wacky when you set `__proto__` on `this._set`, we
-   * have to prefix all the strings in our set with an arbitrary character.
-   *
-   * See https://github.com/mozilla/source-map/pull/31 and
-   * https://github.com/mozilla/source-map/issues/30
-   *
-   * @param String aStr
-   */
-  ArraySet.prototype._toSetString = function ArraySet__toSetString (aStr) {
-    return "$" + aStr;
-  };
-
-  /**
    * Add the given string to this set.
    *
    * @param String aStr
@@ -54,7 +43,7 @@ define(function (require, exports, module) {
     }
     var idx = this._array.length;
     this._array.push(aStr);
-    this._set[this._toSetString(aStr)] = idx;
+    this._set[util.toSetString(aStr)] = idx;
   };
 
   /**
@@ -64,7 +53,7 @@ define(function (require, exports, module) {
    */
   ArraySet.prototype.has = function ArraySet_has(aStr) {
     return Object.prototype.hasOwnProperty.call(this._set,
-                                                this._toSetString(aStr));
+                                                util.toSetString(aStr));
   };
 
   /**
@@ -74,7 +63,7 @@ define(function (require, exports, module) {
    */
   ArraySet.prototype.indexOf = function ArraySet_indexOf(aStr) {
     if (this.has(aStr)) {
-      return this._set[this._toSetString(aStr)];
+      return this._set[util.toSetString(aStr)];
     }
     throw new Error('"' + aStr + '" is not in the set.');
   };

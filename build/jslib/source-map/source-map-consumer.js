@@ -25,6 +25,7 @@ define(function (require, exports, module) {
    *   - sources: An array of URLs to the original source files.
    *   - names: An array of identifiers which can be referrenced by individual mappings.
    *   - sourceRoot: Optional. The URL root from which all sources are relative.
+   *   - sourcesContent: Optional. An array of contents of the original source files.
    *   - mappings: A string of base64 VLQs which contain the actual mappings.
    *   - file: The generated file this source map is associated with.
    *
@@ -51,6 +52,7 @@ define(function (require, exports, module) {
     var sources = util.getArg(sourceMap, 'sources');
     var names = util.getArg(sourceMap, 'names');
     var sourceRoot = util.getArg(sourceMap, 'sourceRoot', null);
+    var sourcesContent = util.getArg(sourceMap, 'sourcesContent', null);
     var mappings = util.getArg(sourceMap, 'mappings');
     var file = util.getArg(sourceMap, 'file');
 
@@ -60,7 +62,8 @@ define(function (require, exports, module) {
 
     this._names = ArraySet.fromArray(names);
     this._sources = ArraySet.fromArray(sources);
-    this._sourceRoot = sourceRoot;
+    this.sourceRoot = sourceRoot;
+    this.sourcesContent = sourcesContent;
     this.file = file;
 
     // `this._generatedMappings` and `this._originalMappings` hold the parsed
@@ -102,7 +105,7 @@ define(function (require, exports, module) {
   Object.defineProperty(SourceMapConsumer.prototype, 'sources', {
     get: function () {
       return this._sources.toArray().map(function (s) {
-        return this._sourceRoot ? util.join(this._sourceRoot, s) : s;
+        return this.sourceRoot ? util.join(this.sourceRoot, s) : s;
       }, this);
     }
   });
@@ -289,6 +292,32 @@ define(function (require, exports, module) {
         column: null,
         name: null
       };
+    };
+
+  /**
+   * Returns the original source content. The only argument is
+   * the url of the original source file. Returns null if no
+   * original source content is availible.
+   */
+  SourceMapConsumer.prototype.sourceContentFor =
+    function SourceMapConsumer_sourceContentFor(aSource) {
+      if (!this.sourcesContent) {
+        return null;
+      }
+
+      if (this.sourceRoot) {
+        // Try to remove the sourceRoot
+        var relativeUrl = util.relative(this.sourceRoot, aSource);
+        if (relativeUrl !== aSource && this._sources.has(relativeUrl)) {
+          return this.sourcesContent[this._sources.indexOf(relativeUrl)];
+        }
+      }
+
+      if (this._sources.has(aSource)) {
+        return this.sourcesContent[this._sources.indexOf(aSource)];
+      }
+
+      throw new Error('"' + aSource + '" is not in the SourceMap.');
     };
 
   /**

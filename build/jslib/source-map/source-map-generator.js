@@ -25,9 +25,67 @@ define(function (require, exports, module) {
     this._sources = new ArraySet();
     this._names = new ArraySet();
     this._mappings = [];
+    this._sourcesContents = null;
   }
 
   SourceMapGenerator.prototype._version = 3;
+
+  /**
+   * Creates a new SourceMapGenerator based on a SourceMapConsumer
+   *
+   * @param aSourceMapConsumer The SourceMap.
+   */
+  SourceMapGenerator.fromSourceMap =
+    function SourceMapGenerator_fromSourceMap(aSourceMapConsumer) {
+      var sourceRoot = aSourceMapConsumer.sourceRoot;
+      var generator = new SourceMapGenerator({
+        file: aSourceMapConsumer.file,
+        sourceRoot: sourceRoot
+      });
+      aSourceMapConsumer.eachMapping(function (mapping) {
+        var source = mapping.source;
+        if (source) {
+          if (sourceRoot) {
+            var relativeUrl = util.relative(sourceRoot, source);
+            if (relativeUrl) {
+              source = relativeUrl;
+            }
+          }
+          generator.addMapping({
+            source: source,
+            original: {
+              line: mapping.originalLine,
+              column: mapping.originalColumn
+            },
+            generated: {
+              line: mapping.generatedLine,
+              column: mapping.generatedColumn
+            },
+            name: mapping.name
+          });
+        } else {
+          generator.addMapping({
+            generated: {
+              line: mapping.generatedLine,
+              column: mapping.generatedColumn
+            }
+          });
+        }
+      });
+      aSourceMapConsumer.sources.forEach(function (sourceFile) {
+        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
+        if (sourceRoot) {
+          var relativeUrl = util.relative(sourceRoot, sourceFile);
+          if (relativeUrl) {
+            sourceFile = relativeUrl;
+          }
+        }
+        if (content) {
+          generator.setSourceContent(sourceFile, content);
+        }
+      });
+      return generator;
+    };
 
   /**
    * Add a single mapping from original source line and column to the generated
@@ -62,6 +120,28 @@ define(function (require, exports, module) {
         source: source,
         name: name
       });
+    };
+
+  /**
+   * Set the source content for a source file.
+   */
+  SourceMapGenerator.prototype.setSourceContent =
+    function SourceMapGenerator_setSourceContent(aSourceFile, aSourceContent) {
+      if (aSourceContent !== null) {
+        // Add the source content to the _sourcesContents map.
+        // Create a new _sourcesContents map if the property is null.
+        if (!this._sourcesContents) {
+          this._sourcesContents = {};
+        }
+        this._sourcesContents[util.toSetString(aSourceFile)] = aSourceContent;
+      } else {
+        // Remove the source file from the _sourcesContents map.
+        // If the _sourcesContents map is empty, set the property to null.
+        delete this._sourcesContents[util.toSetString(aSourceFile)];
+        if (Object.keys(this._sourcesContents).length === 0) {
+          this._sourcesContents = null;
+        }
+      }
     };
 
   /**
@@ -183,6 +263,14 @@ define(function (require, exports, module) {
       };
       if (this._sourceRoot) {
         map.sourceRoot = this._sourceRoot;
+      }
+      if (this._sourcesContents) {
+        map.sourcesContent = map.sources.map(function(source) {
+          return Object.prototype.hasOwnProperty.call(
+            this._sourcesContents, util.toSetString(source))
+            ? this._sourcesContents[util.toSetString(source)]
+            : null;
+        }, this);
       }
       return map;
     };

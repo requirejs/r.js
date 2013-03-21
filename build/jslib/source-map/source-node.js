@@ -19,12 +19,14 @@ define(function (require, exports, module) {
    * @param aSource The original source's filename.
    * @param aChunks Optional. An array of strings which are snippets of
    *        generated JS, or other SourceNodes.
+   * @param aName The original identifier.
    */
-  function SourceNode(aLine, aColumn, aSource, aChunks) {
+  function SourceNode(aLine, aColumn, aSource, aChunks, aName) {
     this.children = [];
-    this.line = aLine;
-    this.column = aColumn;
-    this.source = aSource;
+    this.line = aLine === undefined ? null : aLine;
+    this.column = aColumn === undefined ? null : aColumn;
+    this.source = aSource === undefined ? null : aSource;
+    this.name = aName === undefined ? null : aName;
     if (aChunks != null) this.add(aChunks);
   }
 
@@ -90,7 +92,10 @@ define(function (require, exports, module) {
       }
       else {
         if (chunk !== '') {
-          aFn(chunk, { source: this.source, line: this.line, column: this.column });
+          aFn(chunk, { source: this.source,
+                       line: this.line,
+                       column: this.column,
+                       name: this.name });
         }
       }
     }, this);
@@ -162,11 +167,12 @@ define(function (require, exports, module) {
       column: 0
     };
     var map = new SourceMapGenerator(aArgs);
+    var sourceMappingActive = false;
     this.walk(function (chunk, original) {
       generated.code += chunk;
-      if (original.source != null
-          && original.line != null
-          && original.column != null) {
+      if (original.source !== null
+          && original.line !== null
+          && original.column !== null) {
         map.addMapping({
           source: original.source,
           original: {
@@ -176,13 +182,24 @@ define(function (require, exports, module) {
           generated: {
             line: generated.line,
             column: generated.column
+          },
+          name: original.name
+        });
+        sourceMappingActive = true;
+      } else if (sourceMappingActive) {
+        map.addMapping({
+          generated: {
+            line: generated.line,
+            column: generated.column
           }
         });
+        sourceMappingActive = false;
       }
       chunk.split('').forEach(function (ch) {
         if (ch === '\n') {
           generated.line++;
           generated.column = 0;
+          sourceMappingActive = false;
         } else {
           generated.column++;
         }
