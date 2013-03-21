@@ -531,7 +531,8 @@ define(function (require) {
                         //For builds, if wanting cjs translation, do it now, so that
                         //the individual modules can be loaded cross domain via
                         //plain script tags.
-                        if (config.cjsTranslate) {
+                        if (config.cjsTranslate &&
+                            (!config.shim || !lang.hasProp(config.shim, moduleName))) {
                             fileContents = commonJs.convert(fileName, fileContents);
                         }
 
@@ -1513,7 +1514,8 @@ define(function (require) {
 
                                 currContents = text;
 
-                                if (config.cjsTranslate) {
+                                if (config.cjsTranslate &&
+                                    (!config.shim || !lang.hasProp(config.shim, moduleName))) {
                                     currContents = commonJs.convert(path, currContents);
                                 }
 
