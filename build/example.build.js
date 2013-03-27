@@ -207,6 +207,11 @@
     cssIn: "path/to/main.css",
     out: "path/to/css-optimized.css",
 
+    //If "out" is not in the same directory as "cssIn", and there is a relative
+    //url() in the cssIn file, use this to set a prefix URL to use. Only set it
+    //if you find a problem with incorrect relative URLs after optimization.
+    cssPrefix: "",
+
     //Inlines the text for any text! dependencies, to avoid the separate
     //async XMLHttpRequest calls to load those dependencies.
     inlineText: true,
