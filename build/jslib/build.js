@@ -341,7 +341,10 @@ define(function (require) {
                 if (modules) {
                     modules.forEach(function (module) {
                         if (module.name) {
-                            module._buildPath = buildContext.nameToUrl(module.name, null);
+                            if(module.out)
+                                module._buildPath = config.baseUrl + module.out;
+                            else
+                                module._buildPath = buildContext.nameToUrl(module.name, null);
                             if (!module.create) {
                                 file.copyFile(module._sourcePath, module._buildPath);
                             }
