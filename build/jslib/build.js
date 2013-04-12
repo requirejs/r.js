@@ -341,7 +341,10 @@ define(function (require) {
                 if (modules) {
                     modules.forEach(function (module) {
                         if (module.name) {
-                            module._buildPath = buildContext.nameToUrl(module.name, null);
+                            if(module.out)
+                                module._buildPath = config.baseUrl + module.out;
+                            else
+                                module._buildPath = buildContext.nameToUrl(module.name, null);
                             if (!module.create) {
                                 file.copyFile(module._sourcePath, module._buildPath);
                             }
@@ -502,6 +505,25 @@ define(function (require) {
 
                 //JS optimizations.
                 fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
+                config.modules.forEach(function(module){
+    		    if(module.out){
+			fileNames.push(module._buildPath);					}   
+                });         
+                if(config.skip){             
+                    //remove skiped modules
+                    config.skip.forEach(function(skipModule){
+                        //construt name
+                        var skipFile = config.dir+ skipModule + '.js';
+                        var i=0;
+                        for ( i =0; i   <  fileNames.length; i++) {
+                            var fileName = fileNames[i];
+                              if (fileName.toLowerCase()=== skipFile.toLowerCase())
+                                break;
+                        };
+                        //remove skipped module from optimizations
+                        fileNames.splice(i,1);
+                    });
+                }
                 fileNames.forEach(function (fileName) {
                     var cfg, override, moduleIndex;
 
