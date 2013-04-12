@@ -506,22 +506,21 @@ define(function (require) {
                 //JS optimizations.
                 fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
                 config.modules.forEach(function(module){
-    				if(module.out){
-						fileNames.push(module._buildPath);
-					}   
+    		    if(module.out){
+			fileNames.push(module._buildPath);					}   
                 });         
                 if(config.skip){             
                     //remove skiped modules
                     config.skip.forEach(function(skipModule){
                         //construt name
-                        var skipfile = config.dir+ skipModule + '.js';
+                        var skipFile = config.dir+ skipModule + '.js';
                         var i=0;
                         for ( i =0; i   <  fileNames.length; i++) {
-                            var filename = fileNames[i];
-
-                              if (filename.toLowerCase()=== skipfile.toLowerCase())
+                            var fileName = fileNames[i];
+                              if (fileName.toLowerCase()=== skipFile.toLowerCase())
                                 break;
                         };
+                        //remove skipped module from optimizations
                         fileNames.splice(i,1);
                     });
                 }
