@@ -3006,7 +3006,7 @@ define('node/args', function () {
     var args = process.argv.slice(2);
 
     //Ignore any command option used for rq.js
-    if (args[0] && args[0].indexOf('-' === 0)) {
+    if (args[0] && args[0].indexOf('-') === 0) {
         args = args.slice(1);
     }
 
@@ -3031,7 +3031,7 @@ define('rhino/args', function () {
     var args = jsLibRhinoArgs;
 
     //Ignore any command option used for r.js
-    if (args[0] && args[0].indexOf('-' === 0)) {
+    if (args[0] && args[0].indexOf('-') === 0) {
         args = args.slice(1);
     }
 
@@ -3056,7 +3056,7 @@ define('xpconnect/args', function () {
     var args = jsLibXpConnectArgs;
 
     //Ignore any command option used for r.js
-    if (args[0] && args[0].indexOf('-' === 0)) {
+    if (args[0] && args[0].indexOf('-') === 0) {
         args = args.slice(1);
     }
 
