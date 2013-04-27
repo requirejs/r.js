@@ -75,7 +75,9 @@
 
                     //Break any cycles by requiring it normally, but this will
                     //finish synchronously
-                    require([moduleName]);
+                    if(!context.defined[moduleName]){
+                        require([moduleName], null, null, null, context.contextName);
+                    }
 
                     //The above calls are sync, so can do the next thing safely.
                     ret = context.defined[moduleName];
