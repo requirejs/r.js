@@ -18,14 +18,14 @@
       "url": "https://github.com/jrburke/r.js/blob/master/LICENSE"
     }
   ],
-  "main": "./bin/r.js",
+  "main": "./dist/r.js",
   "bin": {
-    "r.js": "./bin/r.js"
+    "r.js": "./dist/r.js"
   },
   "engines": {
     "node": ">=0.4.0"
   },
   "readme": "# requirejs\n\nRequireJS for use in Node. includes:\n\n* r.js: the RequireJS optimizer, and AMD runtime for use in Node.\n* require.js: The browser-based AMD loader.\n\nMore information at http://requirejs.org\n\n",
-  "_id": "requirejs@2.1.5",
-  "_from": "requirejs@~2.1.5"
+  "_id": "requirejs@2.1.5-fork",
+  "_from": "requirejs@~2.1.5-fork"
 }
