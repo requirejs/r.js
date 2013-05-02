@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Sat, 27 Apr 2013 04:36:30 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Thu, 02 May 2013 18:10:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Sat, 27 Apr 2013 04:36:30 GMT',
+        version = '2.1.5+ Thu, 02 May 2013 18:10:53 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2456,7 +2456,15 @@ var requirejs, require, define, xpcUtil;
                 }
 
                 try {
-                    return (context.config.nodeRequire || req.nodeRequire)(originalName);
+                    // Get the node package then cache it in the require context so
+                    // that we do not require it again for this context.
+                    // We then delete it so that a new instance will be created for any
+                    // additional require contexts.
+                    var result = (context.config.nodeRequire || req.nodeRequire)(originalName);
+                    var path = nodeRequire.resolve(originalName);
+                    context.defined[originalName] = result;
+                    delete nodeRequire.cache[path];
+                    return result;
                 } catch (e) {
                     err = new Error('Tried loading "' + moduleName + '" at ' +
                                      url + ' then tried node\'s require("' +
