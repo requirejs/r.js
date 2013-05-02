@@ -75,7 +75,9 @@
 
                     //Break any cycles by requiring it normally, but this will
                     //finish synchronously
-                    require([moduleName]);
+                    if(!context.defined[moduleName]){
+                        require([moduleName], null, null, null, context.contextName);
+                    }
 
                     //The above calls are sync, so can do the next thing safely.
                     ret = context.defined[moduleName];
@@ -137,7 +139,15 @@
                 }
 
                 try {
-                    return (context.config.nodeRequire || req.nodeRequire)(originalName);
+                    // Get the node package then cache it in the require context so
+                    // that we do not require it again for this context.
+                    // We then delete it so that a new instance will be created for any
+                    // additional require contexts.
+                    var result = (context.config.nodeRequire || req.nodeRequire)(originalName);
+                    var path = nodeRequire.resolve(originalName);
+                    context.defined[originalName] = result;
+                    delete nodeRequire.cache[path];
+                    return result;
                 } catch (e) {
                     err = new Error('Tried loading "' + moduleName + '" at ' +
                                      url + ' then tried node\'s require("' +

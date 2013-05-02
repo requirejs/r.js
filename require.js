@@ -1666,11 +1666,12 @@ var requirejs, require, define;
      * on a require that are not standardized), and to give a short
      * name for minification/local scope use.
      */
-    req = requirejs = function (deps, callback, errback, optional) {
+    req = requirejs = function (deps, callback, errback, optional, contextName) {
 
         //Find the right context, use default
-        var context, config,
-            contextName = defContextName;
+        contextName = contextName || defContextName;
+        //Find the right context, use default
+        var context, config;
 
         // Determine if have config object in the call.
         if (!isArray(deps) && typeof deps !== 'string') {
