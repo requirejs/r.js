@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Thu, 21 Mar 2013 04:00:45 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Tue, 07 May 2013 02:49:44 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Thu, 21 Mar 2013 04:00:45 GMT',
+        version = '2.1.5+ Tue, 07 May 2013 02:49:44 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2184,12 +2184,13 @@ var requirejs, require, define, xpcUtil;
         //This module may not have dependencies
         if (!isArray(deps)) {
             callback = deps;
-            deps = [];
+            deps = null;
         }
 
         //If no name, and callback is a function, then figure out if it a
         //CommonJS thing with dependencies.
-        if (!deps.length && isFunction(callback)) {
+        if (!deps && isFunction(callback)) {
+            deps = [];
             //Remove comments from the callback string,
             //look for require calls, and pull them into the dependencies,
             //but only if there are function args.
@@ -20646,6 +20647,9 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                     deps = null;
                 } else if (deps.type === 'ObjectExpression') {
                     //deps is object literal, null out
+                    deps = factory = null;
+                } else if (deps.type === 'Identifier' && args.length === 2) {
+                    // define('id', factory)
                     deps = factory = null;
                 }
             }
