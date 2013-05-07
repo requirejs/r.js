@@ -4,6 +4,15 @@
 define(['parse', 'env!env/file'], function (parse, file) {
     'use strict';
 
+    function c(fileName) {
+        return file.readFile(fileName);
+    }
+
+    //Remove line returns to make comparisons easier.
+    function nol(contents) {
+        return contents.replace(/[\r\n]/g, "");
+    }
+
     doh.register("parseConfig",
         [
             function parseConfig(t) {
@@ -57,9 +66,8 @@ define(['parse', 'env!env/file'], function (parse, file) {
                     good4 = '(function (define) { define("one", function(){}); }(myGlobalDefine))',
                     nested1 = "(function () {\nvar foo = {\nbar: 'baz'\n}\n\n define('foo', [], foo); \n }());",
                     bad1 = "define('one', [foo, 'me'], function() {});",
-                    bad2 = "define('one', somevar)",
-                    bad3 = "function define(foo) { return foo };",
-                    bad4 = "define(a[0]);",
+                    bad2 = "function define(foo) { return foo };",
+                    bad3 = "define(a[0]);",
                     goodAnon1 = "define(function(require){ var foo = require('foo'); });",
                     goodAnon2 = "define(function (require, exports, module) { if (true) { callback(function () { require(\"bar\"); })}});",
                     goodAnon3 = "define(function(require, exports, module) { exports.name = 'empty'; });",
@@ -82,6 +90,8 @@ define(['parse', 'env!env/file'], function (parse, file) {
                     good9 = "define(function (require) {\n//Dependencies with no usable return value.\nrequire('plugin!some/value');\n});",
                     good10 = "define('good10', function (require) {\n//If have dependencies, get them here\nvar newt = require('newt');\nreturn {\nname: 'spell',\nnewtName: newt.name,\ntailName: newt.tailName,\neyeName: newt.eyeName\n};});",
                     good11 = "define([\'plug!role=\"base something\"\'], function () {});",
+                    good12 = c('parse/threeDefines.js'),
+                    good13 = "define('one', somevar)",
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
                 t.is('define("one",["two","three"]);', parse("good1", "good1", good1));
@@ -95,13 +105,14 @@ define(['parse', 'env!env/file'], function (parse, file) {
                 t.is('define("good9",["require","plugin!some/value"]);', parse("good9", "good9", good9));
                 t.is('define("good10",["require","newt"]);', parse("good10", "good10", good10));
                 t.is('define("good11",["plug!role=\\"base something\\""]);', parse("good11", "good11", good11));
+                t.is('define("myLib",[]);define("myLib2",[]);define("myLib3",[]);', nol(parse("good12", "good12", good12)));
+                t.is('define("one",[]);', nol(parse("good13", "good13", good13)));
 
                 t.is('define("foo",[]);', parse("nested1", "nested1", nested1));
                 t.is('define("one",["me"]);', parse("bad1", "bad1", bad1));
 
                 t.is(null, parse("bad2", "bad2", bad2));
                 t.is(null, parse("bad3", "bad3", bad3));
-                t.is(null, parse("bad4", "bad4", bad4));
 
                 t.is(['require', 'foo'], parse.getAnonDeps("goodAnon1", goodAnon1));
                 t.is(['require', 'exports', 'module', 'bar'], parse.getAnonDeps("goodAnon2", goodAnon2));

@@ -695,6 +695,9 @@ define(['./esprima', 'lang'], function (esprima, lang) {
                 } else if (deps.type === 'ObjectExpression') {
                     //deps is object literal, null out
                     deps = factory = null;
+                } else if (deps.type === 'Identifier' && args.length === 2) {
+                    // define('id', factory)
+                    deps = factory = null;
                 }
             }
 
