@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Tue, 07 May 2013 02:49:44 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Tue, 07 May 2013 22:43:59 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Tue, 07 May 2013 02:49:44 GMT',
+        version = '2.1.5+ Tue, 07 May 2013 22:43:59 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -255,7 +255,7 @@ var requirejs, require, define, xpcUtil;
         hasOwn = op.hasOwnProperty,
         ap = Array.prototype,
         apsp = ap.splice,
-        isBrowser = !!(typeof window !== 'undefined' && navigator && document),
+        isBrowser = !!(typeof window !== 'undefined' && navigator && window.document),
         isWebWorker = !isBrowser && typeof importScripts !== 'undefined',
         //PS3 indicates loaded and complete, but need to wait for complete
         //specifically. Sequence is 'loading', 'loaded', execution,
@@ -733,7 +733,12 @@ var requirejs, require, define, xpcUtil;
                     fn(defined[id]);
                 }
             } else {
-                getModule(depMap).on(name, fn);
+                mod = getModule(depMap);
+                if (mod.error && name === 'error') {
+                    fn(mod.error);
+                } else {
+                    mod.on(name, fn);
+                }
             }
         }
 
@@ -1326,7 +1331,7 @@ var requirejs, require, define, xpcUtil;
                         }));
 
                         if (this.errback) {
-                            on(depMap, 'error', this.errback);
+                            on(depMap, 'error', bind(this, this.errback));
                         }
                     }
 
@@ -1838,7 +1843,7 @@ var requirejs, require, define, xpcUtil;
             },
 
             /**
-             * Executes a module callack function. Broken out as a separate function
+             * Executes a module callback function. Broken out as a separate function
              * solely to allow the build system to sequence the files in the built
              * layer in the right sequence.
              *
@@ -1876,7 +1881,7 @@ var requirejs, require, define, xpcUtil;
             onScriptError: function (evt) {
                 var data = getScriptData(evt);
                 if (!hasPathFallback(data.id)) {
-                    return onError(makeError('scripterror', 'Script error', evt, [data.id]));
+                    return onError(makeError('scripterror', 'Script error for: ' + data.id, evt, [data.id]));
                 }
             }
         };
@@ -21340,12 +21345,11 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
 
                 //Check for require.js with the require/define definitions
                 if (pragma.apiDefRegExp.test(fileContents) &&
-                    fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
+                    fileContents.indexOf("if (!" + ns + " || !" + ns + ".requirejs)") === -1) {
                     //Wrap the file contents in a typeof check, and a function
                     //to contain the API globals.
-                    fileContents = "var " + ns + ";(function () { if (typeof " +
-                                    ns + " === 'undefined') {\n" +
-                                    ns + ' = {};\n' +
+                    fileContents = "var " + ns + ";(function () { if (!" + ns + " || !" + ns + ".requirejs) {\n" +
+                                    "if (!" + ns + ") { " + ns + ' = {}; }\n' +
                                     fileContents +
                                     "\n" +
                                     ns + ".requirejs = requirejs;" +
