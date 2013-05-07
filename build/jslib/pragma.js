@@ -83,9 +83,8 @@ define(['parse', 'logger'], function (parse, logger) {
                     fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
                     //Wrap the file contents in a typeof check, and a function
                     //to contain the API globals.
-                    fileContents = "var " + ns + ";(function () { if (typeof " +
-                                    ns + " === 'undefined') {\n" +
-                                    ns + ' = {};\n' +
+                    fileContents = "var " + ns + ";(function () { if (!" + ns + " || !" + ns + ".requirejs) {\n" +
+                                    "if (!" + ns + ") { " + ns + ' = {}; }\n' +
                                     fileContents +
                                     "\n" +
                                     ns + ".requirejs = requirejs;" +
