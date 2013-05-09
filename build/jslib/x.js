@@ -81,7 +81,7 @@ var requirejs, require, define, xpcUtil;
                 }
             };
         }
-    } else if (typeof process !== 'undefined') {
+    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
 
         //Get the fs module via Node's require before it
