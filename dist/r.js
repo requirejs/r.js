@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Thu, 09 May 2013 04:58:49 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Thu, 09 May 2013 05:40:30 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Thu, 09 May 2013 04:58:49 GMT',
+        version = '2.1.5+ Thu, 09 May 2013 05:40:30 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -81,7 +81,7 @@ var requirejs, require, define, xpcUtil;
                 }
             };
         }
-    } else if (typeof process !== 'undefined') {
+    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
 
         //Get the fs module via Node's require before it
@@ -2558,7 +2558,7 @@ var requirejs, require, define, xpcUtil;
 
     if (typeof Packages !== 'undefined') {
         env = 'rhino';
-    } else if (typeof process !== 'undefined') {
+    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
     } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
             (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
@@ -4221,9 +4221,26 @@ if(env === 'node') {
 define('node/quit', function () {
     'use strict';
     return function (code) {
-        return process.exit(code);
+        var draining = 0;
+        var exit = function () {
+            if (draining === 0) {
+                process.exit(code);
+            } else {
+                draining -= 1;
+            }
+        };
+        if (process.stdout.bufferSize) {
+            draining += 1;
+            process.stdout.once('drain', exit);
+        }
+        if (process.stderr.bufferSize) {
+            draining += 1;
+            process.stderr.once('drain', exit);
+        }
+        exit();
     };
 });
+
 }
 
 if(env === 'rhino') {
