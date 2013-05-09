@@ -22,7 +22,6 @@ define(function (require) {
         transform = require('transform'),
         requirePatch = require('requirePatch'),
         env = require('env'),
-        quit = require('env!env/quit'),
         commonJs = require('commonJs'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
@@ -196,12 +195,7 @@ define(function (require) {
                 }
             }
 
-            if (logger.level > logger.ERROR) {
-                throw new Error(errorMsg);
-            } else {
-                logger.error(errorMsg);
-                quit(1);
-            }
+            throw new Error(errorMsg);
         });
     };
 

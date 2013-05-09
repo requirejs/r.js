@@ -296,7 +296,7 @@ var requirejs, require, define, xpcUtil;
 
             //Create the function that will be called once build modules
             //have been loaded.
-            var runBuild = function (build, logger) {
+            var runBuild = function (build, logger, quit) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
                 config.logLevel = config.hasOwnProperty('logLevel') ?
@@ -327,12 +327,20 @@ var requirejs, require, define, xpcUtil;
                     return result;
                 }
 
+                errback = errback || function (err) {
+                    // Using console here since logger may have
+                    // turned off error logging. Since quit is
+                    // called want to be sure a message is printed.
+                    console.log(err);
+                    quit(1);
+                };
+
                 build(config).then(done, done).then(callback, errback);
             };
 
             requirejs({
                 context: 'build'
-            }, ['build', 'logger'], runBuild);
+            }, ['build', 'logger', 'env!env/quit'], runBuild);
         };
 
         requirejs.tools = {
