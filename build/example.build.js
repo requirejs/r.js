@@ -317,7 +317,8 @@
 
     //Finds require() dependencies inside a require() or define call. By default
     //this value is false, because those resources should be considered dynamic/runtime
-    //calls. However, for some optimization scenarios,
+    //calls. However, for some optimization scenarios, it is desirable to
+    //include them in the build.
     //Introduced in 1.0.3. Previous versions incorrectly found the nested calls
     //by default.
     findNestedDependencies: false,
