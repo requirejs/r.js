@@ -841,6 +841,29 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("onBuildAllDir",
+        [
+            function onBuildAllDir(t) {
+                file.deleteFile("lib/onBuildAllDir/js-built");
+
+                build(["lib/onBuildAllDir/build.js"]);
+
+                t.is(nol(c("lib/onBuildAllDir/expected-main.js")),
+                     nol(c("lib/onBuildAllDir/js-built/main.js")));
+
+                t.is(nol(c("lib/onBuildAllDir/expected-a.js")),
+                     nol(c("lib/onBuildAllDir/js-built/a.js")));
+
+                t.is(nol(c("lib/onBuildAllDir/expected-b.js")),
+                     nol(c("lib/onBuildAllDir/js-built/b.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("onBuildRead",
         [
             function onBuildRead(t) {

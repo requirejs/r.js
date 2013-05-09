@@ -46,6 +46,7 @@ build/tests/lib/nestedHas/main-builtNeedD.js
 build/tests/lib/nestedHas/main-builtNested.js
 build/tests/lib/noexports/main-built.js
 build/tests/lib/nonStrict/main-built.js
+build/tests/lib/onBuildAllDir/js-built
 build/tests/lib/onBuildRead/main-built.js
 build/tests/lib/onBuildWrite/main-built.js
 build/tests/lib/packages/main-built.js

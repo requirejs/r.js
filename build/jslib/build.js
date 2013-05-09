@@ -522,6 +522,7 @@ define(function (require) {
                         //standalone, one module per file.
                         fileContents = file.readFile(fileName);
 
+
                         //For builds, if wanting cjs translation, do it now, so that
                         //the individual modules can be loaded cross domain via
                         //plain script tags.
@@ -530,14 +531,28 @@ define(function (require) {
                             fileContents = commonJs.convert(fileName, fileContents);
                         }
 
-                        //Only do transport normalization if this is not a build
-                        //layer (since it was already normalized) and if
-                        //normalizeDirDefines indicated all should be done.
-                        if (moduleIndex === -1 && config.normalizeDirDefines === "all") {
-                            fileContents = build.toTransport(config.namespace,
-                                                         null,
-                                                         fileName,
-                                                         fileContents);
+                        if (moduleIndex === -1) {
+                            if (config.onBuildRead) {
+                                fileContents = config.onBuildRead(moduleName,
+                                                                  fileName,
+                                                                  fileContents);
+                            }
+
+                            //Only do transport normalization if this is not a build
+                            //layer (since it was already normalized) and if
+                            //normalizeDirDefines indicated all should be done.
+                            if (config.normalizeDirDefines === "all") {
+                                fileContents = build.toTransport(config.namespace,
+                                                             null,
+                                                             fileName,
+                                                             fileContents);
+                            }
+
+                            if (config.onBuildWrite) {
+                                fileContents = config.onBuildWrite(moduleName,
+                                                                   fileName,
+                                                                   fileContents);
+                            }
                         }
 
                         override = moduleIndex > -1 ?
