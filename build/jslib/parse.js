@@ -324,7 +324,8 @@ define(['./esprima', 'lang'], function (esprima, lang) {
      */
     parse.findConfig = function (fileContents) {
         /*jslint evil: true */
-        var jsConfig, foundRange, foundConfig,
+        var jsConfig, foundRange, foundConfig, quote, quoteMatch,
+            quoteRegExp = /(:\s|\[\s*)(['"])/,
             astRoot = esprima.parse(fileContents, {
                 range: true
             });
@@ -356,12 +357,15 @@ define(['./esprima', 'lang'], function (esprima, lang) {
         });
 
         if (jsConfig) {
+            quoteMatch = quoteRegExp.exec(jsConfig);
+            quote = (quoteMatch && quoteMatch[2]) || '"';
             foundConfig = eval('(' + jsConfig + ')');
         }
 
         return {
             config: foundConfig,
-            range: foundRange
+            range: foundRange,
+            quote: quote
         };
     };
 

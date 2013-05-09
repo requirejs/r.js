@@ -12,6 +12,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
     var transform,
         baseIndentRegExp = /^([ \t]+)/,
         indentRegExp = /\{[\r\n]+([ \t]+)/,
+        keyRegExp = /^[_A-Za-z]([A-Za-z\d_]*)$/,
         bulkIndentRegExps = {
             '\n': /\n/g,
             '\r\n': /\r\n/g
@@ -372,14 +373,17 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                     return transform.serializeConfig(config,
                                               fileContents,
                                               details.range[0],
-                                              details.range[1]);
+                                              details.range[1],
+                                              {
+                                                quote: details.quote
+                                              });
                 }
             }
 
             return fileContents;
         },
 
-        serializeConfig: function (config, fileContents, start, end) {
+        serializeConfig: function (config, fileContents, start, end, options) {
             //Calculate base level of indent
             var indent, match, configString, outDentRegExp,
                 baseIndent = '',
@@ -412,10 +416,12 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
 
             outDentRegExp = new RegExp('(' + lineReturn + ')' + indent, 'g');
 
-            configString = transform.objectToString(config,
-                                                    indent,
-                                                    lineReturn,
-                                                    outDentRegExp);
+            configString = transform.objectToString(config, {
+                                                    indent: indent,
+                                                    lineReturn: lineReturn,
+                                                    outDentRegExp: outDentRegExp,
+                                                    quote: options && options.quote
+                                                });
 
             //Add in the base indenting level.
             configString = applyIndent(configString, baseIndent, lineReturn);
@@ -429,16 +435,22 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
          * So, hasOwnProperty fields, strings, numbers, arrays and functions,
          * no weird recursively referenced stuff.
          * @param  {Object} obj        the object to convert
-         * @param  {String} indent     the indentation to use for each level
-         * @param  {String} lineReturn the type of line return to use
-         * @param  {outDentRegExp} outDentRegExp the regexp to use to outdent functions
+         * @param  {Object} options    options object with the following values:
+         *         {String} indent     the indentation to use for each level
+         *         {String} lineReturn the type of line return to use
+         *         {outDentRegExp} outDentRegExp the regexp to use to outdent functions
+         *         {String} quote      the quote type to use, ' or ". Optional. Default is "
          * @param  {String} totalIndent the total indent to print for this level
          * @return {String}            a string representation of the object.
          */
-        objectToString: function (obj, indent, lineReturn, outDentRegExp, totalIndent) {
+        objectToString: function (obj, options, totalIndent) {
             var startBrace, endBrace, nextIndent,
                 first = true,
-                value = '';
+                value = '',
+                lineReturn = options.lineReturn,
+                indent = options.indent,
+                outDentRegExp = options.outDentRegExp,
+                quote = options.quote || '"';
 
             totalIndent = totalIndent || '';
             nextIndent = totalIndent + indent;
@@ -451,15 +463,13 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                 value = obj;
             } else if (typeof obj === 'string') {
                 //Use double quotes in case the config may also work as JSON.
-                value = '"' + lang.jsEscape(obj) + '"';
+                value = quote + lang.jsEscape(obj) + quote;
             } else if (lang.isArray(obj)) {
                 lang.each(obj, function (item, i) {
                     value += (i !== 0 ? ',' + lineReturn : '' ) +
                         nextIndent +
                         transform.objectToString(item,
-                                                 indent,
-                                                 lineReturn,
-                                                 outDentRegExp,
+                                                 options,
                                                  nextIndent);
                 });
 
@@ -476,11 +486,10 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                 lang.eachProp(obj, function (v, prop) {
                     value += (first ? '': ',' + lineReturn) +
                         nextIndent +
-                        '"' + lang.jsEscape(prop) + '": ' +
+                        (keyRegExp.test(prop) ? prop : quote + lang.jsEscape(prop) + quote )+
+                        ': ' +
                         transform.objectToString(v,
-                                                 indent,
-                                                 lineReturn,
-                                                 outDentRegExp,
+                                                 options,
                                                  nextIndent);
                     first = false;
                 });
