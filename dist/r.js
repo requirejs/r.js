@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Thu, 09 May 2013 04:01:33 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Thu, 09 May 2013 04:58:49 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Thu, 09 May 2013 04:01:33 GMT',
+        version = '2.1.5+ Thu, 09 May 2013 04:58:49 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1792,10 +1792,10 @@ var requirejs, require, define, xpcUtil;
                     parentPath;
 
                 //If a colon is in the URL, it indicates a protocol is used and it is just
-                //an URL to a file, or if it starts with a slash or contains a query arg (i.e. ?),
-                //then assume the user meant to use an url and not a module id.
+                //an URL to a file, or if it starts with a slash, contains a query arg (i.e. ?)
+                //or ends with .js, then assume the user meant to use an url and not a module id.
                 //The slash is important for protocol-less URLs as well as full paths.
-                if (req.pathRegExp.test(moduleName)) {
+                if (req.jsExtRegExp.test(moduleName)) {
                     //Just a plain path, not module name lookup, so just return it.
                     //Add extension if it is included. This is a bit wonky, only non-.js things pass
                     //an extension, this method probably needs to be reworked.
@@ -1836,7 +1836,7 @@ var requirejs, require, define, xpcUtil;
 
                     //Join the path parts together, then figure out if baseUrl is needed.
                     url = syms.join('/');
-                    url += (ext || (/\?/.test(url) || skipExt || jsSuffixRegExp.test(url) ? '' : '.js'));
+                    url += (ext || (/\?/.test(url) || skipExt ? '' : '.js'));
                     url = (url.charAt(0) === '/' || url.match(/^[\w\+\.\-]+:/) ? '' : config.baseUrl) + url;
                 }
 
@@ -1977,7 +1977,7 @@ var requirejs, require, define, xpcUtil;
     req.version = version;
 
     //Used to filter out dependencies that are already paths.
-    req.pathRegExp = /^\/|:|\?/;
+    req.jsExtRegExp = /^\/|:|\?|\.js$/;
     req.isBrowser = isBrowser;
     s = req.s = {
         contexts: contexts,
@@ -20301,7 +20301,8 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
      */
     parse.findConfig = function (fileContents) {
         /*jslint evil: true */
-        var jsConfig, foundRange, foundConfig,
+        var jsConfig, foundRange, foundConfig, quote, quoteMatch,
+            quoteRegExp = /(:\s|\[\s*)(['"])/,
             astRoot = esprima.parse(fileContents, {
                 range: true
             });
@@ -20333,12 +20334,15 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
         });
 
         if (jsConfig) {
+            quoteMatch = quoteRegExp.exec(jsConfig);
+            quote = (quoteMatch && quoteMatch[2]) || '"';
             foundConfig = eval('(' + jsConfig + ')');
         }
 
         return {
             config: foundConfig,
-            range: foundRange
+            range: foundRange,
+            quote: quote
         };
     };
 
@@ -20795,6 +20799,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
     var transform,
         baseIndentRegExp = /^([ \t]+)/,
         indentRegExp = /\{[\r\n]+([ \t]+)/,
+        keyRegExp = /^[_A-Za-z]([A-Za-z\d_]*)$/,
         bulkIndentRegExps = {
             '\n': /\n/g,
             '\r\n': /\r\n/g
@@ -21155,14 +21160,17 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                     return transform.serializeConfig(config,
                                               fileContents,
                                               details.range[0],
-                                              details.range[1]);
+                                              details.range[1],
+                                              {
+                                                quote: details.quote
+                                              });
                 }
             }
 
             return fileContents;
         },
 
-        serializeConfig: function (config, fileContents, start, end) {
+        serializeConfig: function (config, fileContents, start, end, options) {
             //Calculate base level of indent
             var indent, match, configString, outDentRegExp,
                 baseIndent = '',
@@ -21195,10 +21203,12 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
 
             outDentRegExp = new RegExp('(' + lineReturn + ')' + indent, 'g');
 
-            configString = transform.objectToString(config,
-                                                    indent,
-                                                    lineReturn,
-                                                    outDentRegExp);
+            configString = transform.objectToString(config, {
+                                                    indent: indent,
+                                                    lineReturn: lineReturn,
+                                                    outDentRegExp: outDentRegExp,
+                                                    quote: options && options.quote
+                                                });
 
             //Add in the base indenting level.
             configString = applyIndent(configString, baseIndent, lineReturn);
@@ -21212,16 +21222,22 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
          * So, hasOwnProperty fields, strings, numbers, arrays and functions,
          * no weird recursively referenced stuff.
          * @param  {Object} obj        the object to convert
-         * @param  {String} indent     the indentation to use for each level
-         * @param  {String} lineReturn the type of line return to use
-         * @param  {outDentRegExp} outDentRegExp the regexp to use to outdent functions
+         * @param  {Object} options    options object with the following values:
+         *         {String} indent     the indentation to use for each level
+         *         {String} lineReturn the type of line return to use
+         *         {outDentRegExp} outDentRegExp the regexp to use to outdent functions
+         *         {String} quote      the quote type to use, ' or ". Optional. Default is "
          * @param  {String} totalIndent the total indent to print for this level
          * @return {String}            a string representation of the object.
          */
-        objectToString: function (obj, indent, lineReturn, outDentRegExp, totalIndent) {
+        objectToString: function (obj, options, totalIndent) {
             var startBrace, endBrace, nextIndent,
                 first = true,
-                value = '';
+                value = '',
+                lineReturn = options.lineReturn,
+                indent = options.indent,
+                outDentRegExp = options.outDentRegExp,
+                quote = options.quote || '"';
 
             totalIndent = totalIndent || '';
             nextIndent = totalIndent + indent;
@@ -21234,15 +21250,13 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                 value = obj;
             } else if (typeof obj === 'string') {
                 //Use double quotes in case the config may also work as JSON.
-                value = '"' + lang.jsEscape(obj) + '"';
+                value = quote + lang.jsEscape(obj) + quote;
             } else if (lang.isArray(obj)) {
                 lang.each(obj, function (item, i) {
                     value += (i !== 0 ? ',' + lineReturn : '' ) +
                         nextIndent +
                         transform.objectToString(item,
-                                                 indent,
-                                                 lineReturn,
-                                                 outDentRegExp,
+                                                 options,
                                                  nextIndent);
                 });
 
@@ -21259,11 +21273,10 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                 lang.eachProp(obj, function (v, prop) {
                     value += (first ? '': ',' + lineReturn) +
                         nextIndent +
-                        '"' + lang.jsEscape(prop) + '": ' +
+                        (keyRegExp.test(prop) ? prop : quote + lang.jsEscape(prop) + quote )+
+                        ': ' +
                         transform.objectToString(v,
-                                                 indent,
-                                                 lineReturn,
-                                                 outDentRegExp,
+                                                 options,
                                                  nextIndent);
                     first = false;
                 });
