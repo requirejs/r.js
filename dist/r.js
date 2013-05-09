@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Thu, 09 May 2013 06:03:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Thu, 09 May 2013 15:56:10 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Thu, 09 May 2013 06:03:34 GMT',
+        version = '2.1.5+ Thu, 09 May 2013 15:56:10 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22806,7 +22806,6 @@ define('build', function (require) {
         transform = require('transform'),
         requirePatch = require('requirePatch'),
         env = require('env'),
-        quit = require('env!env/quit'),
         commonJs = require('commonJs'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
@@ -22980,12 +22979,7 @@ define('build', function (require) {
                 }
             }
 
-            if (logger.level > logger.ERROR) {
-                throw new Error(errorMsg);
-            } else {
-                logger.error(errorMsg);
-                quit(1);
-            }
+            throw new Error(errorMsg);
         });
     };
 
@@ -24459,7 +24453,7 @@ define('build', function (require) {
 
             //Create the function that will be called once build modules
             //have been loaded.
-            var runBuild = function (build, logger) {
+            var runBuild = function (build, logger, quit) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
                 config.logLevel = config.hasOwnProperty('logLevel') ?
@@ -24490,12 +24484,20 @@ define('build', function (require) {
                     return result;
                 }
 
+                errback = errback || function (err) {
+                    // Using console here since logger may have
+                    // turned off error logging. Since quit is
+                    // called want to be sure a message is printed.
+                    console.log(err);
+                    quit(1);
+                };
+
                 build(config).then(done, done).then(callback, errback);
             };
 
             requirejs({
                 context: 'build'
-            }, ['build', 'logger'], runBuild);
+            }, ['build', 'logger', 'env!env/quit'], runBuild);
         };
 
         requirejs.tools = {
@@ -24574,9 +24576,12 @@ require({
     catchError: {
         define: true
     }
-},       ['env!env/args', 'build'],
-function (args,            build) {
-    build(args);
+},       ['env!env/args', 'env!env/quit', 'logger', 'build'],
+function (args, quit, logger, build) {
+    build(args).then(function () {}, function (err) {
+        logger.error(err);
+        quit(1);
+    });
 });
 
 
