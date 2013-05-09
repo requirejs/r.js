@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Thu, 09 May 2013 05:40:30 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Thu, 09 May 2013 06:03:34 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Thu, 09 May 2013 05:40:30 GMT',
+        version = '2.1.5+ Thu, 09 May 2013 06:03:34 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24371,6 +24371,14 @@ define('build', function (require) {
                             path: path
                         });
                     });
+                }
+
+                if (module.create) {
+                    //The ID is for a created layer. Write out
+                    //a module definition for it in case the
+                    //built file is used with enforceDefine
+                    //(#432)
+                    fileContents += '\n' + namespaceWithDot + 'define("' + module.name + '", function(){});\n';
                 }
 
                 //Add a require at the end to kick start module execution, if that
