@@ -91,11 +91,11 @@
     optimize: "uglify",
 
     //Introduced in 2.1.2: If using "dir" for an output directory, normally the
-    //optimize setting is used to optimize the build layers (the "modules"
+    //optimize setting is used to optimize the build bundles (the "modules"
     //section of the config) and any other JS file in the directory. However, if
-    //the non-build layer JS files will not be loaded after a build, you can
+    //the non-build bundle JS files will not be loaded after a build, you can
     //skip the optimization of those files, to speed up builds. Set this value
-    //to true if you want to skip optimizing those other non-build layer JS
+    //to true if you want to skip optimizing those other non-build bundle JS
     //files.
     skipDirOptimize: false,
 
@@ -120,14 +120,14 @@
     //JS files. So this transport normalization is not done (automatically set
     //to "skip") if optimize is set to "none". Cases where you may want to
     //manually set this value:
-    //1) Optimizing later: if you plan on minifying the non-build layer JS files
+    //1) Optimizing later: if you plan on minifying the non-build bundle JS files
     //after the optimizer runs (so not as part of running the optimizer), then
     //you should explicitly this value to "all".
     //2) Optimizing, but not dynamically loading later: you want to do a full
     //project optimization, but do not plan on dynamically loading non-build
-    //layer JS files later. In this case, the normalization just slows down
+    //bundle JS files later. In this case, the normalization just slows down
     //builds, so you can explicitly set this value to "skip".
-    //Finally, all build layers (specified in the "modules" or "out" setting)
+    //Finally, all build bundles (specified in the "modules" or "out" setting)
     //automatically get normalization, so this setting does not apply to those
     //files.
     normalizeDirDefines: "skip",
@@ -294,7 +294,7 @@
 
     //Specify modules to stub out in the optimized file. The optimizer will
     //use the source version of these modules for dependency tracing and for
-    //plugin use, but when writing the text into an optimized layer, these
+    //plugin use, but when writing the text into an optimized bundle, these
     //modules will get the following text instead:
     //If the module is used as a plugin:
     //    define({load: function(id){throw new Error("Dynamic load not allowed: " + id);}});
@@ -323,7 +323,7 @@
     //by default.
     findNestedDependencies: false,
 
-    //If set to true, any files that were combined into a build layer will be
+    //If set to true, any files that were combined into a build bundle will be
     //removed from the output folder.
     removeCombined: false,
 
@@ -393,7 +393,7 @@
         //execution of modules. More detail at
         //https://github.com/jrburke/almond
         //Note that insertRequire does not affect or add to the modules
-        //that are built into the build layer. It just adds a require([])
+        //that are built into the build bundle. It just adds a require([])
         //call to the end of the built file for use during the runtime
         //execution of the built code.
         {
@@ -426,7 +426,7 @@
         //Do what you want with the optimized text here.
     },
 
-    //Wrap any build layer in a start and end text specified by wrap.
+    //Wrap any build bundle in a start and end text specified by wrap.
     //Use this to encapsulate the module code so that define/require are
     //not globals. The end text can expose some globals from your file,
     //making it easy to create stand-alone libraries that do not mandate
@@ -453,7 +453,7 @@
 
     //As of r.js 2.1.0, startFile and endFile can be arrays of files, and
     //they will all be loaded and inserted at the start or end, respectively,
-    //of the build layer.
+    //of the build bundle.
     wrap: {
         startFile: ["parts/startOne.frag", "parts/startTwo.frag"],
         endFile: ["parts/endOne.frag", "parts/endTwo.frag"]
@@ -516,6 +516,24 @@
         return contents.replace(/bar/g, 'foo');
     },
 
+    //A function that is called for each JS module bundle that has been
+    //completed. This function is called after all module bundles have
+    //completed, but it is called for each bundle. A module bundle is a
+    //"modules" entry or if just a single file JS optimization, the
+    //optimized JS file.
+    //Introduced in r.js version 2.1.6
+    onModuleBundleComplete: function (data) {
+        /*
+        data.name: the bundle name.
+        data.path: the bundle path relative to the output directory.
+        data.included: an array of items included in the build bundle.
+        If a file path, it is relative to the output directory. Loader
+        plugin IDs are also included in this array, but dependending
+        on the plugin, may or may not have something inlined in the
+        module bundle.
+        */
+    },
+
     //Introduced in 2.1.3: Seed raw text contents for the listed module IDs.
     //These text contents will be used instead of doing a file IO call for
     //those modules. Useful is some module ID contents are dynamically
@@ -537,7 +555,7 @@
     cjsTranslate: true,
 
     //Introduced in 2.0.2: a bit experimental.
-    //Each script in the build layer will be turned into
+    //Each script in the build bundle will be turned into
     //a JavaScript string with a //@ sourceURL comment, and then wrapped in an
     //eval call. This allows some browsers to see each evaled script as a
     //separate script in the script debugger even though they are all combined
@@ -546,7 +564,7 @@
     //errors:
     //http://en.wikipedia.org/wiki/Conditional_comment#Conditional_comments_in_JScript
     //2) It is only useful in optimize: 'none' scenarios. The goal is to allow
-    //easier built layer debugging, which goes against minification desires.
+    //easier built bundle debugging, which goes against minification desires.
     useSourceUrl: true,
 
     //Defines the loading time for modules. Depending on the complexity of the

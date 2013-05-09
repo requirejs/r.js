@@ -470,6 +470,11 @@ define(function (require) {
                             });
                         }
                     }
+
+                    //Signal layer is done
+                    if (config.onModuleBundleComplete) {
+                        config.onModuleBundleComplete(module.onCompleteData);
+                    }
                 });
             }
 
@@ -1445,8 +1450,14 @@ define(function (require) {
             stubModulesByName = (module.stubModules && module.stubModules._byName) || {};
 
             //Start build output for the module.
+            module.onCompleteData = {
+                name: module.name,
+                path: (config.dir ? module._buildPath.replace(config.dir, "") : module._buildPath),
+                included: []
+            };
+
             buildFileContents += "\n" +
-                                 (config.dir ? module._buildPath.replace(config.dir, "") : module._buildPath) +
+                                  module.onCompleteData.path +
                                  "\n----------------\n";
 
             //If there was an existing file with require in it, hoist to the top.
@@ -1561,7 +1572,10 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
-                        buildFileContents += path.replace(config.dir, "") + "\n";
+                        var shortPath = path.replace(config.dir, "");
+
+                        module.onCompleteData.included.push(shortPath);
+                        buildFileContents += shortPath + "\n";
                         //Some files may not have declared a require module, and if so,
                         //put in a placeholder call so the require does not try to load them
                         //after the module is processed.
