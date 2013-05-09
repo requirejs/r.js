@@ -1589,6 +1589,14 @@ define(function (require) {
                     });
                 }
 
+                if (module.create) {
+                    //The ID is for a created layer. Write out
+                    //a module definition for it in case the
+                    //built file is used with enforceDefine
+                    //(#432)
+                    fileContents += '\n' + namespaceWithDot + 'define("' + module.name + '", function(){});\n';
+                }
+
                 //Add a require at the end to kick start module execution, if that
                 //was desired. Usually this is only specified when using small shim
                 //loaders like almond.

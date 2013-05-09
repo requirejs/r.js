@@ -1413,6 +1413,26 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+
+    //Tests https://github.com/jrburke/r.js/issues/432 insert stub module
+    //for module.create layers.
+    doh.register("stubModulesCreate",
+        [
+            function stubModulesCreate(t) {
+                file.deleteFile("lib/stubModules/create/foobar-built.js");
+
+                build(["lib/stubModules/create/build.js"]);
+
+                t.is(noSlashRn(nol(c("lib/stubModules/create/expected.js"))),
+                     noSlashRn(nol(c("lib/stubModules/create/foobar-built.js"))));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/155 no copy of paths
     doh.register("pathsNoCopy",
         [
