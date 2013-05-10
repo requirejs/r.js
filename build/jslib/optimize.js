@@ -8,15 +8,19 @@
 /*global define: false */
 
 define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
-         'pragma', 'uglifyjs/index', 'uglifyjs2'],
+         'pragma', 'uglifyjs/index', 'uglifyjs2',
+         'source-map'],
 function (lang,   logger,   envOptimize,        file,           parse,
-          pragma, uglify,             uglify2) {
+          pragma, uglify,             uglify2,
+          sourceMap) {
     'use strict';
 
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/ig,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
-        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g;
+        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
+        SourceMapGenerator = sourceMap.SourceMapGenerator,
+        SourceMapConsumer =sourceMap.SourceMapConsumer;
 
     /**
      * If an URL from a CSS url value contains start/end quotes, remove them.
@@ -405,7 +409,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 return fileContents;
             },
             uglify2: function (fileName, fileContents, outFileName, keepLines, config) {
-                var result,
+                var result, existingMap, resultMap, finalMap, sourceIndex,
                     uconfig = {},
                     existingMapPath = outFileName + '.map',
                     baseName = fileName && fileName.split('/').pop();
@@ -421,18 +425,33 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                     if (file.exists(existingMapPath)) {
                         uconfig.inSourceMap = existingMapPath;
+                        existingMap = JSON.parse(file.readFile(existingMapPath));
                     }
                 }
 
                 logger.trace("Uglify2 file: " + fileName);
 
                 try {
-                    result = uglify2.minify(fileContents, uconfig, baseName + '.src');
-
+                    //var tempContents = fileContents.replace(/\/\/\@ sourceMappingURL=.*$/, '');
+                    result = uglify2.minify(fileContents, uconfig, baseName + '.src.js');
                     if (uconfig.outSourceMap && result.map) {
-                        file.saveFile(outFileName + '.src', fileContents);
-                        file.saveFile(outFileName + '.min.map', result.map);
-                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".min.map";
+                        resultMap = result.map;
+                        if (existingMap) {
+                            resultMap = JSON.parse(resultMap);
+/*
+                            sourceIndex = resultMap.sources.indexOf(baseName);
+                            if (sourceIndex !== -1) {
+                                resultMap.sources[sourceIndex] = baseName + '.src.js';
+                            }
+*/
+                            finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
+                            finalMap.applySourceMap(new SourceMapConsumer(existingMap));
+                            resultMap = finalMap.toString();
+                        } else {
+                            file.saveFile(outFileName + '.src.js', fileContents);
+                        }
+                        file.saveFile(outFileName + '.map', resultMap);
+                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".map";
                     } else {
                         fileContents = result.code;
                     }
