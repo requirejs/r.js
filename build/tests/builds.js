@@ -1888,14 +1888,8 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 build(["lib/sourcemap/build.js"]);
 
-                t.is(nol(c("lib/sourcemap/expected/main.js")),
-                     nol(c("lib/sourcemap/www-built/js/main.js")));
-
-                t.is(nol(c("lib/sourcemap/expected/main.js.map")),
+                t.is(nol(c("lib/sourcemap/expected-main.js.map")),
                      nol(c("lib/sourcemap/www-built/js/main.js.map")));
-
-                t.is(nol(c("lib/sourcemap/expected/main.js.src.js")),
-                     nol(c("lib/sourcemap/www-built/js/main.js.src.js")));
 
                 require._buildReset();
             }

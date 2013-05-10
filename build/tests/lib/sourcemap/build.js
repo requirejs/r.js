@@ -2,8 +2,9 @@
     appDir: 'www',
     dir: 'www-built',
     baseUrl: 'js',
-    optimize: 'none',
+    optimize: 'uglify2',
     generateSourceMaps: true,
+    preserveLicenseComments: false,
     modules: [
         {
             name: 'main'

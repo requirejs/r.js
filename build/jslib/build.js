@@ -1475,7 +1475,7 @@ define(function (require) {
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
-        var fileContents, sourceMapGenerator, sourceMapLineNumber,
+        var fileContents, sourceMapGenerator,
             sourceMapBase,
             buildFileContents = '';
 
@@ -1523,7 +1523,6 @@ define(function (require) {
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
                     file: module._buildPath.replace(sourceMapBase, '')
                 });
-                sourceMapLineNumber = 1;
             }
 
             //Write the built module to disk, and build up the build output.
@@ -1632,7 +1631,7 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
-                        var sourceMapPath,
+                        var sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
                         module.onCompleteData.included.push(shortPath);
@@ -1658,12 +1657,12 @@ define(function (require) {
                         //Add to the source map
                         if (sourceMapGenerator) {
                             sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
-
+                            sourceMapLineNumber = fileContents.split('\n').length - 1;
                             lineCount = singleContents.split('\n').length;
                             for (var i = 1; i <= lineCount; i += 1) {
                                 sourceMapGenerator.addMapping({
                                     generated: {
-                                        line: sourceMapLineNumber,
+                                        line: sourceMapLineNumber + i,
                                         column: 0
                                     },
                                     original: {
@@ -1672,8 +1671,6 @@ define(function (require) {
                                     },
                                     source: sourceMapPath
                                 });
-
-                                sourceMapLineNumber += 1;
                             }
 
                             //Store the content of the original in the source

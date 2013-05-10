@@ -1,6 +1,9 @@
 /**
  * Module B
  */
-define({
-    name: 'b'
+define(function () {
+    var name = 'b';
+    return {
+        name: name
+    };
 });

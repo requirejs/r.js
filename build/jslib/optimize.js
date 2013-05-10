@@ -438,12 +438,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         resultMap = result.map;
                         if (existingMap) {
                             resultMap = JSON.parse(resultMap);
-/*
-                            sourceIndex = resultMap.sources.indexOf(baseName);
-                            if (sourceIndex !== -1) {
-                                resultMap.sources[sourceIndex] = baseName + '.src.js';
-                            }
-*/
                             finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
                             finalMap.applySourceMap(new SourceMapConsumer(existingMap));
                             resultMap = finalMap.toString();
