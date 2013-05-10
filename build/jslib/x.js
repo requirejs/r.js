@@ -400,7 +400,9 @@ var requirejs, require, define, xpcUtil;
         //INSERT build/build.js
 
     } else if (commandOption === 'v') {
-        console.log('r.js: ' + version + ', RequireJS: ' + this.requirejsVars.require.version);
+        console.log('r.js: ' + version +
+                    ', RequireJS: ' + this.requirejsVars.require.version +
+                    ', UglifyJS2: 2.3.2, UglifyJS: 1.3.4');
     } else if (commandOption === 'convert') {
         loadLib();
 

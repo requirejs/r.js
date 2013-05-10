@@ -1,12 +1,14 @@
 Sets up uglifyjs2 for use in the optimizer.
 
-Current embedded version: 2.2.5, source-map 0.1.22
+Current embedded version: 2.3.2, source-map 0.1.22
 
 Steps:
 
     ./generate.sh
 
 Then update this file with the uglifyjs2 version fetched.
+
+* UPDATE VERSION NUMBERS IN X.JS
 
 This will update:
 
