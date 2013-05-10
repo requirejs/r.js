@@ -1897,4 +1897,23 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Test single file JS optimization with source map generation
+    doh.register("sourcemapSingle",
+        [
+            function sourcemapSingle(t) {
+                file.deleteFile("lib/sourcemapSingle/main-built.js");
+                file.deleteFile("lib/sourcemapSingle/main-built.js.map");
+
+                build(["lib/sourcemapSingle/build.js"]);
+
+                t.is(nol(c("lib/sourcemapSingle/expected-main-built.js.map")),
+                     nol(c("lib/sourcemapSingle/main-built.js.map")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

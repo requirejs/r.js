@@ -27,7 +27,7 @@ exports.minify = function(files, options, name) {
     files.forEach(function(file){
         var code = options.fromString
             ? file
-            : fs.readFileSync(file, "utf8");
+            : rjsFile.readFile(file, "utf8");
         toplevel = UglifyJS.parse(code, {
             filename: options.fromString ? name : file,
             toplevel: toplevel
@@ -54,7 +54,7 @@ exports.minify = function(files, options, name) {
     var map = null;
     var inMap = null;
     if (options.inSourceMap) {
-        inMap = fs.readFileSync(options.inSourceMap, "utf8");
+        inMap = rjsFile.readFile(options.inSourceMap, "utf8");
     }
     if (options.outSourceMap) map = UglifyJS.SourceMap({
         file: options.outSourceMap,

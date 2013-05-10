@@ -1,6 +1,6 @@
 //Distributed under the BSD license:
 //Copyright 2012 (c) Mihai Bazon <mihai.bazon@gmail.com>
-define(['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, logger) {
+define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, MOZ_SourceMap, logger, rjsFile) {
 (function(exports, global) {
     global["UglifyJS"] = exports;
     "use strict";
@@ -5981,7 +5981,7 @@ exports.minify = function(files, options, name) {
     files.forEach(function(file){
         var code = options.fromString
             ? file
-            : fs.readFileSync(file, "utf8");
+            : rjsFile.readFile(file, "utf8");
         toplevel = UglifyJS.parse(code, {
             filename: options.fromString ? name : file,
             toplevel: toplevel
@@ -6008,7 +6008,7 @@ exports.minify = function(files, options, name) {
     var map = null;
     var inMap = null;
     if (options.inSourceMap) {
-        inMap = fs.readFileSync(options.inSourceMap, "utf8");
+        inMap = rjsFile.readFile(options.inSourceMap, "utf8");
     }
     if (options.outSourceMap) map = UglifyJS.SourceMap({
         file: options.outSourceMap,
