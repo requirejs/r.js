@@ -104,6 +104,11 @@
     req.load = function (context, moduleName, url) {
         var contents, err;
 
+        if (context.config.shim[moduleName]) {
+            throw new Error('Shim config not supported in Node: detected ' +
+                            'for module: ' + moduleName);
+        }
+
         if (exists(url)) {
             contents = fs.readFileSync(url, 'utf8');
 

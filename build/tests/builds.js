@@ -841,6 +841,29 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("onBuildAllDir",
+        [
+            function onBuildAllDir(t) {
+                file.deleteFile("lib/onBuildAllDir/js-built");
+
+                build(["lib/onBuildAllDir/build.js"]);
+
+                t.is(nol(c("lib/onBuildAllDir/expected-main.js")),
+                     nol(c("lib/onBuildAllDir/js-built/main.js")));
+
+                t.is(nol(c("lib/onBuildAllDir/expected-a.js")),
+                     nol(c("lib/onBuildAllDir/js-built/a.js")));
+
+                t.is(nol(c("lib/onBuildAllDir/expected-b.js")),
+                     nol(c("lib/onBuildAllDir/js-built/b.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("onBuildRead",
         [
             function onBuildRead(t) {
@@ -1405,6 +1428,26 @@ define(['build', 'env!env/file'], function (build, file) {
                      noSlashRn(nol(c("lib/stubModules/perModule/built/first.js"))));
                 t.is(noSlashRn(nol(c("lib/stubModules/perModule/expected-second.js"))),
                      noSlashRn(nol(c("lib/stubModules/perModule/built/second.js"))));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    //Tests https://github.com/jrburke/r.js/issues/432 insert stub module
+    //for module.create layers.
+    doh.register("stubModulesCreate",
+        [
+            function stubModulesCreate(t) {
+                file.deleteFile("lib/stubModules/create/foobar-built.js");
+
+                build(["lib/stubModules/create/build.js"]);
+
+                t.is(noSlashRn(nol(c("lib/stubModules/create/expected.js"))),
+                     noSlashRn(nol(c("lib/stubModules/create/foobar-built.js"))));
 
                 require._buildReset();
             }

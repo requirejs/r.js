@@ -20,7 +20,10 @@ require({
     catchError: {
         define: true
     }
-},       ['env!env/args', 'build'],
-function (args,            build) {
-    build(args);
+},       ['env!env/args', 'env!env/quit', 'logger', 'build'],
+function (args, quit, logger, build) {
+    build(args).then(function () {}, function (err) {
+        logger.error(err);
+        quit(1);
+    });
 });

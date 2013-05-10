@@ -46,6 +46,7 @@ build/tests/lib/nestedHas/main-builtNeedD.js
 build/tests/lib/nestedHas/main-builtNested.js
 build/tests/lib/noexports/main-built.js
 build/tests/lib/nonStrict/main-built.js
+build/tests/lib/onBuildAllDir/js-built
 build/tests/lib/onBuildRead/main-built.js
 build/tests/lib/onBuildWrite/main-built.js
 build/tests/lib/packages/main-built.js
@@ -66,6 +67,7 @@ build/tests/lib/requireHoist/perLayer/built
 build/tests/lib/rhino-186/built
 build/tests/lib/shimFakeDefine/main-built.js
 build/tests/lib/sourcemap/www-built
+build/tests/lib/stubModules/create/foobar-built.js
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/stubModules/perModule/built
 build/tests/lib/transportBeforeMinify/www-built

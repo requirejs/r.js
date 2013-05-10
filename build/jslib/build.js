@@ -22,7 +22,6 @@ define(function (require) {
         transform = require('transform'),
         requirePatch = require('requirePatch'),
         env = require('env'),
-        quit = require('env!env/quit'),
         commonJs = require('commonJs'),
         SourceMapGenerator = require('source-map/source-map-generator'),
         hasProp = lang.hasProp,
@@ -197,12 +196,7 @@ define(function (require) {
                 }
             }
 
-            if (logger.level > logger.ERROR) {
-                throw new Error(errorMsg);
-            } else {
-                logger.error(errorMsg);
-                quit(1);
-            }
+            throw new Error(errorMsg);
         });
     };
 
@@ -487,6 +481,11 @@ define(function (require) {
                             });
                         }
                     }
+
+                    //Signal layer is done
+                    if (config.onModuleBundleComplete) {
+                        config.onModuleBundleComplete(module.onCompleteData);
+                    }
                 });
             }
 
@@ -539,21 +538,37 @@ define(function (require) {
                         //standalone, one module per file.
                         fileContents = file.readFile(fileName);
 
+
                         //For builds, if wanting cjs translation, do it now, so that
                         //the individual modules can be loaded cross domain via
                         //plain script tags.
-                        if (config.cjsTranslate) {
+                        if (config.cjsTranslate &&
+                            (!config.shim || !lang.hasProp(config.shim, moduleName))) {
                             fileContents = commonJs.convert(fileName, fileContents);
                         }
 
-                        //Only do transport normalization if this is not a build
-                        //layer (since it was already normalized) and if
-                        //normalizeDirDefines indicated all should be done.
-                        if (moduleIndex === -1 && config.normalizeDirDefines === "all") {
-                            fileContents = build.toTransport(config.namespace,
-                                                         null,
-                                                         fileName,
-                                                         fileContents);
+                        if (moduleIndex === -1) {
+                            if (config.onBuildRead) {
+                                fileContents = config.onBuildRead(moduleName,
+                                                                  fileName,
+                                                                  fileContents);
+                            }
+
+                            //Only do transport normalization if this is not a build
+                            //layer (since it was already normalized) and if
+                            //normalizeDirDefines indicated all should be done.
+                            if (config.normalizeDirDefines === "all") {
+                                fileContents = build.toTransport(config.namespace,
+                                                             null,
+                                                             fileName,
+                                                             fileContents);
+                            }
+
+                            if (config.onBuildWrite) {
+                                fileContents = config.onBuildWrite(moduleName,
+                                                                   fileName,
+                                                                   fileContents);
+                            }
                         }
 
                         override = moduleIndex > -1 ?
@@ -1042,7 +1057,8 @@ define(function (require) {
             throw new Error('"main" passed as an option, but the ' +
                             'supported option is called "name".');
         }
-        if (!config.name && !config.modules && !config.include && !config.cssIn) {
+        if (config.out && !config.name && !config.modules && !config.include &&
+                !config.cssIn) {
             throw new Error('Missing either a "name", "include" or "modules" ' +
                             'option');
         }
@@ -1483,8 +1499,14 @@ define(function (require) {
             stubModulesByName = (module.stubModules && module.stubModules._byName) || {};
 
             //Start build output for the module.
+            module.onCompleteData = {
+                name: module.name,
+                path: (config.dir ? module._buildPath.replace(config.dir, "") : module._buildPath),
+                included: []
+            };
+
             buildFileContents += "\n" +
-                                 (config.dir ? module._buildPath.replace(config.dir, "") : module._buildPath) +
+                                  module.onCompleteData.path +
                                  "\n----------------\n";
 
             //If there was an existing file with require in it, hoist to the top.
@@ -1572,7 +1594,8 @@ define(function (require) {
 
                                 currContents = text;
 
-                                if (config.cjsTranslate) {
+                                if (config.cjsTranslate &&
+                                    (!config.shim || !lang.hasProp(config.shim, moduleName))) {
                                     currContents = commonJs.convert(path, currContents);
                                 }
 
@@ -1609,9 +1632,12 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
-                        var sourceMapPath;
+                        var sourceMapPath,
+                            shortPath = path.replace(config.dir, "");
 
-                        buildFileContents += path.replace(config.dir, "") + "\n";
+                        module.onCompleteData.included.push(shortPath);
+                        buildFileContents += shortPath + "\n";
+
                         //Some files may not have declared a require module, and if so,
                         //put in a placeholder call so the require does not try to load them
                         //after the module is processed.
@@ -1677,6 +1703,14 @@ define(function (require) {
                             path: path
                         });
                     });
+                }
+
+                if (module.create) {
+                    //The ID is for a created layer. Write out
+                    //a module definition for it in case the
+                    //built file is used with enforceDefine
+                    //(#432)
+                    fileContents += '\n' + namespaceWithDot + 'define("' + module.name + '", function(){});\n';
                 }
 
                 //Add a require at the end to kick start module execution, if that

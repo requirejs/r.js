@@ -7,8 +7,20 @@
 /*jslint plusplus: true */
 /*global define: false */
 
-define(['./esprima'], function (esprima) {
+define(['./esprima', 'lang'], function (esprima, lang) {
     'use strict';
+
+    function arrayToString(ary) {
+        var output = '[';
+        if (ary) {
+            ary.forEach(function (item, i) {
+                output += (i > 0 ? ',' : '') + '"' + lang.jsEscape(item) + '"';
+            });
+        }
+        output += ']';
+
+        return output;
+    }
 
     //This string is saved off because JSLint complains
     //about obj.arguments use, as 'reserved word'
@@ -136,8 +148,7 @@ define(['./esprima'], function (esprima) {
                     moduleDeps = [];
                 }
 
-                depString = moduleCall.deps.length ? '["' +
-                            moduleCall.deps.join('","') + '"]' : '[]';
+                depString = arrayToString(moduleCall.deps);
                 result += 'define("' + moduleCall.name + '",' +
                           depString + ');';
             }
@@ -145,8 +156,7 @@ define(['./esprima'], function (esprima) {
                 if (result) {
                     result += '\n';
                 }
-                depString = moduleDeps.length ? '["' + moduleDeps.join('","') +
-                            '"]' : '[]';
+                depString = arrayToString(moduleDeps);
                 result += 'define("' + moduleName + '",' + depString + ');';
             }
         }
@@ -314,7 +324,8 @@ define(['./esprima'], function (esprima) {
      */
     parse.findConfig = function (fileContents) {
         /*jslint evil: true */
-        var jsConfig, foundRange, foundConfig,
+        var jsConfig, foundRange, foundConfig, quote, quoteMatch,
+            quoteRegExp = /(:\s|\[\s*)(['"])/,
             astRoot = esprima.parse(fileContents, {
                 range: true
             });
@@ -346,12 +357,15 @@ define(['./esprima'], function (esprima) {
         });
 
         if (jsConfig) {
+            quoteMatch = quoteRegExp.exec(jsConfig);
+            quote = (quoteMatch && quoteMatch[2]) || '"';
             foundConfig = eval('(' + jsConfig + ')');
         }
 
         return {
             config: foundConfig,
-            range: foundRange
+            range: foundRange,
+            quote: quote
         };
     };
 
@@ -684,6 +698,9 @@ define(['./esprima'], function (esprima) {
                     deps = null;
                 } else if (deps.type === 'ObjectExpression') {
                     //deps is object literal, null out
+                    deps = factory = null;
+                } else if (deps.type === 'Identifier' && args.length === 2) {
+                    // define('id', factory)
                     deps = factory = null;
                 }
             }

@@ -210,7 +210,8 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                                 return require._cacheReadAsync(url).then(function (text) {
                                     contents = text;
 
-                                    if (context.config.cjsTranslate) {
+                                    if (context.config.cjsTranslate &&
+                                        (!context.config.shim || !lang.hasProp(context.config.shim, moduleName))) {
                                         contents = commonJs.convert(url, contents);
                                     }
 
