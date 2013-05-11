@@ -4,6 +4,5 @@
     generateSourceMaps: true,
     preserveLicenseComments: false,
     name: 'main',
-    out: 'main-built.js',
-    outSourceMap: 'something.js.map'
+    out: 'main-built.js'
 })

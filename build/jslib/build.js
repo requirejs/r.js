@@ -832,17 +832,18 @@ define(function (require) {
      * make sure paths end in a trailing '/'.
      */
     build.makeRelativeFilePath = function (refPath, targetPath) {
-        var i, dotLength, finalParts,
+        var i, dotLength, finalParts, length,
             refParts = refPath.split('/'),
             targetParts = targetPath.split('/'),
             //Pull off file name
             targetName = targetParts.pop(),
-            length = refParts.length,
             dotParts = [];
 
         //Also pop off the ref file name to make the matches against
         //targetParts equivalent.
         refParts.pop();
+
+        length = refParts.length;
 
         for (i = 0; i < length; i += 1) {
             if (refParts[i] !== targetParts[i]) {
