@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Sat, 11 May 2013 01:15:47 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.6 Sat, 11 May 2013 03:50:42 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Sat, 11 May 2013 01:15:47 GMT',
+        version = '2.1.6 Sat, 11 May 2013 03:50:42 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -232,7 +232,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.6 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -245,7 +245,7 @@ var requirejs, require, define, xpcUtil;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.5',
+        version = '2.1.6',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -21881,7 +21881,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                     //Wrap the file contents in a typeof check, and a function
                     //to contain the API globals.
                     fileContents = "var " + ns + ";(function () { if (!" + ns + " || !" + ns + ".requirejs) {\n" +
-                                    "if (!" + ns + ") { " + ns + ' = {}; }\n' +
+                                    "if (!" + ns + ") { " + ns + ' = {}; } else { require = ' + ns + '; }\n' +
                                     fileContents +
                                     "\n" +
                                     ns + ".requirejs = requirejs;" +
