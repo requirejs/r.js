@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.5+ Fri, 10 May 2013 01:14:00 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.5+ Sat, 11 May 2013 01:15:47 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.5+ Fri, 10 May 2013 01:14:00 GMT',
+        version = '2.1.5+ Sat, 11 May 2013 01:15:47 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -13291,12 +13291,7 @@ define('source-map/source-map-consumer', function (require, exports, module) {
           if (str.length > 0 && !mappingSeparator.test(str.charAt(0))) {
             // Original source.
             temp = base64VLQ.decode(str);
-            if (aSourceRoot) {
-              mapping.source = util.join(aSourceRoot, this._sources.at(previousSource + temp.value));
-            }
-            else {
-              mapping.source = this._sources.at(previousSource + temp.value);
-            }
+            mapping.source = this._sources.at(previousSource + temp.value);
             previousSource += temp.value;
             str = temp.rest;
             if (str.length === 0 || mappingSeparator.test(str.charAt(0))) {
@@ -13330,7 +13325,9 @@ define('source-map/source-map-consumer', function (require, exports, module) {
           }
 
           this._generatedMappings.push(mapping);
-          this._originalMappings.push(mapping);
+          if (typeof mapping.originalLine === 'number') {
+            this._originalMappings.push(mapping);
+          }
         }
       }
 
@@ -13417,11 +13414,15 @@ define('source-map/source-map-consumer', function (require, exports, module) {
                                       this._generatedMappings,
                                       "generatedLine",
                                       "generatedColumn",
-                                      this._compareGeneratedPositions)
+                                      this._compareGeneratedPositions);
 
       if (mapping) {
+        var source = util.getArg(mapping, 'source', null);
+        if (source && this.sourceRoot) {
+          source = util.join(this.sourceRoot, source);
+        }
         return {
-          source: util.getArg(mapping, 'source', null),
+          source: source,
           line: util.getArg(mapping, 'originalLine', null),
           column: util.getArg(mapping, 'originalColumn', null),
           name: util.getArg(mapping, 'name', null)
@@ -13450,7 +13451,7 @@ define('source-map/source-map-consumer', function (require, exports, module) {
       if (this.sourceRoot) {
         // Try to remove the sourceRoot
         var relativeUrl = util.relative(this.sourceRoot, aSource);
-        if (relativeUrl !== aSource && this._sources.has(relativeUrl)) {
+        if (this._sources.has(relativeUrl)) {
           return this.sourcesContent[this._sources.indexOf(relativeUrl)];
         }
       }
@@ -13484,11 +13485,15 @@ define('source-map/source-map-consumer', function (require, exports, module) {
         originalColumn: util.getArg(aArgs, 'column')
       };
 
+      if (this.sourceRoot) {
+        needle.source = util.relative(this.sourceRoot, needle.source);
+      }
+
       var mapping = this._findMapping(needle,
                                       this._originalMappings,
                                       "originalLine",
                                       "originalColumn",
-                                      this._compareOriginalPositions)
+                                      this._compareOriginalPositions);
 
       if (mapping) {
         return {
@@ -13511,8 +13516,7 @@ define('source-map/source-map-consumer', function (require, exports, module) {
    * generated line/column in this source map.
    *
    * @param Function aCallback
-   *        The function that is called with each mapping. This function should
-   *        not mutate the mapping.
+   *        The function that is called with each mapping.
    * @param Object aContext
    *        Optional. If specified, this object will be the value of `this` every
    *        time that `aCallback` is called.
@@ -13540,7 +13544,21 @@ define('source-map/source-map-consumer', function (require, exports, module) {
         throw new Error("Unknown order of iteration.");
       }
 
-      mappings.forEach(aCallback, context);
+      var sourceRoot = this.sourceRoot;
+      mappings.map(function (mapping) {
+        var source = mapping.source;
+        if (source && sourceRoot) {
+          source = util.join(sourceRoot, source);
+        }
+        return {
+          source: source,
+          generatedLine: mapping.generatedLine,
+          generatedColumn: mapping.generatedColumn,
+          originalLine: mapping.originalLine,
+          originalColumn: mapping.originalColumn,
+          name: mapping.name
+        };
+      }).forEach(aCallback, context);
     };
 
   exports.SourceMapConsumer = SourceMapConsumer;
@@ -13591,43 +13609,33 @@ define('source-map/source-map-generator', function (require, exports, module) {
         sourceRoot: sourceRoot
       });
       aSourceMapConsumer.eachMapping(function (mapping) {
-        var source = mapping.source;
-        if (source) {
-          if (sourceRoot) {
-            var relativeUrl = util.relative(sourceRoot, source);
-            if (relativeUrl) {
-              source = relativeUrl;
-            }
+        var newMapping = {
+          generated: {
+            line: mapping.generatedLine,
+            column: mapping.generatedColumn
           }
-          generator.addMapping({
-            source: source,
-            original: {
-              line: mapping.originalLine,
-              column: mapping.originalColumn
-            },
-            generated: {
-              line: mapping.generatedLine,
-              column: mapping.generatedColumn
-            },
-            name: mapping.name
-          });
-        } else {
-          generator.addMapping({
-            generated: {
-              line: mapping.generatedLine,
-              column: mapping.generatedColumn
-            }
-          });
+        };
+
+        if (mapping.source) {
+          newMapping.source = mapping.source;
+          if (sourceRoot) {
+            newMapping.source = util.relative(sourceRoot, newMapping.source);
+          }
+
+          newMapping.original = {
+            line: mapping.originalLine,
+            column: mapping.originalColumn
+          };
+
+          if (mapping.name) {
+            newMapping.name = mapping.name;
+          }
         }
+
+        generator.addMapping(newMapping);
       });
       aSourceMapConsumer.sources.forEach(function (sourceFile) {
         var content = aSourceMapConsumer.sourceContentFor(sourceFile);
-        if (sourceRoot) {
-          var relativeUrl = util.relative(sourceRoot, sourceFile);
-          if (relativeUrl) {
-            sourceFile = relativeUrl;
-          }
-        }
         if (content) {
           generator.setSourceContent(sourceFile, content);
         }
@@ -13675,21 +13683,103 @@ define('source-map/source-map-generator', function (require, exports, module) {
    */
   SourceMapGenerator.prototype.setSourceContent =
     function SourceMapGenerator_setSourceContent(aSourceFile, aSourceContent) {
+      var source = aSourceFile;
+      if (this._sourceRoot) {
+        source = util.relative(this._sourceRoot, source);
+      }
+
       if (aSourceContent !== null) {
         // Add the source content to the _sourcesContents map.
         // Create a new _sourcesContents map if the property is null.
         if (!this._sourcesContents) {
           this._sourcesContents = {};
         }
-        this._sourcesContents[util.toSetString(aSourceFile)] = aSourceContent;
+        this._sourcesContents[util.toSetString(source)] = aSourceContent;
       } else {
         // Remove the source file from the _sourcesContents map.
         // If the _sourcesContents map is empty, set the property to null.
-        delete this._sourcesContents[util.toSetString(aSourceFile)];
+        delete this._sourcesContents[util.toSetString(source)];
         if (Object.keys(this._sourcesContents).length === 0) {
           this._sourcesContents = null;
         }
       }
+    };
+
+  /**
+   * Applies the mappings of a sub-source-map for a specific source file to the
+   * source map being generated. Each mapping to the supplied source file is
+   * rewritten using the supplied source map. Note: The resolution for the
+   * resulting mappings is the minimium of this map and the supplied map.
+   *
+   * @param aSourceMapConsumer The source map to be applied.
+   * @param aSourceFile Optional. The filename of the source file.
+   *        If omitted, SourceMapConsumer's file property will be used.
+   */
+  SourceMapGenerator.prototype.applySourceMap =
+    function SourceMapGenerator_applySourceMap(aSourceMapConsumer, aSourceFile) {
+      // If aSourceFile is omitted, we will use the file property of the SourceMap
+      if (!aSourceFile) {
+        aSourceFile = aSourceMapConsumer.file;
+      }
+      var sourceRoot = this._sourceRoot;
+      // Make "aSourceFile" relative if an absolute Url is passed.
+      if (sourceRoot) {
+        aSourceFile = util.relative(sourceRoot, aSourceFile);
+      }
+      // Applying the SourceMap can add and remove items from the sources and
+      // the names array.
+      var newSources = new ArraySet();
+      var newNames = new ArraySet();
+
+      // Find mappings for the "aSourceFile"
+      this._mappings.forEach(function (mapping) {
+        if (mapping.source === aSourceFile && mapping.original) {
+          // Check if it can be mapped by the source map, then update the mapping.
+          var original = aSourceMapConsumer.originalPositionFor({
+            line: mapping.original.line,
+            column: mapping.original.column
+          });
+          if (original.source !== null) {
+            // Copy mapping
+            if (sourceRoot) {
+              mapping.source = util.relative(sourceRoot, original.source);
+            } else {
+              mapping.source = original.source;
+            }
+            mapping.original.line = original.line;
+            mapping.original.column = original.column;
+            if (original.name !== null && mapping.name !== null) {
+              // Only use the identifier name if it's an identifier
+              // in both SourceMaps
+              mapping.name = original.name;
+            }
+          }
+        }
+
+        var source = mapping.source;
+        if (source && !newSources.has(source)) {
+          newSources.add(source);
+        }
+
+        var name = mapping.name;
+        if (name && !newNames.has(name)) {
+          newNames.add(name);
+        }
+
+      }, this);
+      this._sources = newSources;
+      this._names = newNames;
+
+      // Copy sourcesContents of applied map.
+      aSourceMapConsumer.sources.forEach(function (sourceFile) {
+        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
+        if (content) {
+          if (sourceRoot) {
+            sourceFile = util.relative(sourceRoot, sourceFile);
+          }
+          this.setSourceContent(sourceFile, content);
+        }
+      }, this);
     };
 
   /**
@@ -13725,6 +13815,24 @@ define('source-map/source-map-generator', function (require, exports, module) {
       }
     };
 
+  function cmpLocation(loc1, loc2) {
+    var cmp = (loc1 && loc1.line) - (loc2 && loc2.line);
+    return cmp ? cmp : (loc1 && loc1.column) - (loc2 && loc2.column);
+  }
+
+  function strcmp(str1, str2) {
+    str1 = str1 || '';
+    str2 = str2 || '';
+    return (str1 > str2) - (str1 < str2);
+  }
+
+  function cmpMapping(mappingA, mappingB) {
+    return cmpLocation(mappingA.generated, mappingB.generated) ||
+      cmpLocation(mappingA.original, mappingB.original) ||
+      strcmp(mappingA.source, mappingB.source) ||
+      strcmp(mappingA.name, mappingB.name);
+  }
+
   /**
    * Serialize the accumulated mappings in to the stream of base 64 VLQs
    * specified by the source map format.
@@ -13745,12 +13853,7 @@ define('source-map/source-map-generator', function (require, exports, module) {
       // via the ';' separators) will be all messed up. Note: it might be more
       // performant to maintain the sorting as we insert them, rather than as we
       // serialize them, but the big O is the same either way.
-      this._mappings.sort(function (mappingA, mappingB) {
-        var cmp = mappingA.generated.line - mappingB.generated.line;
-        return cmp === 0
-          ? mappingA.generated.column - mappingB.generated.column
-          : cmp;
-      });
+      this._mappings.sort(cmpMapping);
 
       for (var i = 0, len = this._mappings.length; i < len; i++) {
         mapping = this._mappings[i];
@@ -13764,6 +13867,9 @@ define('source-map/source-map-generator', function (require, exports, module) {
         }
         else {
           if (i > 0) {
+            if (!cmpMapping(mapping, this._mappings[i - 1])) {
+              continue;
+            }
             result += ',';
           }
         }
@@ -13813,7 +13919,10 @@ define('source-map/source-map-generator', function (require, exports, module) {
         map.sourceRoot = this._sourceRoot;
       }
       if (this._sourcesContents) {
-        map.sourcesContent = map.sources.map(function(source) {
+        map.sourcesContent = map.sources.map(function (source) {
+          if (map.sourceRoot) {
+            source = util.relative(map.sourceRoot, source);
+          }
           return Object.prototype.hasOwnProperty.call(
             this._sourcesContents, util.toSetString(source))
             ? this._sourcesContents[util.toSetString(source)]
@@ -13844,6 +13953,7 @@ define('source-map/source-map-generator', function (require, exports, module) {
 define('source-map/source-node', function (require, exports, module) {
 
   var SourceMapGenerator = require('./source-map-generator').SourceMapGenerator;
+  var util = require('./util');
 
   /**
    * SourceNodes provide a way to abstract over interpolating/concatenating
@@ -13859,12 +13969,116 @@ define('source-map/source-node', function (require, exports, module) {
    */
   function SourceNode(aLine, aColumn, aSource, aChunks, aName) {
     this.children = [];
+    this.sourceContents = {};
     this.line = aLine === undefined ? null : aLine;
     this.column = aColumn === undefined ? null : aColumn;
     this.source = aSource === undefined ? null : aSource;
     this.name = aName === undefined ? null : aName;
     if (aChunks != null) this.add(aChunks);
   }
+
+  /**
+   * Creates a SourceNode from generated code and a SourceMapConsumer.
+   *
+   * @param aGeneratedCode The generated code
+   * @param aSourceMapConsumer The SourceMap for the generated code
+   */
+  SourceNode.fromStringWithSourceMap =
+    function SourceNode_fromStringWithSourceMap(aGeneratedCode, aSourceMapConsumer) {
+      // The SourceNode we want to fill with the generated code
+      // and the SourceMap
+      var node = new SourceNode();
+
+      // The generated code
+      // Processed fragments are removed from this array.
+      var remainingLines = aGeneratedCode.split('\n');
+
+      // We need to remember the position of "remainingLines"
+      var lastGeneratedLine = 1, lastGeneratedColumn = 0;
+
+      // The generate SourceNodes we need a code range.
+      // To extract it current and last mapping is used.
+      // Here we store the last mapping.
+      var lastMapping = null;
+
+      aSourceMapConsumer.eachMapping(function (mapping) {
+        if (lastMapping === null) {
+          // We add the generated code until the first mapping
+          // to the SourceNode without any mapping.
+          // Each line is added as separate string.
+          while (lastGeneratedLine < mapping.generatedLine) {
+            node.add(remainingLines.shift() + "\n");
+            lastGeneratedLine++;
+          }
+          if (lastGeneratedColumn < mapping.generatedColumn) {
+            var nextLine = remainingLines[0];
+            node.add(nextLine.substr(0, mapping.generatedColumn));
+            remainingLines[0] = nextLine.substr(mapping.generatedColumn);
+            lastGeneratedColumn = mapping.generatedColumn;
+          }
+        } else {
+          // We add the code from "lastMapping" to "mapping":
+          // First check if there is a new line in between.
+          if (lastGeneratedLine < mapping.generatedLine) {
+            var code = "";
+            // Associate full lines with "lastMapping"
+            do {
+              code += remainingLines.shift() + "\n";
+              lastGeneratedLine++;
+              lastGeneratedColumn = 0;
+            } while (lastGeneratedLine < mapping.generatedLine);
+            // When we reached the correct line, we add code until we
+            // reach the correct column too.
+            if (lastGeneratedColumn < mapping.generatedColumn) {
+              var nextLine = remainingLines[0];
+              code += nextLine.substr(0, mapping.generatedColumn);
+              remainingLines[0] = nextLine.substr(mapping.generatedColumn);
+              lastGeneratedColumn = mapping.generatedColumn;
+            }
+            // Create the SourceNode.
+            addMappingWithCode(lastMapping, code);
+          } else {
+            // There is no new line in between.
+            // Associate the code between "lastGeneratedColumn" and
+            // "mapping.generatedColumn" with "lastMapping"
+            var nextLine = remainingLines[0];
+            var code = nextLine.substr(0, mapping.generatedColumn -
+                                          lastGeneratedColumn);
+            remainingLines[0] = nextLine.substr(mapping.generatedColumn -
+                                                lastGeneratedColumn);
+            lastGeneratedColumn = mapping.generatedColumn;
+            addMappingWithCode(lastMapping, code);
+          }
+        }
+        lastMapping = mapping;
+      }, this);
+      // We have processed all mappings.
+      // Associate the remaining code in the current line with "lastMapping"
+      // and add the remaining lines without any mapping
+      addMappingWithCode(lastMapping, remainingLines.join("\n"));
+
+      // Copy sourcesContent into SourceNode
+      aSourceMapConsumer.sources.forEach(function (sourceFile) {
+        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
+        if (content) {
+          node.setSourceContent(sourceFile, content);
+        }
+      });
+
+      return node;
+
+      function addMappingWithCode(mapping, code) {
+        if (mapping.source === undefined) {
+          node.add(code);
+        } else {
+          node.add(new SourceNode(mapping.originalLine,
+                                  mapping.originalColumn,
+                                  mapping.source,
+                                  code,
+                                  mapping.name));
+        }
+      }
+    };
 
   /**
    * Add a chunk of generated JS to this source node.
@@ -13946,7 +14160,7 @@ define('source-map/source-node', function (require, exports, module) {
   SourceNode.prototype.join = function SourceNode_join(aSep) {
     var newChildren;
     var i;
-    var len = this.children.length
+    var len = this.children.length;
     if (len > 0) {
       newChildren = [];
       for (i = 0; i < len-1; i++) {
@@ -13979,6 +14193,36 @@ define('source-map/source-node', function (require, exports, module) {
     }
     return this;
   };
+
+  /**
+   * Set the source content for a source file. This will be added to the SourceMapGenerator
+   * in the sourcesContent field.
+   *
+   * @param aSourceFile The filename of the source file
+   * @param aSourceContent The content of the source file
+   */
+  SourceNode.prototype.setSourceContent =
+    function SourceNode_setSourceContent(aSourceFile, aSourceContent) {
+      this.sourceContents[util.toSetString(aSourceFile)] = aSourceContent;
+    };
+
+  /**
+   * Walk over the tree of SourceNodes. The walking function is called for each
+   * source file content and is passed the filename and source content.
+   *
+   * @param aFn The traversal function.
+   */
+  SourceNode.prototype.walkSourceContents =
+    function SourceNode_walkSourceContents(aFn) {
+      this.children.forEach(function (chunk) {
+        if (chunk instanceof SourceNode) {
+          chunk.walkSourceContents(aFn);
+        }
+      }, this);
+      Object.keys(this.sourceContents).forEach(function (sourceFileKey) {
+        aFn(util.fromSetString(sourceFileKey), this.sourceContents[sourceFileKey]);
+      }, this);
+    };
 
   /**
    * Return the string representation of this source node. Walks over the tree
@@ -14035,11 +14279,13 @@ define('source-map/source-node', function (require, exports, module) {
         if (ch === '\n') {
           generated.line++;
           generated.column = 0;
-          sourceMappingActive = false;
         } else {
           generated.column++;
         }
       });
+    });
+    this.walkSourceContents(function (sourceFile, sourceContent) {
+      map.setSourceContent(sourceFile, sourceContent);
     });
 
     return { code: generated.code, map: map };
@@ -14078,10 +14324,34 @@ define('source-map/util', function (require, exports, module) {
   }
   exports.getArg = getArg;
 
+  var urlRegexp = /([\w+\-.]+):\/\/((\w+:\w+)@)?([\w.]+)?(:(\d+))?(\S+)?/;
+
+  function urlParse(aUrl) {
+    var match = aUrl.match(urlRegexp);
+    if (!match) {
+      return null;
+    }
+    return {
+      scheme: match[1],
+      auth: match[3],
+      host: match[4],
+      port: match[6],
+      path: match[7]
+    };
+  }
+
   function join(aRoot, aPath) {
-    return aPath.charAt(0) === '/'
-      ? aPath
-      : aRoot.replace(/\/*$/, '') + '/' + aPath;
+    var url;
+
+    if (aPath.match(urlRegexp)) {
+      return aPath;
+    }
+
+    if (aPath.charAt(0) === '/' && (url = urlParse(aRoot))) {
+      return aRoot.replace(url.path, '') + aPath;
+    }
+
+    return aRoot.replace(/\/$/, '') + '/' + aPath;
   }
   exports.join = join;
 
@@ -14095,12 +14365,18 @@ define('source-map/util', function (require, exports, module) {
    * @param String aStr
    */
   function toSetString(aStr) {
-    return '$' + aStr
+    return '$' + aStr;
   }
   exports.toSetString = toSetString;
 
+  function fromSetString(aStr) {
+    return aStr.substr(1);
+  }
+  exports.fromSetString = fromSetString;
+
   function relative(aRoot, aPath) {
-    return aPath.indexOf(aRoot.replace(/\/*$/, '') + '/') === 0
+    aRoot = aRoot.replace(/\/$/, '');
+    return aPath.indexOf(aRoot + '/') === 0
       ? aPath.substr(aRoot.length + 1)
       : aPath;
   }
@@ -14122,7 +14398,7 @@ exports.SourceNode = require('./source-map/source-node').SourceNode;
 
 //Distributed under the BSD license:
 //Copyright 2012 (c) Mihai Bazon <mihai.bazon@gmail.com>
-define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, logger) {
+define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], function (exports, MOZ_SourceMap, logger, rjsFile) {
 (function(exports, global) {
     global["UglifyJS"] = exports;
     "use strict";
@@ -14560,6 +14836,24 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         $documentation: "The toplevel scope",
         $propdoc: {
             globals: "[Object/S] a map of name -> SymbolDef for all undeclared names"
+        },
+        wrap_enclose: function(arg_parameter_pairs) {
+            var self = this;
+            var args = [];
+            var parameters = [];
+            arg_parameter_pairs.forEach(function(pair) {
+                var split = pair.split(":");
+                args.push(split[0]);
+                parameters.push(split[1]);
+            });
+            var wrapped_tl = "(function(" + parameters.join(",") + "){ '$ORIG'; })(" + args.join(",") + ")";
+            wrapped_tl = parse(wrapped_tl);
+            wrapped_tl = wrapped_tl.transform(new TreeTransformer(function before(node) {
+                if (node instanceof AST_Directive && node.value == "$ORIG") {
+                    return MAP.splice(self.body);
+                }
+            }));
+            return wrapped_tl;
         },
         wrap_commonjs: function(name, export_all) {
             var self = this;
@@ -15185,7 +15479,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         return UNICODE.connector_punctuation.test(ch);
     }
     function is_identifier(name) {
-        return /^[a-z_$][a-z0-9_$]*$/i.test(name) && !RESERVED_WORDS(name);
+        return !RESERVED_WORDS(name) && /^[a-z_$][a-z0-9_$]*$/i.test(name);
     }
     function is_identifier_start(code) {
         return code == 36 || code == 95 || is_letter(code);
@@ -15193,6 +15487,14 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
     function is_identifier_char(ch) {
         var code = ch.charCodeAt(0);
         return is_identifier_start(code) || is_digit(code) || code == 8204 || code == 8205 || is_unicode_combining_mark(ch) || is_unicode_connector_punctuation(ch);
+    }
+    function is_identifier_string(str) {
+        var i = str.length;
+        if (i == 0) return false;
+        while (--i >= 0) {
+            if (!is_identifier_char(str.charAt(i))) return false;
+        }
+        return true;
     }
     function parse_js_number(num) {
         if (RE_HEX_NUMBER.test(num)) {
@@ -15214,12 +15516,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         return this.message + " (line: " + this.line + ", col: " + this.col + ", pos: " + this.pos + ")" + "\n\n" + this.stack;
     };
     function js_error(message, filename, line, col, pos) {
-        AST_Node.warn("ERROR: {message} [{file}:{line},{col}]", {
-            message: message,
-            file: filename,
-            line: line,
-            col: col
-        });
         throw new JS_Parse_Error(message, line, col, pos);
     }
     function is_token(token, type, val) {
@@ -16278,16 +16574,8 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         };
         function is_assignable(expr) {
             if (!options.strict) return true;
-            switch (expr[0] + "") {
-              case "dot":
-              case "sub":
-              case "new":
-              case "call":
-                return true;
-
-              case "name":
-                return expr[1] != "this";
-            }
+            if (expr instanceof AST_This) return false;
+            return expr instanceof AST_PropAccess || expr instanceof AST_Symbol;
         }
         var maybe_assign = function(no_in) {
             var start = S.token;
@@ -16499,10 +16787,14 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
     }
     SymbolDef.prototype = {
         unmangleable: function(options) {
-            return this.global || this.undeclared || !(options && options.eval) && (this.scope.uses_eval || this.scope.uses_with);
+            return this.global && !(options && options.toplevel) || this.undeclared || !(options && options.eval) && (this.scope.uses_eval || this.scope.uses_with);
         },
         mangle: function(options) {
-            if (!this.mangled_name && !this.unmangleable(options)) this.mangled_name = this.scope.next_mangled(options);
+            if (!this.mangled_name && !this.unmangleable(options)) {
+                var s = this.scope;
+                if (this.orig[0] instanceof AST_SymbolLambda && !options.screw_ie8) s = s.parent_scope;
+                this.mangled_name = s.next_mangled(options);
+            }
         }
     };
     AST_Toplevel.DEFMETHOD("figure_out_scope", function() {
@@ -16549,7 +16841,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                 node.init_scope_vars();
             }
             if (node instanceof AST_SymbolLambda) {
-                (node.scope = scope.parent_scope).def_function(node);
+                scope.def_function(node);
             } else if (node instanceof AST_SymbolDefun) {
                 (node.scope = scope.parent_scope).def_function(node);
             } else if (node instanceof AST_SymbolVar || node instanceof AST_SymbolConst) {
@@ -16670,11 +16962,11 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         return symbol.thedef = def;
     });
     AST_Scope.DEFMETHOD("next_mangled", function(options) {
-        var ext = this.enclosed, n = ext.length;
+        var ext = this.enclosed;
         out: while (true) {
             var m = base54(++this.cname);
             if (!is_identifier(m)) continue;
-            for (var i = n; --i >= 0; ) {
+            for (var i = ext.length; --i >= 0; ) {
                 var sym = ext[i];
                 var name = sym.mangled_name || sym.unmangleable(options) && sym.name;
                 if (m == name) continue out;
@@ -16717,7 +17009,9 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         return defaults(options, {
             except: [],
             eval: false,
-            sort: false
+            sort: false,
+            toplevel: false,
+            screw_ie8: false
         });
     });
     AST_Toplevel.DEFMETHOD("mangle_names", function(options) {
@@ -16898,11 +17192,16 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         var current_line = 1;
         var current_pos = 0;
         var OUTPUT = "";
-        function to_ascii(str) {
+        function to_ascii(str, identifier) {
             return str.replace(/[\u0080-\uffff]/g, function(ch) {
                 var code = ch.charCodeAt(0).toString(16);
-                while (code.length < 4) code = "0" + code;
-                return "\\u" + code;
+                if (code.length <= 2 && !identifier) {
+                    while (code.length < 2) code = "0" + code;
+                    return "\\x" + code;
+                } else {
+                    while (code.length < 4) code = "0" + code;
+                    return "\\u" + code;
+                }
             });
         }
         function make_string(str) {
@@ -16953,7 +17252,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         }
         function make_name(name) {
             name = name.toString();
-            if (options.ascii_only) name = to_ascii(name);
+            if (options.ascii_only) name = to_ascii(name, true);
             return name;
         }
         function make_indent(back) {
@@ -17172,7 +17471,9 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         AST_Node.DEFMETHOD("print", function(stream, force_parens) {
             var self = this, generator = self._codegen;
             stream.push_node(self);
-            if (force_parens || self.needs_parens(stream)) {
+            var needs_parens = self.needs_parens(stream);
+            var fc = self instanceof AST_Function && !stream.option("beautify");
+            if (force_parens || needs_parens && !fc) {
                 stream.with_parens(function() {
                     self.add_comments(stream);
                     self.add_source_map(stream);
@@ -17180,6 +17481,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                 });
             } else {
                 self.add_comments(stream);
+                if (needs_parens && fc) stream.print("!");
                 self.add_source_map(stream);
                 generator(self, stream);
             }
@@ -17717,7 +18019,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         DEFPRINT(AST_ObjectKeyVal, function(self, output) {
             var key = self.key;
             if (output.option("quote_keys")) {
-                output.print_string(key);
+                output.print_string(key + "");
             } else if ((typeof key == "number" || !output.option("beautify") && +key + "" == key) && parseFloat(key) >= 0) {
                 output.print(make_num(key));
             } else if (!is_identifier(key)) {
@@ -17871,7 +18173,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             properties: !false_by_default,
             dead_code: !false_by_default,
             drop_debugger: !false_by_default,
-            unsafe: !false_by_default,
+            unsafe: false,
             unsafe_comps: false,
             conditionals: !false_by_default,
             comparisons: !false_by_default,
@@ -17885,6 +18187,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             join_vars: !false_by_default,
             cascade: !false_by_default,
             side_effects: !false_by_default,
+            screw_ie8: false,
             warnings: true,
             global_defs: {}
         }, true);
@@ -17954,7 +18257,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                 }).optimize(compressor);
 
               case "boolean":
-                return make_node(val ? AST_True : AST_False, orig);
+                return make_node(val ? AST_True : AST_False, orig).optimize(compressor);
 
               case "undefined":
                 return make_node(AST_Undefined, orig).optimize(compressor);
@@ -18362,7 +18665,10 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                     return !ev(e);
 
                   case "typeof":
-                    return typeof ev(e);
+                    if (e instanceof AST_Function) return typeof function() {};
+                    e = ev(e);
+                    if (e instanceof RegExp) throw def;
+                    return typeof e;
 
                   case "void":
                     return void ev(e);
@@ -18952,8 +19258,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                             body: a
                         });
                     }
-                } else {
-                    return self.body;
                 }
             }
             return self;
@@ -19157,10 +19461,17 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
                     body: self.expression
                 }).transform(compressor);
             }
-            var last_branch = self.body[self.body.length - 1];
-            if (last_branch) {
-                var stat = last_branch.body[last_branch.body.length - 1];
-                if (stat instanceof AST_Break && loop_body(compressor.loopcontrol_target(stat.label)) === self) last_branch.body.pop();
+            for (;;) {
+                var last_branch = self.body[self.body.length - 1];
+                if (last_branch) {
+                    var stat = last_branch.body[last_branch.body.length - 1];
+                    if (stat instanceof AST_Break && loop_body(compressor.loopcontrol_target(stat.label)) === self) last_branch.body.pop();
+                    if (last_branch instanceof AST_Default && last_branch.body.length == 0) {
+                        self.body.pop();
+                        continue;
+                    }
+                }
+                break;
             }
             var exp = self.expression.evaluate(compressor);
             out: if (exp.length == 2) try {
@@ -19414,8 +19725,8 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
         });
         var commutativeOperators = makePredicate("== === != !== * & | ^");
         OPT(AST_Binary, function(self, compressor) {
-            function reverse(op) {
-                if (!(self.left.has_side_effects() && self.right.has_side_effects())) {
+            function reverse(op, force) {
+                if (force || !(self.left.has_side_effects() || self.right.has_side_effects())) {
                     if (op) self.operator = op;
                     var tmp = self.left;
                     self.left = self.right;
@@ -19424,7 +19735,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             }
             if (commutativeOperators(self.operator)) {
                 if (self.right instanceof AST_Constant && !(self.left instanceof AST_Constant)) {
-                    reverse();
+                    reverse(null, true);
                 }
             }
             self = self.lift_sequences(compressor);
@@ -19439,8 +19750,8 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
               case "!=":
                 if (self.left instanceof AST_String && self.left.value == "undefined" && self.right instanceof AST_UnaryPrefix && self.right.operator == "typeof" && compressor.option("unsafe")) {
                     if (!(self.right.expression instanceof AST_SymbolRef) || !self.right.expression.undeclared()) {
-                        self.left = self.right.expression;
-                        self.right = make_node(AST_Undefined, self.left).optimize(compressor);
+                        self.right = self.right.expression;
+                        self.left = make_node(AST_Undefined, self.left).optimize(compressor);
                         if (self.operator.length == 2) self.operator += "=";
                     }
                 }
@@ -19625,7 +19936,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             var prop = self.property;
             if (prop instanceof AST_String && compressor.option("properties")) {
                 prop = prop.getValue();
-                if (is_identifier(prop)) {
+                if (compressor.option("screw_ie8") && RESERVED_WORDS(prop) || !RESERVED_WORDS(prop) && is_identifier_string(prop)) {
                     return make_node(AST_Dot, self, {
                         expression: self.expression,
                         property: prop
@@ -19792,7 +20103,8 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
             }
         };
         function From_Moz_Unary(M) {
-            return new (M.prefix ? AST_UnaryPrefix : AST_UnaryPostfix)({
+            var prefix = "prefix" in M ? M.prefix : M.type == "UnaryExpression" ? true : false;
+            return new (prefix ? AST_UnaryPrefix : AST_UnaryPostfix)({
                 start: my_start_token(M),
                 end: my_end_token(M),
                 operator: M.operator,
@@ -20016,6 +20328,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_
     exports["is_identifier"] = is_identifier;
     exports["is_identifier_start"] = is_identifier_start;
     exports["is_identifier_char"] = is_identifier_char;
+    exports["is_identifier_string"] = is_identifier_string;
     exports["parse_js_number"] = parse_js_number;
     exports["JS_Parse_Error"] = JS_Parse_Error;
     exports["js_error"] = js_error;
@@ -20066,7 +20379,7 @@ exports.minify = function(files, options, name) {
     files.forEach(function(file){
         var code = options.fromString
             ? file
-            : fs.readFileSync(file, "utf8");
+            : rjsFile.readFile(file, "utf8");
         toplevel = UglifyJS.parse(code, {
             filename: options.fromString ? name : file,
             toplevel: toplevel
@@ -20093,7 +20406,7 @@ exports.minify = function(files, options, name) {
     var map = null;
     var inMap = null;
     if (options.inSourceMap) {
-        inMap = fs.readFileSync(options.inSourceMap, "utf8");
+        inMap = rjsFile.readFile(options.inSourceMap, "utf8");
     }
     if (options.outSourceMap) map = UglifyJS.SourceMap({
         file: options.outSourceMap,
@@ -21943,15 +22256,19 @@ define('xpconnect/optimize', {});
 /*global define: false */
 
 define('optimize', [ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
-         'pragma', 'uglifyjs/index', 'uglifyjs2'],
+         'pragma', 'uglifyjs/index', 'uglifyjs2',
+         'source-map'],
 function (lang,   logger,   envOptimize,        file,           parse,
-          pragma, uglify,             uglify2) {
+          pragma, uglify,             uglify2,
+          sourceMap) {
     'use strict';
 
     var optimize,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/ig,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
-        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g;
+        cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
+        SourceMapGenerator = sourceMap.SourceMapGenerator,
+        SourceMapConsumer =sourceMap.SourceMapConsumer;
 
     /**
      * If an URL from a CSS url value contains start/end quotes, remove them.
@@ -22170,6 +22487,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             throw new Error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
                         }
                     }
+if (fileName.indexOf('sourcemap') !== -1)
+    debugger;
 
                     fileContents = licenseContents + optFunc(fileName,
                                                              fileContents,
@@ -22340,7 +22659,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 return fileContents;
             },
             uglify2: function (fileName, fileContents, outFileName, keepLines, config) {
-                var result,
+                var result, existingMap, resultMap, finalMap, sourceIndex,
                     uconfig = {},
                     existingMapPath = outFileName + '.map',
                     baseName = fileName && fileName.split('/').pop();
@@ -22356,18 +22675,27 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                     if (file.exists(existingMapPath)) {
                         uconfig.inSourceMap = existingMapPath;
+                        existingMap = JSON.parse(file.readFile(existingMapPath));
                     }
                 }
 
                 logger.trace("Uglify2 file: " + fileName);
 
                 try {
-                    result = uglify2.minify(fileContents, uconfig, baseName + '.src');
-
+                    //var tempContents = fileContents.replace(/\/\/\@ sourceMappingURL=.*$/, '');
+                    result = uglify2.minify(fileContents, uconfig, baseName + '.src.js');
                     if (uconfig.outSourceMap && result.map) {
-                        file.saveFile(outFileName + '.src', fileContents);
-                        file.saveFile(outFileName + '.min.map', result.map);
-                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".min.map";
+                        resultMap = result.map;
+                        if (existingMap) {
+                            resultMap = JSON.parse(resultMap);
+                            finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
+                            finalMap.applySourceMap(new SourceMapConsumer(existingMap));
+                            resultMap = finalMap.toString();
+                        } else {
+                            file.saveFile(outFileName + '.src.js', fileContents);
+                        }
+                        file.saveFile(outFileName + '.map', resultMap);
+                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".map";
                     } else {
                         fileContents = result.code;
                     }
@@ -23791,17 +24119,18 @@ define('build', function (require) {
      * make sure paths end in a trailing '/'.
      */
     build.makeRelativeFilePath = function (refPath, targetPath) {
-        var i, dotLength, finalParts,
+        var i, dotLength, finalParts, length,
             refParts = refPath.split('/'),
             targetParts = targetPath.split('/'),
             //Pull off file name
             targetName = targetParts.pop(),
-            length = refParts.length,
             dotParts = [];
 
         //Also pop off the ref file name to make the matches against
         //targetParts equivalent.
         refParts.pop();
+
+        length = refParts.length;
 
         for (i = 0; i < length; i += 1) {
             if (refParts[i] !== targetParts[i]) {
@@ -24434,7 +24763,7 @@ define('build', function (require) {
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
-        var fileContents, sourceMapGenerator, sourceMapLineNumber,
+        var fileContents, sourceMapGenerator,
             sourceMapBase,
             buildFileContents = '';
 
@@ -24482,7 +24811,6 @@ define('build', function (require) {
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
                     file: module._buildPath.replace(sourceMapBase, '')
                 });
-                sourceMapLineNumber = 1;
             }
 
             //Write the built module to disk, and build up the build output.
@@ -24591,7 +24919,7 @@ define('build', function (require) {
                             });
                         }
                     }).then(function () {
-                        var sourceMapPath,
+                        var sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
                         module.onCompleteData.included.push(shortPath);
@@ -24617,12 +24945,12 @@ define('build', function (require) {
                         //Add to the source map
                         if (sourceMapGenerator) {
                             sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
-
+                            sourceMapLineNumber = fileContents.split('\n').length - 1;
                             lineCount = singleContents.split('\n').length;
                             for (var i = 1; i <= lineCount; i += 1) {
                                 sourceMapGenerator.addMapping({
                                     generated: {
-                                        line: sourceMapLineNumber,
+                                        line: sourceMapLineNumber + i,
                                         column: 0
                                     },
                                     original: {
@@ -24631,8 +24959,6 @@ define('build', function (require) {
                                     },
                                     source: sourceMapPath
                                 });
-
-                                sourceMapLineNumber += 1;
                             }
 
                             //Store the content of the original in the source
@@ -24886,7 +25212,9 @@ function (args, quit, logger, build) {
 
 
     } else if (commandOption === 'v') {
-        console.log('r.js: ' + version + ', RequireJS: ' + this.requirejsVars.require.version);
+        console.log('r.js: ' + version +
+                    ', RequireJS: ' + this.requirejsVars.require.version +
+                    ', UglifyJS2: 2.3.2, UglifyJS: 1.3.4');
     } else if (commandOption === 'convert') {
         loadLib();
 
