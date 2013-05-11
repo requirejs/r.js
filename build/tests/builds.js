@@ -379,6 +379,21 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("buildNamespaceConfig",
+        [
+            function buildNamespaceConfig(t) {
+                build(["lib/namespaceConfig/build.js"]);
+
+                t.is(nol(c("lib/namespaceConfig/expected.js")),
+                     nol(c("lib/namespaceConfig/foo.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("useDotPackage",
         [
             function useDotPackage(t) {

@@ -84,7 +84,7 @@ define(['parse', 'logger'], function (parse, logger) {
                     //Wrap the file contents in a typeof check, and a function
                     //to contain the API globals.
                     fileContents = "var " + ns + ";(function () { if (!" + ns + " || !" + ns + ".requirejs) {\n" +
-                                    "if (!" + ns + ") { " + ns + ' = {}; }\n' +
+                                    "if (!" + ns + ") { " + ns + ' = {}; } else { require = ' + ns + '; }\n' +
                                     fileContents +
                                     "\n" +
                                     ns + ".requirejs = requirejs;" +
