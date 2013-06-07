@@ -1341,24 +1341,35 @@ define(function (require) {
             });
         }
 
-        //Figure out module layer dependencies by calling require to do the work.
-        //Configure the callbacks to be called.
-        deferred.resolve.__requireJsBuild = true;
-        deferred.reject.__requireJsBuild = true;
-        require(include, deferred.resolve, deferred.reject);
 
-        //If a sync build environment, check for errors here, instead of
-        //in the then callback below, since some errors, like two IDs pointed
-        //to same URL but only one anon ID will leave the loader in an
-        //unresolved state since a setTimeout cannot be used to check for
-        //timeout.
-        if (syncChecks[env.get()]) {
-            try {
-                build.checkForErrors(context);
-            } catch (e) {
-                deferred.reject(e);
+        //Configure the callbacks to be called.
+        deferred.reject.__requireJsBuild = true;
+
+        //Use a wrapping function so can check for errors.
+        function includeFinished(value) {
+            //If a sync build environment, check for errors here, instead of
+            //in the then callback below, since some errors, like two IDs pointed
+            //to same URL but only one anon ID will leave the loader in an
+            //unresolved state since a setTimeout cannot be used to check for
+            //timeout.
+            var hasError = false;
+            if (syncChecks[env.get()]) {
+                try {
+                    build.checkForErrors(context);
+                } catch (e) {
+                    hasError = true;
+                    deferred.reject(e);
+                }
+            }
+
+            if (!hasError) {
+                deferred.resolve(value);
             }
         }
+        includeFinished.__requireJsBuild = true;
+
+        //Figure out module layer dependencies by calling require to do the work.
+        require(include, includeFinished, deferred.reject);
 
         return deferred.promise.then(function () {
             //Reset config
