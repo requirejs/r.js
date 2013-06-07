@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.6 Sat, 11 May 2013 03:50:42 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.6+ Fri, 07 Jun 2013 03:58:09 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.6 Sat, 11 May 2013 03:50:42 GMT',
+        version = '2.1.6+ Fri, 07 Jun 2013 03:58:09 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24628,24 +24628,35 @@ define('build', function (require) {
             });
         }
 
-        //Figure out module layer dependencies by calling require to do the work.
-        //Configure the callbacks to be called.
-        deferred.resolve.__requireJsBuild = true;
-        deferred.reject.__requireJsBuild = true;
-        require(include, deferred.resolve, deferred.reject);
 
-        //If a sync build environment, check for errors here, instead of
-        //in the then callback below, since some errors, like two IDs pointed
-        //to same URL but only one anon ID will leave the loader in an
-        //unresolved state since a setTimeout cannot be used to check for
-        //timeout.
-        if (syncChecks[env.get()]) {
-            try {
-                build.checkForErrors(context);
-            } catch (e) {
-                deferred.reject(e);
+        //Configure the callbacks to be called.
+        deferred.reject.__requireJsBuild = true;
+
+        //Use a wrapping function so can check for errors.
+        function includeFinished(value) {
+            //If a sync build environment, check for errors here, instead of
+            //in the then callback below, since some errors, like two IDs pointed
+            //to same URL but only one anon ID will leave the loader in an
+            //unresolved state since a setTimeout cannot be used to check for
+            //timeout.
+            var hasError = false;
+            if (syncChecks[env.get()]) {
+                try {
+                    build.checkForErrors(context);
+                } catch (e) {
+                    hasError = true;
+                    deferred.reject(e);
+                }
+            }
+
+            if (!hasError) {
+                deferred.resolve(value);
             }
         }
+        includeFinished.__requireJsBuild = true;
+
+        //Figure out module layer dependencies by calling require to do the work.
+        require(include, includeFinished, deferred.reject);
 
         return deferred.promise.then(function () {
             //Reset config
