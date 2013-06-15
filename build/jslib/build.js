@@ -728,7 +728,9 @@ define(function (require) {
                 "include": true,
                 "exclude": true,
                 "excludeShallow": true,
-                "insertRequire": true
+                "insertRequire": true,
+                "stubModules": true,
+                "deps": true
             };
 
         for (i = 0; i < ary.length; i++) {
