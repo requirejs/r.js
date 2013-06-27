@@ -750,7 +750,8 @@ define(['./esprima', 'lang'], function (esprima, lang) {
     parse.getLicenseComments = function (fileName, contents) {
         var commentNode, refNode, subNode, value, i, j,
             ast = esprima.parse(contents, {
-                comment: true
+                comment: true,
+                range: true
             }),
             result = '',
             existsMap = {},
@@ -773,7 +774,7 @@ define(['./esprima', 'lang'], function (esprima, lang) {
                         for (j = i + 1; j < ast.comments.length; j++) {
                             subNode = ast.comments[j];
                             if (subNode.type === 'Line' &&
-                                    subNode.range[0] === refNode.range[1]) {
+                                    subNode.range[0] === refNode.range[1] + 1) {
                                 //Adjacent single line comment. Collect it.
                                 value += '//' + subNode.value + lineEnd;
                                 refNode = subNode;

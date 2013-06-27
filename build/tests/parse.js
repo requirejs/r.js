@@ -281,22 +281,28 @@ define(['parse', 'env!env/file'], function (parse, file) {
     doh.register('parseLicenseComments',
         [
             function parseLicenseComments(t) {
-                var manyCommentsName = 'parse/comments/manyComments.js',
+                var contents,
+                    manyCommentsName = 'parse/comments/manyComments.js',
                     multiLineName = 'parse/comments/multiLine.js',
                     multiSingleLineName = 'parse/comments/multiSingleLine.js',
                     expectedManyCommentsName = 'parse/comments/expected/manyComments.js',
+                    outputManyCommentsName = 'parse/comments/output/manyComments.js',
                     expectedMultiLineName = 'parse/comments/expected/multiLine.js',
-                    expectedMultiSingleLineName = 'parse/comments/expected/multiSingleLine.js';
+                    outputMultiLineName = 'parse/comments/output/multiLine.js',
+                    expectedMultiSingleLineName = 'parse/comments/expected/multiSingleLine.js',
+                    outputMultiSingleLineName = 'parse/comments/output/multiSingleLine.js';
 
+                contents = parse.getLicenseComments(manyCommentsName, file.readFile(manyCommentsName)).trim();
+                //file.saveFile(outputManyCommentsName, contents);
+                t.is(file.readFile(expectedManyCommentsName).trim(), contents);
 
-                t.is(file.readFile(expectedManyCommentsName).trim(),
-                     parse.getLicenseComments(manyCommentsName, file.readFile(manyCommentsName)).trim());
+                contents = parse.getLicenseComments(multiLineName, file.readFile(multiLineName)).trim();
+                //file.saveFile(outputMultiLineName, contents);
+                t.is(file.readFile(expectedMultiLineName).trim(), contents);
 
-                t.is(file.readFile(expectedMultiLineName).trim(),
-                     parse.getLicenseComments(multiLineName, file.readFile(multiLineName)).trim());
-
-                t.is(file.readFile(expectedMultiSingleLineName).trim(),
-                     parse.getLicenseComments(multiSingleLineName, file.readFile(multiSingleLineName)).trim());
+                contents = parse.getLicenseComments(multiSingleLineName, file.readFile(multiSingleLineName)).trim();
+                //file.saveFile(outputMultiSingleLineName, contents);
+                t.is(file.readFile(expectedMultiSingleLineName).trim(), contents);
             }
         ]
     );
