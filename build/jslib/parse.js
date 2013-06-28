@@ -49,6 +49,28 @@ define(['./esprima', 'lang'], function (esprima, lang) {
         }
     }
 
+    //Like traverse, but visitor returning false just
+    //stops that subtree analysis, not the rest of tree
+    //visiting.
+    function traverseBroad(object, visitor) {
+        var key, child;
+
+        if (!object) {
+            return;
+        }
+
+        if (visitor.call(null, object) === false) {
+            return false;
+        }
+        for (key in object) {
+            if (object.hasOwnProperty(key)) {
+                child = object[key];
+                if (typeof child === 'object' && child !== null) {
+                    traverse(child, visitor);
+                }
+            }
+        }
+    }
 
     /**
      * Pulls out dependencies from an array literal with just string members.
@@ -164,6 +186,9 @@ define(['./esprima', 'lang'], function (esprima, lang) {
         return result || null;
     }
 
+    parse.traverse = traverse;
+    parse.traverseBroad = traverseBroad;
+
     /**
      * Handles parsing a file recursively for require calls.
      * @param {Array} parentNode the AST node to start with.
@@ -236,12 +261,14 @@ define(['./esprima', 'lang'], function (esprima, lang) {
      * will be added to a modified define() call that lists the dependencies
      * on the outside of the function.
      * @param {String} fileName
-     * @param {String} fileContents
+     * @param {String|Object} fileContents: a string of contents, or an already
+     * parsed AST tree.
      * @returns {Array} an array of module names that are dependencies. Always
      * returns an array, but could be of length zero.
      */
     parse.getAnonDeps = function (fileName, fileContents) {
-        var astRoot = esprima.parse(fileContents),
+        var astRoot = typeof fileContents === 'string' ?
+                      esprima.parse(fileContents) : fileContents,
             defFunc = this.findAnonDefineFactory(astRoot);
 
         return parse.getAnonDepsFromNode(defFunc);
@@ -273,6 +300,12 @@ define(['./esprima', 'lang'], function (esprima, lang) {
         return deps;
     };
 
+    parse.isDefineNodeWithArgs = function (node) {
+        return node && node.type === 'CallExpression' &&
+               node.callee && node.callee.type === 'Identifier' &&
+               node.callee.name === 'define' && node[argPropName];
+    };
+
     /**
      * Finds the function in define(function (require, exports, module){});
      * @param {Array} node
@@ -284,9 +317,7 @@ define(['./esprima', 'lang'], function (esprima, lang) {
         traverse(node, function (node) {
             var arg0, arg1;
 
-            if (node && node.type === 'CallExpression' &&
-                    node.callee && node.callee.type === 'Identifier' &&
-                    node.callee.name === 'define' && node[argPropName]) {
+            if (parse.isDefineNodeWithArgs(node)) {
 
                 //Just the factory function passed to define
                 arg0 = node[argPropName][0];

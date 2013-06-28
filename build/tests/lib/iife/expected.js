@@ -1,6 +1,6 @@
 
 (function() {
-    define("myModuleA",[], function() {
+    define("myModuleA", [],function() {
         return {
             "A" : function( a ) { return a + 1; }
         };

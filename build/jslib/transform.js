@@ -4,7 +4,6 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint */
 /*global define */
 
 define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, logger, lang) {
@@ -23,22 +22,20 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
         return str.replace(regExp, '$&' + indent);
     }
 
-    return (transform = {
+    transform = {
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
             options = options || {};
 
-            var tokens, foundAnon, deps, lastRange, parenCount, inDefine,
+            var astRoot, contentLines, modLine,
+                foundAnon,
                 scanCount = 0,
                 scanReset = false,
-                defineRanges = [],
-                contentInsertion = '',
-                depString = '';
+                defineInfos = [];
 
             try {
-                tokens = esprima.parse(contents, {
-                    tokens: true,
-                    range: true
-                }).tokens;
+                astRoot = esprima.parse(contents, {
+                    loc: true
+                });
             } catch (e) {
                 logger.trace('toTransport skipping ' + path + ': ' +
                              e.toString());
@@ -46,39 +43,13 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
             }
 
             //Find the define calls and their position in the files.
-            tokens.some(function (token, i) {
-                var prev, prev2, next, next2, next3, next4, next5,
-                    needsId, depAction, nameCommaRange, foundId,
+            parse.traverseBroad(astRoot, function (node) {
+                var args, firstArg, firstArgLoc, factoryLoc,
+                    needsId, depAction, foundId,
                     sourceUrlData, range,
                     namespaceExists = false;
-
-                if (inDefine && token.type === 'Punctuator') {
-                    //Looking for the end of the define call.
-                    if (token.value === '(') {
-                        parenCount += 1;
-                    } else if (token.value === ')') {
-                        parenCount -= 1;
-                    }
-
-                    if (parenCount === 0) {
-                        inDefine = false;
-
-                        //Found the end of the define call. Hold onto
-                        //it.
-                        lastRange = defineRanges.length &&
-                            defineRanges[defineRanges.length - 1];
-                        if (lastRange && !lastRange.defineEndRange) {
-                            lastRange.defineEndRange = token.range;
-                        }
-                    }
-                }
-
-                if (token.type === 'Identifier' && token.value === 'define') {
-                    //Possible match. Do not want something.define calls
-                    //though, and only defines follow by a paren
-                    prev = tokens[i - 1];
-                    next = tokens[i + 1];
-
+/*
+TODO: test nsamespace.define
                     if (prev && prev.type === 'Punctuator' &&
                             prev.value === '.') {
                         //a define on a sub-object, not a top level
@@ -97,150 +68,93 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                             namespaceExists = true;
                         }
                     }
-
-                    if (!next || next.type !== 'Punctuator' ||
-                            next.value !== '(') {
-                       //Not a define() function call. Bail.
+TODO: make sure function define() {} is not matched
+test:
+define(12334);
+define(-24343);
+define({})
+define(function (){})
+define('foo', function () {});
+define('foo', [], function () {});
+ */
+                if (parse.isDefineNodeWithArgs(node)) {
+                    args = node.arguments;
+                    if (!args || !args.length) {
                         return;
                     }
 
-                    if (prev && prev.type === 'Keyword' &&
-                            prev.value === 'function') {
-                        //A declaration of a define function. Skip it.
-                        return;
-                    }
+                    firstArg = args[0];
+                    firstArgLoc = firstArg.loc;
 
-                    next2 = tokens[i + 2];
-                    if (!next2) {
-                        return;
-                    }
-
-                    //Figure out if this needs a named define call.
-                    if (next2.type === 'Punctuator' && next2.value === '[') {
-                        //Dependency array
-                        needsId = true;
-                        depAction = 'skip';
-                    } else if (next2.type === 'Punctuator' &&
-                            next2.value === '{') {
-                        //Object literal
-                        needsId = true;
-                        depAction = 'skip';
-                    } else if (next2.type === 'Keyword' &&
-                               next2.value === 'function') {
-                        //function
-                        needsId = true;
-                        depAction = 'scan';
-                    } else if (next2.type === 'String') {
-                        //Named module
-                        needsId = false;
-
-                        //The value includes the quotes around the string,
-                        //so remove them.
-                        foundId = next2.value.substring(1,
-                                                        next2.value.length - 1);
-
-                        //assumed it does not need dependencies injected
-
-                        //If next argument is a function it means we need
-                        //dependency scanning.
-                        next3 = tokens[i + 3];
-                        next4 = tokens[i + 4];
-                        if (!next3 || !next4) {
-                            return;
-                        }
-
-                        if (next3.type === 'Punctuator' &&
-                                next3.value === ',' &&
-                                next4.type === 'Keyword' &&
-                                next4.value === 'function') {
+                    if (args.length === 1) {
+                        if (firstArg.type === 'Identifier') {
+                            //The define(factory) case, but
+                            //only allow it if one Identifier arg,
+                            //to limit impact of false positives.
+                            needsId = true;
+                            depAction = 'empty';
+                        } else if (firstArg.type === 'FunctionExpression') {
+                            //define(function(){})
+                            factoryLoc = firstArg.loc;
+                            needsId = true;
                             depAction = 'scan';
-                            nameCommaRange = next3.range;
-                        } else {
-                            depAction = 'skip';
-                        }
-                    } else if (next2.type === 'Identifier') {
-                        //May be the define(factory); type.
-                        next3 = tokens[i + 3];
-                        if (!next3) {
-                            return;
-                        }
-                        if (next3.type === 'Punctuator' &&
-                                next3.value === ')') {
-                            needsId = true;
-                            depAction = 'empty';
-                        } else {
-                            return;
-                        }
-                    } else if (next2.type === 'Numeric') {
-                        //May be the define(12345); type.
-                        next3 = tokens[i + 3];
-                        if (!next3) {
-                            return;
-                        }
-                        if (next3.type === 'Punctuator' &&
-                                next3.value === ')') {
+                        } else if (firstArg.type === 'ObjectExpression') {
+                            //define({});
                             needsId = true;
                             depAction = 'skip';
-                        } else {
-                            return;
-                        }
-                    } else if (next2.type === 'Punctuator' &&
-                               next2.value === '-') {
-                        //May be the define(-12345); type.
-                        next3 = tokens[i + 3];
-                        if (!next3) {
-                            return;
-                        }
-                        if (next3.type === 'Numeric') {
-                            next4 = tokens[i + 4];
-                            if (!next4) {
-                                return;
-                            }
-                            if (next4.type === 'Punctuator' &&
-                                    next4.value === ')') {
-                                needsId = true;
-                                depAction = 'skip';
-                            } else {
-                                return;
-                            }
-                        } else {
-                            return;
-                        }
-                    } else if (next2.type === 'Keyword' && next2.value === 'this') {
-                        //May be the define(this.key); type
-                        next3 = tokens[i + 3];
-                        next4 = tokens[i + 4];
-                        next5 = tokens[i + 5];
-                        if (!next3 || !next4 || !next5) {
-                            return;
-                        }
-
-                        if (next3.type === 'Punctuator' && next3.value === '.' &&
-                                next4.type === 'Identifier' &&
-                                next5.type === 'Punctuator' && next5.value === ')') {
+                        } else if (firstArg.type === 'Literal' &&
+                                   typeof typeof firstArg.value === 'number') {
+                            //define('12345');
+                            needsId = true;
+                            depAction = 'skip';
+                        } else if (firstArg.type === 'UnaryExpression' &&
+                                   firstArg.operator === '-' &&
+                                   firstArg.argument &&
+                                   firstArg.argument.type === 'Literal' &&
+                                   typeof typeof firstArg.argument.value === 'number') {
+                            //define('-12345');
+                            needsId = true;
+                            depAction = 'skip';
+                        } else if (firstArg.type === 'MemberExpression' &&
+                                   firstArg.object &&
+                                   firstArg.property &&
+                                   firstArg.property.type === 'Identifier') {
+                            //define(this.key);
                             needsId = true;
                             depAction = 'empty';
+                        }
+                    } else if (firstArg.type === 'ArrayExpression') {
+                        //define([], ...);
+                        needsId = true;
+                        depAction = 'skip';
+                    } else if (firstArg.type === 'Literal' &&
+                               typeof firstArg.value === 'string') {
+                        //define('string', ....)
+                        //Already has an ID.
+                        needsId = false;
+                        if (args.length === 2 &&
+                            args[1].type === 'FunctionExpression') {
+                            //Needs dependency scanning.
+                            factoryLoc = args[1].loc;
+                            depAction = 'scan';
                         } else {
-                            return;
+                            depAction = 'skip';
                         }
                     } else {
-                        //Not a match, skip it.
+                        //Unknown define entity, keep looking, even
+                        //in the subtree for this node.
                         return;
                     }
-
-                    //A valid define call. Need to find the end, start counting
-                    //parentheses.
-                    inDefine = true;
-                    parenCount = 0;
 
                     range = {
                         foundId: foundId,
                         needsId: needsId,
                         depAction: depAction,
                         namespaceExists: namespaceExists,
-                        defineRange: token.range,
-                        parenRange: next.range,
-                        nameCommaRange: nameCommaRange,
+                        node: node,
+                        defineLoc: node.loc,
+                        firstArgLoc: firstArgLoc,
+                        factoryLoc: factoryLoc,
                         sourceUrlData: sourceUrlData
                     };
 
@@ -255,11 +169,11 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                             logger.trace(path + ' has more than one anonymous ' +
                                 'define. May be a built file from another ' +
                                 'build system like, Ender. Skipping normalization.');
-                            defineRanges = [];
-                            return true;
+                            defineInfos = [];
+                            return false;
                         } else {
                             foundAnon = range;
-                            defineRanges.push(range);
+                            defineInfos.push(range);
                         }
                     } else if (depAction === 'scan') {
                         scanCount += 1;
@@ -268,36 +182,52 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                             //anon one, since this is an already optimized
                             //file like the phonegap one.
                             if (!scanReset) {
-                                defineRanges =  foundAnon ? [foundAnon] : [];
+                                defineInfos =  foundAnon ? [foundAnon] : [];
                                 scanReset = true;
                             }
                         } else {
-                            defineRanges.push(range);
+                            defineInfos.push(range);
                         }
                     }
                 }
             });
 
-            if (!defineRanges.length) {
+            if (!defineInfos.length) {
                 return contents;
             }
 
             //Reverse the matches, need to start from the bottom of
             //the file to modify it, so that the ranges are still true
             //further up.
-            defineRanges.reverse();
+            defineInfos.reverse();
 
-            defineRanges.forEach(function (info) {
+            contentLines = contents.split('\n');
+
+            modLine = function (loc, contentInsertion) {
+                var startIndex = loc.start.column,
+                //start.line is 1-based, not 0 based.
+                lineIndex = loc.start.line - 1,
+                line = contentLines[lineIndex];
+                contentLines[lineIndex] = line.substring(0, startIndex) +
+                                           contentInsertion +
+                                           line.substring(startIndex,
+                                                              line.length);
+            };
+
+            defineInfos.forEach(function (info) {
+                var deps,
+                    contentInsertion = '',
+                    depString = '';
+
                 //Do the modifications "backwards", in other words, start with the
                 //one that is farthest down and work up, so that the ranges in the
-                //defineRanges still apply. So that means deps, id, then namespace.
-
+                //defineInfos still apply. So that means deps, id, then namespace.
                 if (info.needsId && moduleName) {
                     contentInsertion += "'" + moduleName + "',";
                 }
 
                 if (info.depAction === 'scan') {
-                    deps = parse.getAnonDeps(path, contents.substring(info.defineRange[0], info.defineEndRange[1]));
+                    deps = parse.getAnonDeps(path, info.node);
 
                     if (deps.length) {
                         depString = '[' + deps.map(function (dep) {
@@ -308,32 +238,23 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                     }
                     depString +=  ',';
 
-                    if (info.nameCommaRange) {
+                    if (info.factoryLoc) {
                         //Already have a named module, need to insert the
                         //dependencies after the name.
-                        contents = contents.substring(0, info.nameCommaRange[1]) +
-                                   depString +
-                                   contents.substring(info.nameCommaRange[1],
-                                                  contents.length);
+                        modLine(info.factoryLoc, depString);
                     } else {
-                        contentInsertion +=  depString;
+                        contentInsertion += depString;
                     }
                 }
 
                 if (contentInsertion) {
-                    contents = contents.substring(0, info.parenRange[1]) +
-                               contentInsertion +
-                               contents.substring(info.parenRange[1],
-                                                  contents.length);
+                    modLine(info.firstArgLoc, contentInsertion);
                 }
 
                 //Do namespace last so that ui does not mess upthe parenRange
                 //used above.
                 if (namespace && !info.namespaceExists) {
-                    contents = contents.substring(0, info.defineRange[0]) +
-                               namespace + '.' +
-                               contents.substring(info.defineRange[0],
-                                                  contents.length);
+                    modLine(info.defineLoc, namespace + '.');
                 }
 
                 //Notify any listener for the found info
@@ -341,6 +262,8 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
                     onFound(info);
                 }
             });
+
+            contents = contentLines.join('\n');
 
             if (options.useSourceUrl) {
                 contents = 'eval("' + lang.jsEscape(contents) +
@@ -507,5 +430,7 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
 
             return value;
         }
-    });
+    };
+
+    return transform;
 });

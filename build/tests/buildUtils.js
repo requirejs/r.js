@@ -81,9 +81,9 @@ define(['build'], function (build) {
                             '    [\n' +
                             '        "some/dep"\n' +
                             '    ],\nfunction (dep) {});',
-                    goodExpected3 = 'define(\'good/3\',\n' +
+                    goodExpected3 = 'define(\n' +
                             '    // a comment\n' +
-                            '    [\n' +
+                            '    \'good/3\',[\n' +
                             '        "some/dep"\n' +
                             '    ],\nfunction (dep) {});',
 

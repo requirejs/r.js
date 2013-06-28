@@ -1,5 +1,5 @@
 
-define('foo',['require'], function (util) {
+define('foo', ['require'],function (util) {
     return {
         name: 'foo'
     };
