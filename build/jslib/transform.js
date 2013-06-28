@@ -44,40 +44,21 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
 
             //Find the define calls and their position in the files.
             parse.traverseBroad(astRoot, function (node) {
-                var args, firstArg, firstArgLoc, factoryLoc,
+                var args, firstArg, firstArgLoc, factoryNode,
                     needsId, depAction, foundId,
                     sourceUrlData, range,
                     namespaceExists = false;
-/*
-TODO: test nsamespace.define
-                    if (prev && prev.type === 'Punctuator' &&
-                            prev.value === '.') {
-                        //a define on a sub-object, not a top level
-                        //define() call. If the sub object is the
-                        //namespace, then it is ok.
-                        prev2 = tokens[i - 2];
-                        if (!prev2) {
-                            return;
-                        }
 
-                        //If the prev2 does not match namespace, then bail.
-                        if (!namespace || prev2.type !== 'Identifier' ||
-                                prev2.value !== namespace) {
-                            return;
-                        } else if (namespace) {
-                            namespaceExists = true;
-                        }
-                    }
-TODO: make sure function define() {} is not matched
-test:
-define(12334);
-define(-24343);
-define({})
-define(function (){})
-define('foo', function () {});
-define('foo', [], function () {});
- */
-                if (parse.isDefineNodeWithArgs(node)) {
+                namespaceExists = namespace &&
+                                node.type === 'CallExpression' &&
+                                node.callee  && node.callee.object &&
+                                node.callee.object.type === 'Identifier' &&
+                                node.callee.object.name === namespace &&
+                                node.callee.property.type === 'Identifier' &&
+                                node.callee.property.name === 'define';
+
+                if (namespaceExists || parse.isDefineNodeWithArgs(node)) {
+                    //The arguments are where its at.
                     args = node.arguments;
                     if (!args || !args.length) {
                         return;
@@ -95,7 +76,7 @@ define('foo', [], function () {});
                             depAction = 'empty';
                         } else if (firstArg.type === 'FunctionExpression') {
                             //define(function(){})
-                            factoryLoc = firstArg.loc;
+                            factoryNode = firstArg;
                             needsId = true;
                             depAction = 'scan';
                         } else if (firstArg.type === 'ObjectExpression') {
@@ -103,7 +84,7 @@ define('foo', [], function () {});
                             needsId = true;
                             depAction = 'skip';
                         } else if (firstArg.type === 'Literal' &&
-                                   typeof typeof firstArg.value === 'number') {
+                                   typeof firstArg.value === 'number') {
                             //define('12345');
                             needsId = true;
                             depAction = 'skip';
@@ -111,7 +92,7 @@ define('foo', [], function () {});
                                    firstArg.operator === '-' &&
                                    firstArg.argument &&
                                    firstArg.argument.type === 'Literal' &&
-                                   typeof typeof firstArg.argument.value === 'number') {
+                                   typeof firstArg.argument.value === 'number') {
                             //define('-12345');
                             needsId = true;
                             depAction = 'skip';
@@ -135,7 +116,7 @@ define('foo', [], function () {});
                         if (args.length === 2 &&
                             args[1].type === 'FunctionExpression') {
                             //Needs dependency scanning.
-                            factoryLoc = args[1].loc;
+                            factoryNode = args[1];
                             depAction = 'scan';
                         } else {
                             depAction = 'skip';
@@ -154,7 +135,7 @@ define('foo', [], function () {});
                         node: node,
                         defineLoc: node.loc,
                         firstArgLoc: firstArgLoc,
-                        factoryLoc: factoryLoc,
+                        factoryNode: factoryNode,
                         sourceUrlData: sourceUrlData
                     };
 
@@ -227,7 +208,7 @@ define('foo', [], function () {});
                 }
 
                 if (info.depAction === 'scan') {
-                    deps = parse.getAnonDeps(path, info.node);
+                    deps = parse.getAnonDepsFromNode(info.factoryNode);
 
                     if (deps.length) {
                         depString = '[' + deps.map(function (dep) {
@@ -238,10 +219,10 @@ define('foo', [], function () {});
                     }
                     depString +=  ',';
 
-                    if (info.factoryLoc) {
+                    if (info.factoryNode) {
                         //Already have a named module, need to insert the
                         //dependencies after the name.
-                        modLine(info.factoryLoc, depString);
+                        modLine(info.factoryNode.loc, depString);
                     } else {
                         contentInsertion += depString;
                     }

@@ -1,6 +1,6 @@
 
 (function (define) {
-    foo.define('modules/one',[], function ( ){
+    foo.define( 'modules/one',[],function ( ){
        return { name: 'one' };
     });
 
@@ -38,7 +38,7 @@ if ('function' === typeof foo.define && foo.define.amd) {
 }
 ;
 (function (define) {
-    foo.define('modules/three',['require','./four','./five'], function (require) {
+    foo.define('modules/three', ['require','./four','./five'],function (require) {
         //If have dependencies, get them here
         var four = require('./four'),
             five = require('./five');

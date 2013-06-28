@@ -1,4 +1,3 @@
-/*jslint */
 /*global define, doh */
 
 define(['build'], function (build) {
@@ -88,8 +87,23 @@ define(['build'], function (build) {
                             '    ],\nfunction (dep) {});',
 
                     good4 = 'define(this.key)',
-                    goodExpected4 = 'define(\'good/4\',this.key)';
-
+                    goodExpected4 = 'define(\'good/4\',this.key)',
+                    good5 = 'if ("function" === typeof define && define.amd) {\n' +
+                            '    define(function (require) {\n' +
+                            '        return {\n' +
+                            '            name: "five",\n' +
+                            '            six: require("./six")\n' +
+                            '        };\n' +
+                            '    });\n' +
+                            '}',
+                    goodExpected5 = 'if ("function" === typeof define && define.amd) {\n' +
+                            '    foo.define(\'good/5\',[\'require\',\'./six\'],function (require) {\n' +
+                            '        return {\n' +
+                            '            name: "five",\n' +
+                            '            six: require("./six")\n' +
+                            '        };\n' +
+                            '    });\n' +
+                            '}';
                 t.is(bad1, build.toTransport('', 'bad/1', 'bad1', bad1));
                 t.is(bad2, build.toTransport('', 'bad/2', 'bad2', bad2));
                 t.is(bad3, build.toTransport('', 'bad/3', 'bad3', bad3));
@@ -103,6 +117,7 @@ define(['build'], function (build) {
                     'multiAnonWrapped', 'multiAnonWrapped', multiAnonWrapped));
                 t.is(goodExpected3, build.toTransport('', 'good/3', 'good3', good3));
                 t.is(goodExpected4, build.toTransport('', 'good/4', 'good4', good4));
+                t.is(goodExpected5, build.toTransport('foo', 'good/5', 'good5', good5));
             }
         ]);
     doh.run();
