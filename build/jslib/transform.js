@@ -4,9 +4,10 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*global define */
+/*global define, Reflect */
 
-define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, logger, lang) {
+define([ './esprima', './parse', 'logger', 'lang', 'env'],
+function (esprima, parse, logger, lang, env) {
     'use strict';
     var transform,
         baseIndentRegExp = /^([ \t]+)/,
@@ -26,14 +27,16 @@ define([ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, lo
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
             options = options || {};
 
-            var astRoot, contentLines, modLine,
+            var parser, astRoot, contentLines, modLine,
                 foundAnon,
                 scanCount = 0,
                 scanReset = false,
                 defineInfos = [];
 
             try {
-                astRoot = esprima.parse(contents, {
+                parser = env.get() === 'xpconnect' && typeof Reflect !== 'undefined' ?
+                         Reflect : esprima;
+                astRoot = parser.parse(contents, {
                     loc: true
                 });
             } catch (e) {
