@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.6+[reflect] Fri, 28 Jun 2013 21:00:23 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.6+[reflect] Sat, 29 Jun 2013 02:57:59 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.6+[reflect] Fri, 28 Jun 2013 21:00:23 GMT',
+        version = '2.1.6+[reflect] Sat, 29 Jun 2013 02:57:59 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -8312,6 +8312,27 @@ parseStatement: true, parseSourceElement: true */
 
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
+/**
+ * @license Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*global define, Reflect */
+
+/*
+ * xpcshell has a smaller stack on linux and windows (1MB vs 9MB on mac),
+ * and the recursive nature of esprima can cause it to overflow pretty
+ * quickly. So favor it built in Reflect parser:
+ * https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API
+ */
+define('esprimaAdapter', ['./esprima', 'env'], function (esprima, env) {
+    if (env.get() === 'xpconnect' && typeof Reflect !== 'undefined') {
+        return Reflect;
+    } else {
+        return esprima;
+    }
+});
 define('uglifyjs/consolidator', ["require", "exports", "module", "./parse-js", "./process"], function(require, exports, module) {
 /**
  * @preserve Copyright 2012 Robert Gust-Bardon <http://robert.gust-bardon.org/>.
@@ -20820,7 +20841,7 @@ exports.describe_ast = function() {
 /*jslint plusplus: true */
 /*global define: false */
 
-define('parse', ['./esprima', 'lang'], function (esprima, lang) {
+define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
     'use strict';
 
     function arrayToString(ary) {
@@ -21168,10 +21189,10 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
      */
     parse.findConfig = function (fileContents) {
         /*jslint evil: true */
-        var jsConfig, foundRange, foundConfig, quote, quoteMatch,
+        var jsConfig, foundConfig, stringData, foundRange, quote, quoteMatch,
             quoteRegExp = /(:\s|\[\s*)(['"])/,
             astRoot = esprima.parse(fileContents, {
-                range: true
+                loc: true
             });
 
         traverse(astRoot, function (node) {
@@ -21186,21 +21207,24 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                 arg = node[argPropName] && node[argPropName][0];
 
                 if (arg && arg.type === 'ObjectExpression') {
-                    jsConfig = parse.nodeToString(fileContents, arg);
-                    foundRange = arg.range;
+                    stringData = parse.nodeToString(fileContents, arg);
+                    jsConfig = stringData.value;
+                    foundRange = stringData.range;
                     return false;
                 }
             } else {
                 arg = parse.getRequireObjectLiteral(node);
                 if (arg) {
-                    jsConfig = parse.nodeToString(fileContents, arg);
-                    foundRange = arg.range;
+                    stringData = parse.nodeToString(fileContents, arg);
+                    jsConfig = stringData.value;
+                    foundRange = stringData.range;
                     return false;
                 }
             }
         });
 
         if (jsConfig) {
+            // Eval the config
             quoteMatch = quoteRegExp.exec(jsConfig);
             quote = (quoteMatch && quoteMatch[2]) || '"';
             foundConfig = eval('(' + jsConfig + ')');
@@ -21235,26 +21259,39 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
      * @return {String} the fileContents with the namespace applied
      */
     parse.renameNamespace = function (fileContents, ns) {
-        var ranges = [],
+        var lines,
+            locs = [],
             astRoot = esprima.parse(fileContents, {
-                range: true
+                loc: true
             });
 
         parse.recurse(astRoot, function (callName, config, name, deps, node) {
-            ranges.push(node.range);
+            locs.push(node.loc);
             //Do not recurse into define functions, they should be using
             //local defines.
             return callName !== 'define';
         }, {});
 
-        //Go backwards through the found ranges, adding in the namespace name
-        //in front.
-        ranges.reverse();
-        ranges.forEach(function (range) {
-            fileContents = fileContents.substring(0, range[0]) +
-                           ns + '.' +
-                           fileContents.substring(range[0]);
-        });
+        if (locs.length) {
+            lines = fileContents.split('\n');
+
+            //Go backwards through the found locs, adding in the namespace name
+            //in front.
+            locs.reverse();
+            locs.forEach(function (loc) {
+                var startIndex = loc.start.column,
+                //start.line is 1-based, not 0 based.
+                lineIndex = loc.start.line - 1,
+                line = lines[lineIndex];
+
+                lines[lineIndex] = line.substring(0, startIndex) +
+                                   ns + '.' +
+                                   line.substring(startIndex,
+                                                      line.length);
+            });
+
+            fileContents = lines.join('\n');
+        }
 
         return fileContents;
     };
@@ -21575,14 +21612,29 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
     /**
      * Converts an AST node into a JS source string by extracting
      * the node's location from the given contents string. Assumes
-     * esprima.parse() with ranges was done.
+     * esprima.parse() with loc was done.
      * @param {String} contents
      * @param {Object} node
      * @returns {String} a JS source string.
      */
     parse.nodeToString = function (contents, node) {
-        var range = node.range;
-        return contents.substring(range[0], range[1]);
+        var loc = node.loc,
+            lines = contents.split('\n'),
+            preamble = lines.slice(0, loc.start.line - 1).join('\n') + '\n' +
+                       lines[loc.start.line - 1].substring(0, loc.start.column),
+            extracted =  lines[loc.start.line - 1].substring(loc.start.column) +
+                     '\n' +
+                     lines.slice(loc.start.line, loc.end.line - 1).join('\n') +
+                     '\n' +
+                     lines[loc.end.line - 1].substring(0, loc.end.column);
+
+        return {
+            value: extracted,
+            range: [
+                preamble.length,
+                preamble.length + extracted.length
+            ]
+        };
     };
 
     /**
@@ -21593,6 +21645,10 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
      */
     parse.getLicenseComments = function (fileName, contents) {
         var commentNode, refNode, subNode, value, i, j,
+            //xpconnect's Reflect does not support comment or range, but
+            //prefer continued operation vs strict parity of operation,
+            //as license comments can be expressed in other ways, like
+            //via wrap args, or linked via sourcemaps.
             ast = esprima.parse(contents, {
                 comment: true,
                 range: true
@@ -21659,10 +21715,10 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*global define, Reflect */
+/*global define */
 
-define('transform', [ './esprima', './parse', 'logger', 'lang', 'env'],
-function (esprima, parse, logger, lang, env) {
+define('transform', [ './esprimaAdapter', './parse', 'logger', 'lang'],
+function (esprima, parse, logger, lang) {
     'use strict';
     var transform,
         baseIndentRegExp = /^([ \t]+)/,
@@ -21682,16 +21738,14 @@ function (esprima, parse, logger, lang, env) {
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
             options = options || {};
 
-            var parser, astRoot, contentLines, modLine,
+            var astRoot, contentLines, modLine,
                 foundAnon,
                 scanCount = 0,
                 scanReset = false,
                 defineInfos = [];
 
             try {
-                parser = env.get() === 'xpconnect' && typeof Reflect !== 'undefined' ?
-                         Reflect : esprima;
-                astRoot = parser.parse(contents, {
+                astRoot = esprima.parse(contents, {
                     loc: true
                 });
             } catch (e) {
@@ -22764,8 +22818,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             throw new Error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
                         }
                     }
-if (fileName.indexOf('sourcemap') !== -1)
-    debugger;
 
                     fileContents = licenseContents + optFunc(fileName,
                                                              fileContents,
