@@ -1,7 +1,6 @@
-/*jslint */
 /*global doh, define */
 
-define(['parse', 'env!env/file'], function (parse, file) {
+define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
     'use strict';
 
     function c(fileName) {
@@ -278,33 +277,37 @@ define(['parse', 'env!env/file'], function (parse, file) {
     );
     doh.run();
 
-    doh.register('parseLicenseComments',
-        [
-            function parseLicenseComments(t) {
-                var contents,
-                    manyCommentsName = 'parse/comments/manyComments.js',
-                    multiLineName = 'parse/comments/multiLine.js',
-                    multiSingleLineName = 'parse/comments/multiSingleLine.js',
-                    expectedManyCommentsName = 'parse/comments/expected/manyComments.js',
-                    outputManyCommentsName = 'parse/comments/output/manyComments.js',
-                    expectedMultiLineName = 'parse/comments/expected/multiLine.js',
-                    outputMultiLineName = 'parse/comments/output/multiLine.js',
-                    expectedMultiSingleLineName = 'parse/comments/expected/multiSingleLine.js',
-                    outputMultiSingleLineName = 'parse/comments/output/multiSingleLine.js';
 
-                contents = parse.getLicenseComments(manyCommentsName, file.readFile(manyCommentsName)).trim();
-                //file.saveFile(outputManyCommentsName, contents);
-                t.is(file.readFile(expectedManyCommentsName).trim(), contents);
+    //Skip in xpconnect's since Reflect's parser cannot maintain comments.
+    if (env.get() !== 'xpconnect') {
+        doh.register('parseLicenseComments',
+            [
+                function parseLicenseComments(t) {
+                    var contents,
+                        manyCommentsName = 'parse/comments/manyComments.js',
+                        multiLineName = 'parse/comments/multiLine.js',
+                        multiSingleLineName = 'parse/comments/multiSingleLine.js',
+                        expectedManyCommentsName = 'parse/comments/expected/manyComments.js',
+                        outputManyCommentsName = 'parse/comments/output/manyComments.js',
+                        expectedMultiLineName = 'parse/comments/expected/multiLine.js',
+                        outputMultiLineName = 'parse/comments/output/multiLine.js',
+                        expectedMultiSingleLineName = 'parse/comments/expected/multiSingleLine.js',
+                        outputMultiSingleLineName = 'parse/comments/output/multiSingleLine.js';
 
-                contents = parse.getLicenseComments(multiLineName, file.readFile(multiLineName)).trim();
-                //file.saveFile(outputMultiLineName, contents);
-                t.is(file.readFile(expectedMultiLineName).trim(), contents);
+                    contents = parse.getLicenseComments(manyCommentsName, file.readFile(manyCommentsName)).trim();
+                    //file.saveFile(outputManyCommentsName, contents);
+                    t.is(file.readFile(expectedManyCommentsName).trim(), contents);
 
-                contents = parse.getLicenseComments(multiSingleLineName, file.readFile(multiSingleLineName)).trim();
-                //file.saveFile(outputMultiSingleLineName, contents);
-                t.is(file.readFile(expectedMultiSingleLineName).trim(), contents);
-            }
-        ]
-    );
-    doh.run();
+                    contents = parse.getLicenseComments(multiLineName, file.readFile(multiLineName)).trim();
+                    //file.saveFile(outputMultiLineName, contents);
+                    t.is(file.readFile(expectedMultiLineName).trim(), contents);
+
+                    contents = parse.getLicenseComments(multiSingleLineName, file.readFile(multiSingleLineName)).trim();
+                    //file.saveFile(outputMultiSingleLineName, contents);
+                    t.is(file.readFile(expectedMultiSingleLineName).trim(), contents);
+                }
+            ]
+        );
+        doh.run();
+    }
 });

@@ -1,7 +1,7 @@
 /*jslint plusplus: true, nomen: true */
 /*global define: false, require: false, doh: false */
 
-define(['build', 'env!env/file'], function (build, file) {
+define(['build', 'env!env/file', 'env'], function (build, file, env) {
     'use strict';
 
     //Remove any old builds
@@ -442,62 +442,65 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-    doh.register("preserveLicense",
-        [
-            function preserveLicense(t) {
-                file.deleteFile("lib/comments/built.js");
+    //Skip in xpconnect's since Reflect's parser cannot maintain comments.
+    if (env.get() !== 'xpconnect') {
+        doh.register("preserveLicense",
+            [
+                function preserveLicense(t) {
+                    file.deleteFile("lib/comments/built.js");
 
-                build(["lib/comments/build.js"]);
+                    build(["lib/comments/build.js"]);
 
-                t.is(nol(c("lib/comments/expected.js")),
-                     nol(c("lib/comments/built.js")));
+                    t.is(nol(c("lib/comments/expected.js")),
+                         nol(c("lib/comments/built.js")));
 
-                require._buildReset();
-            }
+                    require._buildReset();
+                }
 
-        ]
-    );
-    doh.run();
+            ]
+        );
+        doh.run();
 
-    //Only keep unique comments
-    //https://github.com/jrburke/r.js/issues/251
-    doh.register("preserveLicenseUnique",
-        [
-            function preserveLicenseUnique(t) {
-                file.deleteFile("lib/comments/unique/built.js");
+        //Only keep unique comments
+        //https://github.com/jrburke/r.js/issues/251
+        doh.register("preserveLicenseUnique",
+            [
+                function preserveLicenseUnique(t) {
+                    file.deleteFile("lib/comments/unique/built.js");
 
-                build(["lib/comments/unique/build.js"]);
+                    build(["lib/comments/unique/build.js"]);
 
-                t.is(nol(c("lib/comments/unique/expected.js")),
-                     nol(c("lib/comments/unique/built.js")));
+                    t.is(nol(c("lib/comments/unique/expected.js")),
+                         nol(c("lib/comments/unique/built.js")));
 
-                require._buildReset();
-            }
+                    require._buildReset();
+                }
 
-        ]
-    );
-    doh.run();
+            ]
+        );
+        doh.run();
 
-    //Do not dupe parts of comments when at the end of the file.
-    //https://github.com/jrburke/r.js/issues/264
-    doh.register("preserveLicenseNoPartialDupe",
-        [
-            function preserveLicenseNoPartialDupe(t) {
-                file.deleteFile("lib/comments/noPartialDupe/built");
+        //Do not dupe parts of comments when at the end of the file.
+        //https://github.com/jrburke/r.js/issues/264
+        doh.register("preserveLicenseNoPartialDupe",
+            [
+                function preserveLicenseNoPartialDupe(t) {
+                    file.deleteFile("lib/comments/noPartialDupe/built");
 
-                //Run two builds, this profile has keepBuildDir set to true.
-                build(["lib/comments/noPartialDupe/build.js"]);
-                build(["lib/comments/noPartialDupe/build.js"]);
+                    //Run two builds, this profile has keepBuildDir set to true.
+                    build(["lib/comments/noPartialDupe/build.js"]);
+                    build(["lib/comments/noPartialDupe/build.js"]);
 
-                t.is(nol(c("lib/comments/noPartialDupe/expected.js")),
-                     nol(c("lib/comments/noPartialDupe/built/underscore.js")));
+                    t.is(nol(c("lib/comments/noPartialDupe/expected.js")),
+                         nol(c("lib/comments/noPartialDupe/built/underscore.js")));
 
-                require._buildReset();
-            }
+                    require._buildReset();
+                }
 
-        ]
-    );
-    doh.run();
+            ]
+        );
+        doh.run();
+    }
 
 
     doh.register("nestedFind",

@@ -472,11 +472,15 @@
     fileExclusionRegExp: /^\./,
 
     //By default, comments that have a license in them are preserved in the
-    //output. However, for a larger built files there could be a lot of
+    //output when a minifier is used in the "optimize" option.
+    //However, for a larger built files there could be a lot of
     //comment files that may be better served by having a smaller comment
     //at the top of the file that points to the list of all the licenses.
     //This option will turn off the auto-preservation, but you will need
     //work out how best to surface the license information.
+    //NOTE: As of 2.1.7, if using xpcshell to run the optimizer, it cannot
+    //parse out comments since its native Reflect parser is used, and does
+    //not have the same comments option support as esprima.
     preserveLicenseComments: true,
 
     //Sets the logging level. It is a number. If you want "silent" running,

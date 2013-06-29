@@ -7,7 +7,7 @@
 /*jslint plusplus: true */
 /*global define: false */
 
-define(['./esprima', 'lang'], function (esprima, lang) {
+define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
     'use strict';
 
     function arrayToString(ary) {
@@ -355,10 +355,10 @@ define(['./esprima', 'lang'], function (esprima, lang) {
      */
     parse.findConfig = function (fileContents) {
         /*jslint evil: true */
-        var jsConfig, foundRange, foundConfig, quote, quoteMatch,
+        var jsConfig, foundConfig, stringData, foundRange, quote, quoteMatch,
             quoteRegExp = /(:\s|\[\s*)(['"])/,
             astRoot = esprima.parse(fileContents, {
-                range: true
+                loc: true
             });
 
         traverse(astRoot, function (node) {
@@ -373,21 +373,24 @@ define(['./esprima', 'lang'], function (esprima, lang) {
                 arg = node[argPropName] && node[argPropName][0];
 
                 if (arg && arg.type === 'ObjectExpression') {
-                    jsConfig = parse.nodeToString(fileContents, arg);
-                    foundRange = arg.range;
+                    stringData = parse.nodeToString(fileContents, arg);
+                    jsConfig = stringData.value;
+                    foundRange = stringData.range;
                     return false;
                 }
             } else {
                 arg = parse.getRequireObjectLiteral(node);
                 if (arg) {
-                    jsConfig = parse.nodeToString(fileContents, arg);
-                    foundRange = arg.range;
+                    stringData = parse.nodeToString(fileContents, arg);
+                    jsConfig = stringData.value;
+                    foundRange = stringData.range;
                     return false;
                 }
             }
         });
 
         if (jsConfig) {
+            // Eval the config
             quoteMatch = quoteRegExp.exec(jsConfig);
             quote = (quoteMatch && quoteMatch[2]) || '"';
             foundConfig = eval('(' + jsConfig + ')');
@@ -422,26 +425,39 @@ define(['./esprima', 'lang'], function (esprima, lang) {
      * @return {String} the fileContents with the namespace applied
      */
     parse.renameNamespace = function (fileContents, ns) {
-        var ranges = [],
+        var lines,
+            locs = [],
             astRoot = esprima.parse(fileContents, {
-                range: true
+                loc: true
             });
 
         parse.recurse(astRoot, function (callName, config, name, deps, node) {
-            ranges.push(node.range);
+            locs.push(node.loc);
             //Do not recurse into define functions, they should be using
             //local defines.
             return callName !== 'define';
         }, {});
 
-        //Go backwards through the found ranges, adding in the namespace name
-        //in front.
-        ranges.reverse();
-        ranges.forEach(function (range) {
-            fileContents = fileContents.substring(0, range[0]) +
-                           ns + '.' +
-                           fileContents.substring(range[0]);
-        });
+        if (locs.length) {
+            lines = fileContents.split('\n');
+
+            //Go backwards through the found locs, adding in the namespace name
+            //in front.
+            locs.reverse();
+            locs.forEach(function (loc) {
+                var startIndex = loc.start.column,
+                //start.line is 1-based, not 0 based.
+                lineIndex = loc.start.line - 1,
+                line = lines[lineIndex];
+
+                lines[lineIndex] = line.substring(0, startIndex) +
+                                   ns + '.' +
+                                   line.substring(startIndex,
+                                                      line.length);
+            });
+
+            fileContents = lines.join('\n');
+        }
 
         return fileContents;
     };
@@ -762,14 +778,29 @@ define(['./esprima', 'lang'], function (esprima, lang) {
     /**
      * Converts an AST node into a JS source string by extracting
      * the node's location from the given contents string. Assumes
-     * esprima.parse() with ranges was done.
+     * esprima.parse() with loc was done.
      * @param {String} contents
      * @param {Object} node
      * @returns {String} a JS source string.
      */
     parse.nodeToString = function (contents, node) {
-        var range = node.range;
-        return contents.substring(range[0], range[1]);
+        var loc = node.loc,
+            lines = contents.split('\n'),
+            preamble = lines.slice(0, loc.start.line - 1).join('\n') + '\n' +
+                       lines[loc.start.line - 1].substring(0, loc.start.column),
+            extracted =  lines[loc.start.line - 1].substring(loc.start.column) +
+                     '\n' +
+                     lines.slice(loc.start.line, loc.end.line - 1).join('\n') +
+                     '\n' +
+                     lines[loc.end.line - 1].substring(0, loc.end.column);
+
+        return {
+            value: extracted,
+            range: [
+                preamble.length,
+                preamble.length + extracted.length
+            ]
+        };
     };
 
     /**
@@ -780,6 +811,10 @@ define(['./esprima', 'lang'], function (esprima, lang) {
      */
     parse.getLicenseComments = function (fileName, contents) {
         var commentNode, refNode, subNode, value, i, j,
+            //xpconnect's Reflect does not support comment or range, but
+            //prefer continued operation vs strict parity of operation,
+            //as license comments can be expressed in other ways, like
+            //via wrap args, or linked via sourcemaps.
             ast = esprima.parse(contents, {
                 comment: true,
                 range: true

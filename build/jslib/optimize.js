@@ -239,8 +239,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             throw new Error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
                         }
                     }
-if (fileName.indexOf('sourcemap') !== -1)
-    debugger;
 
                     fileContents = licenseContents + optFunc(fileName,
                                                              fileContents,

@@ -1,4 +1,3 @@
-/*jslint */
 /*global doh, define, java, Packages, Components */
 
 define(['transform', 'env!env/file'], function (transform, file) {
