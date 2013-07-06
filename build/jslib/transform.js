@@ -364,7 +364,7 @@ function (esprima, parse, logger, lang) {
                 value = 'null';
             } else if (obj === undefined) {
                 value = 'undefined';
-            } else if (typeof obj === 'number') {
+            } else if (typeof obj === 'number' || typeof obj === 'boolean') {
                 value = obj;
             } else if (typeof obj === 'string') {
                 //Use double quotes in case the config may also work as JSON.
