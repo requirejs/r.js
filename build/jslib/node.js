@@ -102,10 +102,11 @@
     };
 
     req.load = function (context, moduleName, url) {
-        var contents, err;
+        var contents, err,
+            config = context.config;
 
-        if (context.config.shim[moduleName]) {
-            throw new Error('Shim config not supported in Node: detected ' +
+        if (config.shim[moduleName] && (!config.suppress || !config.suppress.nodeShim)) {
+            console.warn('Shim config not supported in Node, may or may not work. Detected ' +
                             'for module: ' + moduleName);
         }
 
