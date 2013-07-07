@@ -1001,7 +1001,8 @@ define(function (require) {
                         ' correctly while running in the optimizer. Try only' +
                         ' using a config that is also valid JSON, or do not use' +
                         ' mainConfigFile and instead copy the config values needed' +
-                        ' into a build file or command line arguments given to the optimizer.');
+                        ' into a build file or command line arguments given to the optimizer.\n' +
+                        'Source error from parsing: ' + mainConfigFile + ': ' + configError);
             }
             if (mainConfig) {
                 mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
