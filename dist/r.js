@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.6+ Sun, 07 Jul 2013 05:44:10 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.6+ Sun, 07 Jul 2013 23:44:07 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.6+ Sun, 07 Jul 2013 05:44:10 GMT',
+        version = '2.1.6+ Sun, 07 Jul 2013 23:44:07 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24627,7 +24627,8 @@ define('build', function (require) {
                         ' correctly while running in the optimizer. Try only' +
                         ' using a config that is also valid JSON, or do not use' +
                         ' mainConfigFile and instead copy the config values needed' +
-                        ' into a build file or command line arguments given to the optimizer.');
+                        ' into a build file or command line arguments given to the optimizer.\n' +
+                        'Source error from parsing: ' + mainConfigFile + ': ' + configError);
             }
             if (mainConfig) {
                 mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
@@ -24722,10 +24723,21 @@ define('build', function (require) {
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
         }
-        if (config.dir && config.appDir && config.dir === config.appDir) {
-            throw new Error('"dir" and "appDir" set to the same directory.' +
-                            ' This could result in the deletion of appDir.' +
-                            ' Stopping.');
+
+        if (config.dir) {
+            // Make sure the output dir is not set to a parent of the
+            // source dir or the same dir, as it will result in source
+            // code deletion.
+            if (config.dir === config.baseUrl ||
+                config.dir === config.appDir ||
+                (config.baseUrl && build.makeRelativeFilePath(config.dir,
+                                           config.baseUrl).indexOf('..') !== 0) ||
+                (config.appDir &&
+                    build.makeRelativeFilePath(config.dir, config.appDir).indexOf('..') !== 0)) {
+                throw new Error('"dir" is set to a parent or same directory as' +
+                                ' "appDir" or "baseUrl". This can result in' +
+                                ' the deletion of source code. Stopping.');
+            }
         }
 
         if (config.insertRequire && !lang.isArray(config.insertRequire)) {
