@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.6+ Sat, 29 Jun 2013 05:37:15 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.6+ Sun, 07 Jul 2013 03:17:29 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.6+ Sat, 29 Jun 2013 05:37:15 GMT',
+        version = '2.1.6+ Sun, 07 Jul 2013 03:17:29 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22075,7 +22075,7 @@ function (esprima, parse, logger, lang) {
                 value = 'null';
             } else if (obj === undefined) {
                 value = 'undefined';
-            } else if (typeof obj === 'number') {
+            } else if (typeof obj === 'number' || typeof obj === 'boolean') {
                 value = obj;
             } else if (typeof obj === 'string') {
                 //Use double quotes in case the config may also work as JSON.
@@ -22126,7 +22126,8 @@ function (esprima, parse, logger, lang) {
     };
 
     return transform;
-});/**
+});
+/**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
