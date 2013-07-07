@@ -1097,10 +1097,21 @@ define(function (require) {
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
         }
-        if (config.dir && config.appDir && config.dir === config.appDir) {
-            throw new Error('"dir" and "appDir" set to the same directory.' +
-                            ' This could result in the deletion of appDir.' +
-                            ' Stopping.');
+
+        if (config.dir) {
+            // Make sure the output dir is not set to a parent of the
+            // source dir or the same dir, as it will result in source
+            // code deletion.
+            if (config.dir === config.baseUrl ||
+                config.dir === config.appDir ||
+                (config.baseUrl && build.makeRelativeFilePath(config.dir,
+                                           config.baseUrl).indexOf('..') !== 0) ||
+                (config.appDir &&
+                    build.makeRelativeFilePath(config.dir, config.appDir).indexOf('..') !== 0)) {
+                throw new Error('"dir" is set to a parent or same directory as' +
+                                ' "appDir" or "baseUrl". This can result in' +
+                                ' the deletion of source code. Stopping.');
+            }
         }
 
         if (config.insertRequire && !lang.isArray(config.insertRequire)) {
