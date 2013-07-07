@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.6+ Sun, 07 Jul 2013 03:17:29 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.6+ Sun, 07 Jul 2013 04:41:00 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.6+ Sun, 07 Jul 2013 03:17:29 GMT',
+        version = '2.1.6+ Sun, 07 Jul 2013 04:41:00 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2443,10 +2443,11 @@ var requirejs, require, define, xpcUtil;
     };
 
     req.load = function (context, moduleName, url) {
-        var contents, err;
+        var contents, err,
+            config = context.config;
 
-        if (context.config.shim[moduleName]) {
-            throw new Error('Shim config not supported in Node: detected ' +
+        if (config.shim[moduleName] && (!config.suppress || !config.suppress.nodeShim)) {
+            console.warn('Shim config not supported in Node, may or may not work. Detected ' +
                             'for module: ' + moduleName);
         }
 
