@@ -27,7 +27,10 @@ define(['commonJs'], function (commonJs) {
                     source7 = 'exports.name = __filename;',
                     expected7 = 'define(function (require, exports, module) {' +
                                 'var __filename = module.uri || "", __dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1); ' +
-                                'exports.name = __filename;\n});\n';
+                                'exports.name = __filename;\n});\n',
+
+                    source8 = 'var MyModule = module.exports = "foo";',
+                    expected8 = 'define(function (require, exports, module) {var MyModule = module.exports = "foo";\n});\n';
 
                 t.is(source1, commonJs.convert('fake.js', source1));
                 t.is(source2, commonJs.convert('fake.js', source2));
@@ -36,6 +39,7 @@ define(['commonJs'], function (commonJs) {
                 t.is(expected5, commonJs.convert('source5', source5));
                 t.is(expected6, commonJs.convert('source6', source6));
                 t.is(expected7, commonJs.convert('source7', source7));
+                t.is(expected8, commonJs.convert('source8', source8));
             }
         ]
     );

@@ -625,7 +625,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
         traverse(esprima.parse(fileContents), function (node) {
             var type,
-                exp = node.expression;
+                exp = node.expression || node.init;
 
             if (node.type === 'Identifier' &&
                     (node.name === '__dirname' || node.name === '__filename')) {
