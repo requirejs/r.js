@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.6+ Sun, 07 Jul 2013 04:41:00 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.6+ Sun, 07 Jul 2013 05:44:10 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.6+ Sun, 07 Jul 2013 04:41:00 GMT',
+        version = '2.1.6+ Sun, 07 Jul 2013 05:44:10 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -232,7 +232,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.6 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.6+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -245,7 +245,7 @@ var requirejs, require, define, xpcUtil;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.6',
+        version = '2.1.6+',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -2028,6 +2028,19 @@ var requirejs, require, define, xpcUtil;
     req.onError = defaultOnError;
 
     /**
+     * Creates the node for the load command. Only used in browser envs.
+     */
+    req.createNode = function (config, moduleName, url) {
+        var node = config.xhtml ?
+                document.createElementNS('http://www.w3.org/1999/xhtml', 'html:script') :
+                document.createElement('script');
+        node.type = config.scriptType || 'text/javascript';
+        node.charset = 'utf-8';
+        node.async = true;
+        return node;
+    };
+
+    /**
      * Does the request to load a module for the browser case.
      * Make this a separate function to allow other environments
      * to override it.
@@ -2041,12 +2054,7 @@ var requirejs, require, define, xpcUtil;
             node;
         if (isBrowser) {
             //In the browser so use a script tag
-            node = config.xhtml ?
-                    document.createElementNS('http://www.w3.org/1999/xhtml', 'html:script') :
-                    document.createElement('script');
-            node.type = config.scriptType || 'text/javascript';
-            node.charset = 'utf-8';
-            node.async = true;
+            node = req.createNode(config, moduleName, url);
 
             node.setAttribute('data-requirecontext', context.contextName);
             node.setAttribute('data-requiremodule', moduleName);
@@ -21460,7 +21468,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
         traverse(esprima.parse(fileContents), function (node) {
             var type,
-                exp = node.expression;
+                exp = node.expression || node.init;
 
             if (node.type === 'Identifier' &&
                     (node.name === '__dirname' || node.name === '__filename')) {
