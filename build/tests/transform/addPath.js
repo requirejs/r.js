@@ -2,5 +2,7 @@
 requirejs.config({
     'something/else': 'ok',
     _another_thing: 'ok',
+    good: true,
+    bad: false,
     baseUrl: 'some/thing'
 });
