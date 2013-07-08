@@ -825,7 +825,10 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
     parse.nodeToString = function (contents, node) {
         var loc = node.loc,
             lines = contents.split('\n'),
-            preamble = lines.slice(0, loc.start.line - 1).join('\n') + '\n' +
+            firstLine = loc.start.line > 1 ?
+                        lines.slice(0, loc.start.line - 1).join('\n') + '\n' :
+                        '',
+            preamble = firstLine +
                        lines[loc.start.line - 1].substring(0, loc.start.column),
             extracted =  lines[loc.start.line - 1].substring(loc.start.column) +
                      '\n' +

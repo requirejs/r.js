@@ -1,4 +1,3 @@
-//A test of a config modification that adds a path.
 requirejs.config({
     'something/else': 'ok',
     _another_thing: 'ok',
@@ -9,3 +8,4 @@ requirejs.config({
         newlyAdded: 'some/added/path'
     }
 });
+//DO NOT put a comment first in this file. Need to test 0 position requirejs.config.
