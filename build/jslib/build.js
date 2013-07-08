@@ -447,7 +447,7 @@ define(function (require) {
                                 if (builtModule.sourceMap) {
                                     baseName = module._buildPath.split('/');
                                     baseName = baseName.pop();
-                                    finalText += '\n//@ sourceMappingURL=' + baseName + '.map';
+                                    finalText += '\n//# sourceMappingURL=' + baseName + '.map';
                                     file.saveUtf8File(module._buildPath + '.map', builtModule.sourceMap);
                                 }
                                 file.saveUtf8File(module._buildPath + '-temp', finalText);

@@ -560,7 +560,7 @@
 
     //Introduced in 2.0.2: a bit experimental.
     //Each script in the build bundle will be turned into
-    //a JavaScript string with a //@ sourceURL comment, and then wrapped in an
+    //a JavaScript string with a //# sourceURL comment, and then wrapped in an
     //eval call. This allows some browsers to see each evaled script as a
     //separate script in the script debugger even though they are all combined
     //in the same file. Some important limitations:

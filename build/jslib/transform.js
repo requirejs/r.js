@@ -249,7 +249,7 @@ function (esprima, parse, logger, lang) {
 
             if (options.useSourceUrl) {
                 contents = 'eval("' + lang.jsEscape(contents) +
-                    '\\n//@ sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
+                    '\\n//# sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
                     path +
                     '");\n';
             }

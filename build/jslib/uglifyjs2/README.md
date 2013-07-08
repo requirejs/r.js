@@ -1,6 +1,6 @@
 Sets up uglifyjs2 for use in the optimizer.
 
-Current embedded version: 2.3.2, source-map 0.1.22
+Current embedded version: 2.3.6, source-map 0.1.25
 
 Steps:
 
@@ -9,15 +9,7 @@ Steps:
 Then update this file with the uglifyjs2 version fetched.
 
 * UPDATE VERSION NUMBERS IN X.JS
-
-This will update:
-
-* ../source-map.js
-* ../uglifyjs2.js
-
-THEN:
-
-Copy WHITESPACE_CHARS from node_modules/uglify-js2/lib/parse.js and replace the one in ../uglifyjs2.js
+* Copy WHITESPACE_CHARS from node_modules/uglify-js2/lib/parse.js and replace the one in ../uglifyjs2.js
 
 THINGS TO CHECK:
 

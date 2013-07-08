@@ -136,7 +136,7 @@ define(['logger', 'env!env/file'], function (logger, file) {
                     file.saveFile(outFileNameMap,
                         file.readFile(outFileNameMap).replace(mapRegExp, '"file":"' + baseName + '"'));
 
-                    fileContents = optimized + "\n//@ sourceMappingURL=" + outBaseName + ".map";
+                    fileContents = optimized + "\n//# sourceMappingURL=" + outBaseName + ".map";
                 } else {
                     fileContents = optimized;
                 }

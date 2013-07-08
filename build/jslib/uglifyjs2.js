@@ -184,6 +184,10 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
         }
         return new Function("str", f);
     }
+    function all(array, predicate) {
+        for (var i = array.length; --i >= 0; ) if (!predicate(array[i])) return false;
+        return true;
+    }
     function Dictionary() {
         this._values = Object.create(null);
         this._size = 0;
@@ -1055,7 +1059,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
     var RE_OCT_NUMBER = /^0[0-7]+$/;
     var RE_DEC_NUMBER = /^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i;
     var OPERATORS = makePredicate([ "in", "instanceof", "typeof", "new", "void", "delete", "++", "--", "+", "-", "!", "~", "&", "|", "^", "*", "/", "%", ">>", "<<", ">>>", "<", ">", "<=", ">=", "==", "===", "!=", "!==", "?", "=", "+=", "-=", "/=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=", "&&", "||" ]);
-    var WHITESPACE_CHARS = makePredicate(characters("  \n\r	\f​᠎             　"));
+    var WHITESPACE_CHARS = makePredicate(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
     var PUNC_BEFORE_EXPRESSION = makePredicate(characters("[{(,.;:"));
     var PUNC_CHARS = makePredicate(characters("[]{}(),;:"));
     var REGEXP_MODIFIERS = makePredicate(characters("gmsiy"));
@@ -1093,6 +1097,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
     function is_identifier_string(str) {
         var i = str.length;
         if (i == 0) return false;
+        if (is_digit(str.charCodeAt(0))) return false;
         while (--i >= 0) {
             if (!is_identifier_char(str.charAt(i))) return false;
         }
@@ -1453,7 +1458,8 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
         options = defaults(options, {
             strict: false,
             filename: null,
-            toplevel: null
+            toplevel: null,
+            expression: false
         });
         var S = {
             input: typeof $TEXT == "string" ? tokenizer($TEXT, options.filename) : $TEXT,
@@ -1587,7 +1593,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                   case "do":
                     return new AST_Do({
                         body: in_loop(statement),
-                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(), 
+                        condition: (expect_token("keyword", "while"), tmp = parenthesised(), semicolon(),
                         tmp)
                     });
 
@@ -1609,7 +1615,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                   case "return":
                     if (S.in_function == 0) croak("'return' outside of function");
                     return new AST_Return({
-                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true), 
+                        value: is("punc", ";") ? (next(), null) : can_insert_semicolon() ? null : (tmp = expression(true),
                         semicolon(), tmp)
                     });
 
@@ -2217,6 +2223,9 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             --S.in_loop;
             return ret;
         }
+        if (options.expression) {
+            return expression(true);
+        }
         return function() {
             var start = S.token;
             var body = [];
@@ -2488,6 +2497,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                     } else {
                         g = new SymbolDef(self, globals.size(), node);
                         g.undeclared = true;
+                        g.global = true;
                         globals.set(name, g);
                     }
                     node.thedef = g;
@@ -2787,7 +2797,8 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             bracketize: false,
             semicolons: true,
             comments: false,
-            preserve_line: false
+            preserve_line: false,
+            negate_iife: !(options && options.beautify)
         }, true);
         var indentation = 0;
         var current_col = 0;
@@ -3074,7 +3085,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             var self = this, generator = self._codegen;
             stream.push_node(self);
             var needs_parens = self.needs_parens(stream);
-            var fc = self instanceof AST_Function && !stream.option("beautify");
+            var fc = self instanceof AST_Function && stream.option("negate_iife");
             if (force_parens || needs_parens && !fc) {
                 stream.with_parens(function() {
                     self.add_comments(stream);
@@ -3688,7 +3699,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             var a = output.stack(), i = a.length, node = a[--i], p = a[--i];
             while (i > 0) {
                 if (p instanceof AST_Statement && p.body === node) return true;
-                if (p instanceof AST_Seq && p.car === node || p instanceof AST_Call && p.expression === node || p instanceof AST_Dot && p.expression === node || p instanceof AST_Sub && p.expression === node || p instanceof AST_Conditional && p.condition === node || p instanceof AST_Binary && p.left === node || p instanceof AST_UnaryPostfix && p.expression === node) {
+                if (p instanceof AST_Seq && p.car === node || p instanceof AST_Call && p.expression === node && !(p instanceof AST_New) || p instanceof AST_Dot && p.expression === node || p instanceof AST_Sub && p.expression === node || p instanceof AST_Conditional && p.condition === node || p instanceof AST_Binary && p.left === node || p instanceof AST_UnaryPostfix && p.expression === node) {
                     node = p;
                     p = a[--i];
                 } else {
@@ -5215,6 +5226,45 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                                 value: ""
                             })
                         });
+
+                      case "Function":
+                        if (all(self.args, function(x) {
+                            return x instanceof AST_String;
+                        })) {
+                            try {
+                                var code = "(function(" + self.args.slice(0, -1).map(function(arg) {
+                                    return arg.value;
+                                }).join(",") + "){" + self.args[self.args.length - 1].value + "})()";
+                                var ast = parse(code);
+                                ast.figure_out_scope();
+                                var comp = new Compressor(compressor.options);
+                                ast = ast.transform(comp);
+                                ast.figure_out_scope();
+                                ast.mangle_names();
+                                var fun = ast.body[0].body.expression;
+                                var args = fun.argnames.map(function(arg, i) {
+                                    return make_node(AST_String, self.args[i], {
+                                        value: arg.print_to_string()
+                                    });
+                                });
+                                var code = OutputStream();
+                                AST_BlockStatement.prototype._codegen.call(fun, fun, code);
+                                code = code.toString().replace(/^\{|\}$/g, "");
+                                args.push(make_node(AST_String, self.args[self.args.length - 1], {
+                                    value: code
+                                }));
+                                self.args = args;
+                                return self;
+                            } catch (ex) {
+                                if (ex instanceof JS_Parse_Error) {
+                                    compressor.warn("Error parsing code passed to new Function [{file}:{line},{col}]", self.args[self.args.length - 1].start);
+                                    compressor.warn(ex.toString());
+                                } else {
+                                    console.log(ex);
+                                }
+                            }
+                        }
+                        break;
                     }
                 } else if (exp instanceof AST_Dot && exp.property == "toString" && self.args.length == 0) {
                     return make_node(AST_Binary, self, {
@@ -5818,6 +5868,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
     exports["set_difference"] = set_difference;
     exports["set_intersection"] = set_intersection;
     exports["makePredicate"] = makePredicate;
+    exports["all"] = all;
     exports["Dictionary"] = Dictionary;
     exports["DEFNODE"] = DEFNODE;
     exports["AST_Token"] = AST_Token;

@@ -432,7 +432,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 logger.trace("Uglify2 file: " + fileName);
 
                 try {
-                    //var tempContents = fileContents.replace(/\/\/\@ sourceMappingURL=.*$/, '');
+                    //var tempContents = fileContents.replace(/\/\/\# sourceMappingURL=.*$/, '');
                     result = uglify2.minify(fileContents, uconfig, baseName + '.src.js');
                     if (uconfig.outSourceMap && result.map) {
                         resultMap = result.map;
@@ -445,7 +445,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             file.saveFile(outFileName + '.src.js', fileContents);
                         }
                         file.saveFile(outFileName + '.map', resultMap);
-                        fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".map";
+                        fileContents = result.code + "\n//# sourceMappingURL=" + baseName + ".map";
                     } else {
                         fileContents = result.code;
                     }
