@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.7 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.7+ Mon, 08 Jul 2013 23:55:02 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.7',
+        version = '2.1.7+ Mon, 08 Jul 2013 23:55:02 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -21760,7 +21760,10 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
     parse.nodeToString = function (contents, node) {
         var loc = node.loc,
             lines = contents.split('\n'),
-            preamble = lines.slice(0, loc.start.line - 1).join('\n') + '\n' +
+            firstLine = loc.start.line > 1 ?
+                        lines.slice(0, loc.start.line - 1).join('\n') + '\n' :
+                        '',
+            preamble = firstLine +
                        lines[loc.start.line - 1].substring(0, loc.start.column),
             extracted =  lines[loc.start.line - 1].substring(loc.start.column) +
                      '\n' +
