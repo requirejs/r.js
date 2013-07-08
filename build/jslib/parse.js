@@ -522,6 +522,15 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             node.left.property && node.left.property.name === 'amd';
     };
 
+    //define.amd reference, as in: if (define.amd)
+    parse.refsDefineAmd = function (node) {
+        return node && node.type === 'MemberExpression' &&
+        node.object && node.object.name === 'define' &&
+        node.object.type === 'Identifier' &&
+        node.property && node.property.name === 'amd' &&
+        node.property.type === 'Identifier';
+    };
+
     //require(), requirejs(), require.config() and requirejs.config()
     parse.hasRequire = function (node) {
         var callName,
@@ -699,7 +708,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * Otherwise null.
      */
     parse.parseNode = function (node, onMatch) {
-        var name, deps, cjsDeps, arg, factory,
+        var name, deps, cjsDeps, arg, factory, exp, refsDefine, bodyNode,
             args = node && node[argPropName],
             callName = parse.hasRequire(node);
 
@@ -772,6 +781,36 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             }
 
             return onMatch("define", null, name, deps, node);
+        } else if (node.type === 'CallExpression' && node.callee &&
+                   node.callee.type === 'FunctionExpression' &&
+                   node.callee.body && node.callee.body.body &&
+                   node.callee.body.body.length === 1 &&
+                   node.callee.body.body[0].type === 'IfStatement') {
+            bodyNode = node.callee.body.body[0];
+            //Look for a define(Identifier) case, but only if inside an
+            //if that has a define.amd test
+            if (bodyNode.consequent && bodyNode.consequent.body) {
+                exp = bodyNode.consequent.body[0];
+                if (exp.type === 'ExpressionStatement' && exp.expression &&
+                    parse.hasDefine(exp.expression) &&
+                    exp.expression.arguments &&
+                    exp.expression.arguments.length === 1 &&
+                    exp.expression.arguments[0].type === 'Identifier') {
+
+                    //Calls define(Identifier) as first statement in body.
+                    //Confirm the if test references define.amd
+                    traverse(bodyNode.test, function (node) {
+                        if (parse.refsDefineAmd(node)) {
+                            refsDefine = true;
+                            return false;
+                        }
+                    });
+
+                    if (refsDefine) {
+                        return onMatch("define", null, null, null, exp.expression);
+                    }
+                }
+            }
         }
     };
 

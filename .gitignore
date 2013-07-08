@@ -4,6 +4,7 @@
 build/jslib/uglifyjs2/temp
 build/tests/builds
 build/tests/lib/amdefine/built.js
+build/tests/lib/anonUmdInteriorModules/main-built.js
 build/tests/lib/appDirSrcOverwrite/www-built
 build/tests/lib/cjsTranslate/www-built
 build/tests/lib/comments/built.js
