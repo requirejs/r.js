@@ -1955,4 +1955,25 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
         ]
     );
     doh.run();
+
+    //Allow the target of an optimization to be a module that is only
+    //provided in the rawText config.
+    //Test single file JS optimization with source map generation
+    doh.register("rawTextNameTarget",
+        [
+            function rawTextNameTarget(t) {
+                file.deleteFile("lib/rawTextNameTarget/a-built.js");
+
+                build(["lib/rawTextNameTarget/build.js"]);
+
+                t.is(nol(c("lib/rawTextNameTarget/expected.js")),
+                     nol(c("lib/rawTextNameTarget/a-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

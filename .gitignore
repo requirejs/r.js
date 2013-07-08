@@ -63,6 +63,7 @@ build/tests/lib/plugins/optimizeAllPluginResources/www-built
 build/tests/lib/pragmas/override/built
 build/tests/lib/pristineSrc/built
 build/tests/lib/rawText/built.js
+build/tests/lib/rawTextNameTarget/a-built.js
 build/tests/lib/removeCombined/app-built
 build/tests/lib/removeCombined/baseUrl-built
 build/tests/lib/requireHoist/perLayer/built

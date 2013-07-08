@@ -304,9 +304,11 @@ define(function (require) {
                         module._sourcePath = buildContext.nameToUrl(module.name);
                         //If the module does not exist, and this is not a "new" module layer,
                         //as indicated by a true "create" property on the module, and
-                        //it is not a plugin-loaded resource, then throw an error.
+                        //it is not a plugin-loaded resource, and there is no
+                        //'rawText' containing the module's source then throw an error.
                         if (!file.exists(module._sourcePath) && !module.create &&
-                                module.name.indexOf('!') === -1) {
+                                module.name.indexOf('!') === -1 &&
+                                (!config.rawText || !lang.hasProp(config.rawText, module.name))) {
                             throw new Error("ERROR: module path does not exist: " +
                                             module._sourcePath + " for module named: " + module.name +
                                             ". Path is relative to: " + file.absPath('.'));
