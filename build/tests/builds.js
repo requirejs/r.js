@@ -1897,6 +1897,27 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    //For UMD-wrapped code that is made up of interior modules, treat
+    //the UMD define as the entry point for the module, and do not
+    //parse the interior modules.
+    //https://github.com/jrburke/r.js/issues/460
+    doh.register("anonUmdInteriorModules",
+        [
+            function anonUmdInteriorModules(t) {
+                file.deleteFile("lib/anonUmdInteriorModules/main-built.js");
+
+                build(["lib/anonUmdInteriorModules/build.js"]);
+
+                t.is(nol(c("lib/anonUmdInteriorModules/expected.js")),
+                     nol(c("lib/anonUmdInteriorModules/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Test source map generation for a bundled file,
     //see https://github.com/jrburke/r.js/issues/397
     doh.register("sourcemap",
