@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Fri, 19 Jul 2013 22:35:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8',
+        version = '2.1.8+ Fri, 19 Jul 2013 22:35:53 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -136,6 +136,7 @@ var requirejs, require, define, xpcUtil;
         }
 
         xpcUtil = {
+            isWindows: ('@mozilla.org/windows-registry-key;1' in Cc),
             cwd: function () {
                 return FileUtils.getFile("CurWorkD", []).path;
             },
@@ -169,10 +170,15 @@ var requirejs, require, define, xpcUtil;
             },
 
             xpfile: function (path) {
+                var fullPath;
                 try {
-                    return new FileUtils.File(xpcUtil.normalize(path));
+                    fullPath = xpcUtil.normalize(path);
+                    if (xpcUtil.isWindows) {
+                        fullPath = fullPath.replace(/\//g, '\\');
+                    }
+                    return new FileUtils.File(fullPath);
                 } catch (e) {
-                    throw new Error(path + ' failed: ' + e);
+                    throw new Error((fullPath || path) + ' failed: ' + e);
                 }
             },
 
