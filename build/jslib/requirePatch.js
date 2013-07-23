@@ -69,12 +69,17 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
          * @param {String} url
          * @returns {Boolean}
          */
-        require._isSupportedBuildUrl = function (url) {
+        require._isSupportedBuildUrl = function (url, fetchFromNetwork) {
             //Ignore URLs with protocols, hosts or question marks, means either network
             //access is needed to fetch it or it is too dynamic. Note that
             //on Windows, full paths are used for some urls, which include
             //the drive, like c:/something, so need to test for something other
             //than just a colon.
+            
+        	if (fetchFromNetwork && file.is_url(url)) {
+        		return true;
+        	}
+        	
             if (url.indexOf("://") === -1 && url.indexOf("?") === -1 &&
                     url.indexOf('empty:') !== 0 && url.indexOf('//') !== 0) {
                 return true;
@@ -178,7 +183,7 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                     //Only handle urls that can be inlined, so that means avoiding some
                     //URLs like ones that require network access or may be too dynamic,
                     //like JSONP
-                    if (require._isSupportedBuildUrl(url)) {
+                    if (require._isSupportedBuildUrl(url, context.config.fetchFromNetwork)) {
                         //Adjust the URL if it was not transformed to use baseUrl.
                         url = normalizeUrlWithBase(context, moduleName, url);
 
@@ -449,7 +454,7 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                     layer.modulesWithNames[id] = true;
                     layer.pathAdded[id] = true;
                 }
-            } else if (map.url && require._isSupportedBuildUrl(map.url)) {
+            } else if (map.url && require._isSupportedBuildUrl(map.url, context.config.fetchFromNetwork)) {
                 //If the url has not been added to the layer yet, and it
                 //is from an actual file that was loaded, add it now.
                 url = normalizeUrlWithBase(context, id, map.url);
