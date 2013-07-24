@@ -63,6 +63,7 @@ var requirejs, require, define, xpcUtil;
 
         //Set up execution context.
         rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
+        print('Rhino optimization level is set to: ' + rhinoContext.getOptimizationLevel());
 
         exec = function (string, name) {
             return rhinoContext.evaluateString(this, string, name, 0, null);
