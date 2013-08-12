@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Fri, 19 Jul 2013 22:35:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Mon, 12 Aug 2013 15:17:08 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Fri, 19 Jul 2013 22:35:53 GMT',
+        version = '2.1.8+ Mon, 12 Aug 2013 15:17:08 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22650,13 +22650,13 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
                 outBaseName, outFileNameMap, outFileNameMapContent,
                 jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
-                //Fake extern
-                externSourceFile = closurefromCode("fakeextern.js", " "),
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
+                sourceListArray = new java.util.ArrayList(),
                 options, option, FLAG_compilation_level, compiler,
-                Compiler = Packages.com.google.javascript.jscomp.Compiler;
-
+                Compiler = Packages.com.google.javascript.jscomp.Compiler,
+                CommandLineRunner = Packages.com.google.javascript.jscomp.CommandLineRunner;
+                
             logger.trace("Minifying file: " + fileName);
 
             baseName = (new java.io.File(fileName)).getName();
@@ -22686,8 +22686,12 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
+            
+            //fill the sourceArrrayList; we need the ArrayList because the only overload of compile 
+            //accepting the getDefaultExterns return value (e.e.: a List) also wants the sources as a List
+            sourceListArray.add(jsSourceFile);
 
-            result = compiler.compile(externSourceFile, jsSourceFile, options);
+            result = compiler.compile(CommandLineRunner.getDefaultExterns(), sourceListArray, options);
             if (result.success) {
                 optimized = String(compiler.toSource());
 
