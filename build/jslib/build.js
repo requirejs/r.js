@@ -353,6 +353,8 @@ define(function (require) {
             if (config.optimizeCss && config.optimizeCss !== "none" && config.dir) {
                 buildFileContents += optimize.css(config.dir, config);
             }
+        }).then(function() {
+            baseConfig = lang.deeplikeCopy(require.s.contexts._.config);
         }).then(function () {
             var actions = [];
 
@@ -364,7 +366,7 @@ define(function (require) {
                         config._buildPathToModuleIndex[file.normalize(module._buildPath)] = i;
 
                         //Call require to calculate dependencies.
-                        return build.traceDependencies(module, config)
+                        return build.traceDependencies(module, config, baseConfig)
                             .then(function (layer) {
                                 module.layer = layer;
                             });
@@ -392,7 +394,7 @@ define(function (require) {
                                     if (found) {
                                         module.excludeLayers[i] = found;
                                     } else {
-                                        return build.traceDependencies({name: exclude}, config)
+                                        return build.traceDependencies({name: exclude}, config, baseConfig)
                                             .then(function (layer) {
                                                 module.excludeLayers[i] = { layer: layer };
                                             });
@@ -1303,13 +1305,14 @@ define(function (require) {
      * given module.
      *
      * @param {Object} module the module object from the build config info.
-     * @param {Object} the build config object.
+     * @param {Object} config the build config object.
+     * @param {Object} [baseLoaderConfig] the base loader config to use for env resets.
      *
      * @returns {Object} layer information about what paths and modules should
      * be in the flattened module.
      */
-    build.traceDependencies = function (module, config) {
-        var include, override, layer, context, baseConfig, oldContext,
+    build.traceDependencies = function (module, config, baseLoaderConfig) {
+        var include, override, layer, context, oldContext,
             rawTextByIds,
             syncChecks = {
                 rhino: true,
@@ -1324,15 +1327,13 @@ define(function (require) {
 
         //Grab the reset layer and context after the reset, but keep the
         //old config to reuse in the new context.
-        baseConfig = oldContext.config;
         layer = require._layer;
         context = layer.context;
 
         //Put back basic config, use a fresh object for it.
-        //WARNING: probably not robust for paths and packages/packagePaths,
-        //since those property's objects can be modified. But for basic
-        //config clone it works out.
-        require(lang.mixin({}, baseConfig, true));
+        if (baseLoaderConfig) {
+            require(lang.deeplikeCopy(baseLoaderConfig));
+        }
 
         logger.trace("\nTracing dependencies for: " + (module.name || module.out));
         include = module.name && !module.create ? [module.name] : [];
@@ -1342,8 +1343,11 @@ define(function (require) {
 
         //If there are overrides to basic config, set that up now.;
         if (module.override) {
-            override = lang.mixin({}, baseConfig, true);
-            lang.mixin(override, module.override, true);
+            if (baseLoaderConfig) {
+                override = build.createOverrideConfig(baseLoaderConfig, module.override);
+            } else {
+                override = lang.deeplikeCopy(module.override);
+            }
             require(override);
         }
 
@@ -1389,8 +1393,8 @@ define(function (require) {
 
         return deferred.promise.then(function () {
             //Reset config
-            if (module.override) {
-                require(baseConfig);
+            if (module.override && baseLoaderConfig) {
+                require(lang.deeplikeCopy(baseLoaderConfig));
             }
 
             build.checkForErrors(context);
@@ -1471,10 +1475,10 @@ define(function (require) {
     };
 
     build.createOverrideConfig = function (config, override) {
-        var cfg = {};
+        var cfg = lang.deeplikeCopy(config),
+            oride = lang.deeplikeCopy(override);
 
-        lang.mixin(cfg, config, true);
-        lang.eachProp(override, function (value, prop) {
+        lang.eachProp(oride, function (value, prop) {
             if (hasProp(build.objProps, prop)) {
                 //An object property, merge keys. Start a new object
                 //so that source object in config does not get modified.
@@ -1485,6 +1489,7 @@ define(function (require) {
                 cfg[prop] = override[prop];
             }
         });
+
         return cfg;
     };
 

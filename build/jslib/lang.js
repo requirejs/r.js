@@ -49,8 +49,8 @@ define(function () {
         _mixin: function(dest, source, override){
             var name;
             for (name in source) {
-                if(source.hasOwnProperty(name)
-                    && (override || !dest.hasOwnProperty(name))) {
+                if(source.hasOwnProperty(name) &&
+                    (override || !dest.hasOwnProperty(name))) {
                     dest[name] = source[name];
                 }
             }
@@ -76,6 +76,42 @@ define(function () {
                 lang._mixin(dest, parameters[i], override);
             }
             return dest; // Object
+        },
+
+
+        /**
+         * Does a type of deep copy. Do not give it anything fancy, best
+         * for basic object copies of objects that also work well as
+         * JSON-serialized things, or has properties pointing to functions.
+         * For non-array/object values, just returns the same object.
+         * @param  {Object} obj      copy properties from this object
+         * @param  {Object} [result] optional result object to use
+         * @return {Object}
+         */
+        deeplikeCopy: function (obj) {
+            var type, result;
+
+            if (lang.isArray(obj)) {
+                result = [];
+                obj.forEach(function(value) {
+                    result.push(lang.deeplikeCopy(value));
+                });
+                return result;
+            }
+
+            type = typeof obj;
+            if (obj === null || obj === undefined || type === 'boolean' ||
+                type === 'string' || type === 'number' || lang.isFunction(obj) ||
+                lang.isRegExp(obj)) {
+                return obj;
+            }
+
+            //Anything else is an object, hopefully.
+            result = {};
+            lang.eachProp(obj, function(value, key) {
+                result[key] = lang.deeplikeCopy(value);
+            });
+            return result;
         },
 
         delegate: (function () {

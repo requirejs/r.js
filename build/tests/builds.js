@@ -1995,4 +1995,26 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+
+    //Make sure overrides for each build layer are pristine
+    //https://github.com/jrburke/r.js/issues/500
+    doh.register("dualLayerOverride",
+        [
+            function dualLayerOverride(t) {
+                file.deleteFile("lib/dualLayerOverride/built");
+
+                build(["lib/dualLayerOverride/build.js"]);
+
+                t.is(nol(c("lib/dualLayerOverride/expectedMessage.js")),
+                     nol(c("lib/dualLayerOverride/built/message.js")));
+                t.is(nol(c("lib/dualLayerOverride/expectedWho.js")),
+                     nol(c("lib/dualLayerOverride/built/who.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

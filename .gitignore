@@ -22,6 +22,7 @@ build/tests/lib/cssRemoveCombined/www-built
 build/tests/lib/depsConfig/main-built.js
 build/tests/lib/dormant213/main-built.js
 build/tests/lib/dotpackage/built
+build/tests/lib/dualLayerOverride/built
 build/tests/lib/empty/built
 build/tests/lib/hasOwnProperty/built.js
 build/tests/lib/iife/main-built.js
