@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Tue, 13 Aug 2013 19:43:43 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Tue, 13 Aug 2013 23:17:08 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Tue, 13 Aug 2013 19:43:43 GMT',
+        version = '2.1.8+ Tue, 13 Aug 2013 23:17:08 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2663,8 +2663,8 @@ define('lang', function () {
         _mixin: function(dest, source, override){
             var name;
             for (name in source) {
-                if(source.hasOwnProperty(name)
-                    && (override || !dest.hasOwnProperty(name))) {
+                if(source.hasOwnProperty(name) &&
+                    (override || !dest.hasOwnProperty(name))) {
                     dest[name] = source[name];
                 }
             }
@@ -2690,6 +2690,42 @@ define('lang', function () {
                 lang._mixin(dest, parameters[i], override);
             }
             return dest; // Object
+        },
+
+
+        /**
+         * Does a type of deep copy. Do not give it anything fancy, best
+         * for basic object copies of objects that also work well as
+         * JSON-serialized things, or has properties pointing to functions.
+         * For non-array/object values, just returns the same object.
+         * @param  {Object} obj      copy properties from this object
+         * @param  {Object} [result] optional result object to use
+         * @return {Object}
+         */
+        deeplikeCopy: function (obj) {
+            var type, result;
+
+            if (lang.isArray(obj)) {
+                result = [];
+                obj.forEach(function(value) {
+                    result.push(lang.deeplikeCopy(value));
+                });
+                return result;
+            }
+
+            type = typeof obj;
+            if (obj === null || obj === undefined || type === 'boolean' ||
+                type === 'string' || type === 'number' || lang.isFunction(obj) ||
+                lang.isRegExp(obj)) {
+                return obj;
+            }
+
+            //Anything else is an object, hopefully.
+            result = {};
+            lang.eachProp(obj, function(value, key) {
+                result[key] = lang.deeplikeCopy(value);
+            });
+            return result;
         },
 
         delegate: (function () {
@@ -24119,6 +24155,8 @@ define('build', function (require) {
             if (config.optimizeCss && config.optimizeCss !== "none" && config.dir) {
                 buildFileContents += optimize.css(config.dir, config);
             }
+        }).then(function() {
+            baseConfig = lang.deeplikeCopy(require.s.contexts._.config);
         }).then(function () {
             var actions = [];
 
@@ -24130,7 +24168,7 @@ define('build', function (require) {
                         config._buildPathToModuleIndex[file.normalize(module._buildPath)] = i;
 
                         //Call require to calculate dependencies.
-                        return build.traceDependencies(module, config)
+                        return build.traceDependencies(module, config, baseConfig)
                             .then(function (layer) {
                                 module.layer = layer;
                             });
@@ -24158,7 +24196,7 @@ define('build', function (require) {
                                     if (found) {
                                         module.excludeLayers[i] = found;
                                     } else {
-                                        return build.traceDependencies({name: exclude}, config)
+                                        return build.traceDependencies({name: exclude}, config, baseConfig)
                                             .then(function (layer) {
                                                 module.excludeLayers[i] = { layer: layer };
                                             });
@@ -25069,13 +25107,14 @@ define('build', function (require) {
      * given module.
      *
      * @param {Object} module the module object from the build config info.
-     * @param {Object} the build config object.
+     * @param {Object} config the build config object.
+     * @param {Object} [baseLoaderConfig] the base loader config to use for env resets.
      *
      * @returns {Object} layer information about what paths and modules should
      * be in the flattened module.
      */
-    build.traceDependencies = function (module, config) {
-        var include, override, layer, context, baseConfig, oldContext,
+    build.traceDependencies = function (module, config, baseLoaderConfig) {
+        var include, override, layer, context, oldContext,
             rawTextByIds,
             syncChecks = {
                 rhino: true,
@@ -25090,15 +25129,13 @@ define('build', function (require) {
 
         //Grab the reset layer and context after the reset, but keep the
         //old config to reuse in the new context.
-        baseConfig = oldContext.config;
         layer = require._layer;
         context = layer.context;
 
         //Put back basic config, use a fresh object for it.
-        //WARNING: probably not robust for paths and packages/packagePaths,
-        //since those property's objects can be modified. But for basic
-        //config clone it works out.
-        require(lang.mixin({}, baseConfig, true));
+        if (baseLoaderConfig) {
+            require(lang.deeplikeCopy(baseLoaderConfig));
+        }
 
         logger.trace("\nTracing dependencies for: " + (module.name || module.out));
         include = module.name && !module.create ? [module.name] : [];
@@ -25108,8 +25145,11 @@ define('build', function (require) {
 
         //If there are overrides to basic config, set that up now.;
         if (module.override) {
-            override = lang.mixin({}, baseConfig, true);
-            lang.mixin(override, module.override, true);
+            if (baseLoaderConfig) {
+                override = build.createOverrideConfig(baseLoaderConfig, module.override);
+            } else {
+                override = lang.deeplikeCopy(module.override);
+            }
             require(override);
         }
 
@@ -25155,8 +25195,8 @@ define('build', function (require) {
 
         return deferred.promise.then(function () {
             //Reset config
-            if (module.override) {
-                require(baseConfig);
+            if (module.override && baseLoaderConfig) {
+                require(lang.deeplikeCopy(baseLoaderConfig));
             }
 
             build.checkForErrors(context);
@@ -25237,10 +25277,10 @@ define('build', function (require) {
     };
 
     build.createOverrideConfig = function (config, override) {
-        var cfg = {};
+        var cfg = lang.deeplikeCopy(config),
+            oride = lang.deeplikeCopy(override);
 
-        lang.mixin(cfg, config, true);
-        lang.eachProp(override, function (value, prop) {
+        lang.eachProp(oride, function (value, prop) {
             if (hasProp(build.objProps, prop)) {
                 //An object property, merge keys. Start a new object
                 //so that source object in config does not get modified.
@@ -25251,6 +25291,7 @@ define('build', function (require) {
                 cfg[prop] = override[prop];
             }
         });
+
         return cfg;
     };
 
