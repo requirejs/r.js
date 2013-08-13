@@ -287,7 +287,8 @@ var requirejs, require, define, xpcUtil;
             dir = dir.split('/');
             dir.pop();
             dir = dir.join('/');
-            exec("require({baseUrl: '" + dir + "'});");
+            //Make sure dir is JS-escaped, since it will be part of a JS string.
+            exec("require({baseUrl: '" + dir.replace(/[\\"']/g, '\\$&') + "'});");
         }
     }
 
