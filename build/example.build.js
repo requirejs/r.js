@@ -575,6 +575,16 @@
     //dependencies and the size of the involved libraries, increasing the wait
     //interval may be required. Default is 7 seconds. Setting the value to 0
     //disables the waiting interval.
-    waitSeconds: 7
+    waitSeconds: 7,
 
+    //Introduced in 2.1.9: normally r.js inserts a semicolon at the end of a
+    //file if there is not already one present, to avoid issues with
+    //concatenated files and automatic semicolon insertion  (ASI) rules for
+    //JavaScript. It is a very blunt fix that is safe to do, but if you want to
+    //lint the build output, depending on the linter rules, it may not like it.
+    //Setting this option to true skips this insertion. However, by doing this,
+    //you take responsibility for making sure your concatenated code works with
+    //JavaScript's ASI rules, and that you use a minifier that understands when
+    //to insert semicolons to avoid ASI pitfalls.
+    skipSemiColonInsertion: false
 })

@@ -1976,4 +1976,23 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    //Allow skipping semicolon insertion
+    //https://github.com/jrburke/r.js/issues/506
+    doh.register("semicolonInsert",
+        [
+            function semicolonInsert(t) {
+                file.deleteFile("lib/semicolonInsert/a-built.js");
+
+                build(["lib/semicolonInsert/build.js"]);
+
+                t.is(nol(c("lib/semicolonInsert/expected.js")),
+                     nol(c("lib/semicolonInsert/a-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

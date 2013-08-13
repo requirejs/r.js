@@ -78,8 +78,8 @@ define(function (require) {
      * the style of omitting semicolons and rely on ASI. Add a semicolon in
      * those cases.
      */
-    function addSemiColon(text) {
-        if (endsWithSemiColonRegExp.test(text)) {
+    function addSemiColon(text, config) {
+        if (config.skipSemiColonInsertion || endsWithSemiColonRegExp.test(text)) {
             return text;
         } else {
             return text + ";";
@@ -1583,7 +1583,7 @@ define(function (require) {
 
                             if (builder.write) {
                                 writeApi = function (input) {
-                                    singleContents += "\n" + addSemiColon(input);
+                                    singleContents += "\n" + addSemiColon(input, config);
                                     if (config.onBuildWrite) {
                                         singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
@@ -1592,7 +1592,7 @@ define(function (require) {
                                     singleContents += "\n" +
                                         addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
                                             useSourceUrl: layer.context.config.useSourceUrl
-                                        }));
+                                        }), config);
                                     if (config.onBuildWrite) {
                                         singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
@@ -1643,7 +1643,7 @@ define(function (require) {
                                 });
 
                                 if (packageConfig && !hasPackageName) {
-                                    currContents = addSemiColon(currContents) + '\n';
+                                    currContents = addSemiColon(currContents, config) + '\n';
                                     currContents += namespaceWithDot + "define('" +
                                                     packageConfig.name + "', ['" + moduleName +
                                                     "'], function (main) { return main; });\n";
@@ -1655,7 +1655,7 @@ define(function (require) {
 
                                 //Semicolon is for files that are not well formed when
                                 //concatenated with other content.
-                                singleContents += "\n" + addSemiColon(currContents);
+                                singleContents += "\n" + addSemiColon(currContents, config);
                             });
                         }
                     }).then(function () {
@@ -1722,7 +1722,7 @@ define(function (require) {
                             path = module._buildPath;
                         }
                         builder.onLayerEnd(function (input) {
-                            fileContents += "\n" + addSemiColon(input);
+                            fileContents += "\n" + addSemiColon(input, config);
                         }, {
                             name: module.name,
                             path: path
