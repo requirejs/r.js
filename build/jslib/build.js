@@ -361,7 +361,7 @@ define(function (require) {
                     return function () {
                         //Save off buildPath to module index in a hash for quicker
                         //lookup later.
-                        config._buildPathToModuleIndex[module._buildPath] = i;
+                        config._buildPathToModuleIndex[file.normalize(module._buildPath)] = i;
 
                         //Call require to calculate dependencies.
                         return build.traceDependencies(module, config)
