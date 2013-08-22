@@ -112,7 +112,6 @@ define(['logger', 'env!env/file'], function (logger, file) {
                 options.setSourceMapOutputPath(fileName + ".map");
             }
 
-            //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
             
@@ -120,6 +119,7 @@ define(['logger', 'env!env/file'], function (logger, file) {
             //accepting the getDefaultExterns return value (e.e.: a List) also wants the sources as a List
             sourceListArray.add(jsSourceFile);
 
+            //Trigger the compiler
             result = compiler.compile(CommandLineRunner.getDefaultExterns(), sourceListArray, options);
             if (result.success) {
                 optimized = String(compiler.toSource());
