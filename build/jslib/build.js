@@ -339,6 +339,9 @@ define(function (require) {
                     modules.forEach(function (module) {
                         if (module.name) {
                             module._buildPath = buildContext.nameToUrl(module.name, null);
+                            if (typeof config.outputFileNameTransformer === 'function') {
+                                module._buildPath = config.outputFileNameTransformer(module._buildPath);
+                            }
                             if (!module.create) {
                                 file.copyFile(module._sourcePath, module._buildPath);
                             }
