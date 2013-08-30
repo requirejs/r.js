@@ -67,6 +67,7 @@ build/tests/lib/rawText/built.js
 build/tests/lib/rawTextNameTarget/a-built.js
 build/tests/lib/removeCombined/app-built
 build/tests/lib/removeCombined/baseUrl-built
+build/tests/lib/removeCombinedPaths/testcase/project/build/build_output
 build/tests/lib/requireHoist/perLayer/built
 build/tests/lib/rhino-186/built
 build/tests/lib/semicolonInsert/a-built.js

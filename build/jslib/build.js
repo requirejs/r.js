@@ -477,9 +477,16 @@ define(function (require) {
                         //Be sure not to remove other build layers.
                         if (config.removeCombined) {
                             module.layer.buildFilePaths.forEach(function (path) {
-                                if (file.exists(path) && !modules.some(function (mod) {
+                                var isLayer = modules.some(function (mod) {
                                         return mod._buildPath === path;
-                                    })) {
+                                    }),
+                                    relPath = build.makeRelativeFilePath(config.dir, path);
+
+                                if (file.exists(path) &&
+                                    // not a build layer target
+                                    !isLayer &&
+                                    // not outside the build directory
+                                    relPath.indexOf('..') !== 0) {
                                     file.deleteFile(path);
                                 }
                             });

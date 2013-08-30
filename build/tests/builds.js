@@ -2017,4 +2017,23 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    //Do not removeCombined files that are outside the build dir.
+    //https://github.com/jrburke/requirejs/issues/755
+    doh.register("removeCombinedPaths",
+        [
+            function removeCombinedPaths(t) {
+                file.deleteFile("lib/removeCombinedPaths/testcase/project/build/build_output");
+
+                build(["lib/removeCombinedPaths/testcase/project/build/build.js"]);
+
+
+                t.is(true, file.exists("lib/removeCombinedPaths/testcase/lib/main.js"));
+                t.is(true, file.exists("lib/removeCombinedPaths/testcase/project/build/build_output/main.js"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });
