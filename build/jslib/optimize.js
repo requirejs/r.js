@@ -306,7 +306,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 }
                 //Get rid of newlines.
                 if (config.optimizeCss.indexOf(".keepLines") === -1) {
-                    fileContents = fileContents.replace(/[\r\n]/g, "");
+                    fileContents = fileContents.replace(/[\r\n]/g, " ");
                     fileContents = fileContents.replace(/\s+/g, " ");
                     fileContents = fileContents.replace(/\{\s/g, "{");
                     fileContents = fileContents.replace(/\s\}/g, "}");
