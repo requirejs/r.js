@@ -315,6 +315,20 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     fileContents = fileContents.replace(/(\r\n)+/g, "\r\n");
                     fileContents = fileContents.replace(/(\n)+/g, "\n");
                 }
+                //Remove unnecessary whitespace
+                if (config.optimizeCss.indexOf(".keepWhitespace") === -1) {
+                    //Remove leading and trailing whitespace from lines
+                    fileContents = fileContents.replace(/^[ \t]+/gm, "");
+                    fileContents = fileContents.replace(/[ \t]+$/gm, "");
+                    //Remove whitespace after semicolon, colon, curly brackets and commas
+                    fileContents = fileContents.replace(/(;|:|\{|}|,)[ \t]+/g, "$1");
+                    //Remove whitespace before opening curly brackets
+                    fileContents = fileContents.replace(/[ \t]+(\{)/g, "$1");
+                    //Truncate double whitespace
+                    fileContents = fileContents.replace(/([ \t])+/g, "$1");
+                    //Remove empty lines
+                    fileContents = fileContents.replace(/^[ \t]*[\r\n]/gm,'');
+                }
             } catch (e) {
                 fileContents = originalFileContents;
                 logger.error("Could not optimized CSS file: " + fileName + ", error: " + e);
