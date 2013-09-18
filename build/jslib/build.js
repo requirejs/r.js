@@ -234,7 +234,10 @@ define(function (require) {
                 //lots of files to process.
 
                 //First copy all the baseUrl content
-                file.copyDir((config.appDir || config.baseUrl), config.dir, /\w/, true);
+                file.copyDir((config.appDir || config.baseUrl), config.dir, {
+                    'include' : /\w/,
+                    'exclude' : file.exclusionRegExp
+                }, true);
 
                 //Adjust baseUrl if config.appDir is in play, and set up build output paths.
                 buildPaths = {};
