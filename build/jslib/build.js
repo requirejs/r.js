@@ -196,7 +196,8 @@ define(function (require) {
                 }
             }
 
-            throw new Error(errorMsg);
+            e.message = errorMsg;
+            throw e;
         });
     };
 
