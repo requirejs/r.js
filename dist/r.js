@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Fri, 30 Aug 2013 03:19:39 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Fri, 20 Sep 2013 00:42:53 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Fri, 30 Aug 2013 03:19:39 GMT',
+        version = '2.1.8+ Fri, 20 Sep 2013 00:42:53 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24277,7 +24277,7 @@ define('build', function (require) {
                         //And finally, if removeCombined is specified, remove
                         //any of the files that were used in this layer.
                         //Be sure not to remove other build layers.
-                        if (config.removeCombined) {
+                        if (config.removeCombined && !config.out) {
                             module.layer.buildFilePaths.forEach(function (path) {
                                 var isLayer = modules.some(function (mod) {
                                         return mod._buildPath === path;
