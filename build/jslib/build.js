@@ -475,7 +475,7 @@ define(function (require) {
                         //And finally, if removeCombined is specified, remove
                         //any of the files that were used in this layer.
                         //Be sure not to remove other build layers.
-                        if (config.removeCombined) {
+                        if (config.removeCombined && !config.out) {
                             module.layer.buildFilePaths.forEach(function (path) {
                                 var isLayer = modules.some(function (mod) {
                                         return mod._buildPath === path;
