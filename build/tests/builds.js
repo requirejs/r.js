@@ -394,6 +394,21 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    doh.register("buildNamespaceMinified",
+        [
+            function buildNamespaceMinified(t) {
+                build(["lib/namespaceMinified/build.js"]);
+
+                t.is(nol(c("lib/namespaceMinified/expected.js")),
+                     nol(c("lib/namespaceMinified/foo.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("useDotPackage",
         [
             function useDotPackage(t) {
