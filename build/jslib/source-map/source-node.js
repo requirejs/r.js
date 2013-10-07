@@ -123,7 +123,7 @@ define(function (require, exports, module) {
       return node;
 
       function addMappingWithCode(mapping, code) {
-        if (mapping.source === undefined) {
+        if (mapping === null || mapping.source === undefined) {
           node.add(code);
         } else {
           node.add(new SourceNode(mapping.originalLine,
@@ -191,7 +191,9 @@ define(function (require, exports, module) {
    * @param aFn The traversal function.
    */
   SourceNode.prototype.walk = function SourceNode_walk(aFn) {
-    this.children.forEach(function (chunk) {
+    var chunk;
+    for (var i = 0, len = this.children.length; i < len; i++) {
+      chunk = this.children[i];
       if (chunk instanceof SourceNode) {
         chunk.walk(aFn);
       }
@@ -203,7 +205,7 @@ define(function (require, exports, module) {
                        name: this.name });
         }
       }
-    }, this);
+    }
   };
 
   /**
@@ -269,14 +271,16 @@ define(function (require, exports, module) {
    */
   SourceNode.prototype.walkSourceContents =
     function SourceNode_walkSourceContents(aFn) {
-      this.children.forEach(function (chunk) {
-        if (chunk instanceof SourceNode) {
-          chunk.walkSourceContents(aFn);
+      for (var i = 0, len = this.children.length; i < len; i++) {
+        if (this.children[i] instanceof SourceNode) {
+          this.children[i].walkSourceContents(aFn);
         }
-      }, this);
-      Object.keys(this.sourceContents).forEach(function (sourceFileKey) {
-        aFn(util.fromSetString(sourceFileKey), this.sourceContents[sourceFileKey]);
-      }, this);
+      }
+
+      var sources = Object.keys(this.sourceContents);
+      for (var i = 0, len = sources.length; i < len; i++) {
+        aFn(util.fromSetString(sources[i]), this.sourceContents[sources[i]]);
+      }
     };
 
   /**
@@ -303,23 +307,36 @@ define(function (require, exports, module) {
     };
     var map = new SourceMapGenerator(aArgs);
     var sourceMappingActive = false;
+    var lastOriginalSource = null;
+    var lastOriginalLine = null;
+    var lastOriginalColumn = null;
+    var lastOriginalName = null;
     this.walk(function (chunk, original) {
       generated.code += chunk;
       if (original.source !== null
           && original.line !== null
           && original.column !== null) {
-        map.addMapping({
-          source: original.source,
-          original: {
-            line: original.line,
-            column: original.column
-          },
-          generated: {
-            line: generated.line,
-            column: generated.column
-          },
-          name: original.name
-        });
+        if(lastOriginalSource !== original.source
+           || lastOriginalLine !== original.line
+           || lastOriginalColumn !== original.column
+           || lastOriginalName !== original.name) {
+          map.addMapping({
+            source: original.source,
+            original: {
+              line: original.line,
+              column: original.column
+            },
+            generated: {
+              line: generated.line,
+              column: generated.column
+            },
+            name: original.name
+          });
+        }
+        lastOriginalSource = original.source;
+        lastOriginalLine = original.line;
+        lastOriginalColumn = original.column;
+        lastOriginalName = original.name;
         sourceMappingActive = true;
       } else if (sourceMappingActive) {
         map.addMapping({
@@ -328,6 +345,7 @@ define(function (require, exports, module) {
             column: generated.column
           }
         });
+        lastOriginalSource = null;
         sourceMappingActive = false;
       }
       chunk.split('').forEach(function (ch) {

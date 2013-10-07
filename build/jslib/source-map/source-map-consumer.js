@@ -54,14 +54,18 @@ define(function (require, exports, module) {
     var sourceRoot = util.getArg(sourceMap, 'sourceRoot', null);
     var sourcesContent = util.getArg(sourceMap, 'sourcesContent', null);
     var mappings = util.getArg(sourceMap, 'mappings');
-    var file = util.getArg(sourceMap, 'file');
+    var file = util.getArg(sourceMap, 'file', null);
 
     if (version !== this._version) {
       throw new Error('Unsupported version: ' + version);
     }
 
-    this._names = ArraySet.fromArray(names);
-    this._sources = ArraySet.fromArray(sources);
+    // Pass `true` below to allow duplicate names and sources. While source maps
+    // are intended to be compressed and deduplicated, the TypeScript compiler
+    // sometimes generates source maps with duplicates in them. See Github issue
+    // #72 and bugzil.la/889492.
+    this._names = ArraySet.fromArray(names, true);
+    this._sources = ArraySet.fromArray(sources, true);
     this.sourceRoot = sourceRoot;
     this.sourcesContent = sourcesContent;
     this.file = file;
@@ -93,6 +97,32 @@ define(function (require, exports, module) {
     this._originalMappings = [];
     this._parseMappings(mappings, sourceRoot);
   }
+
+  /**
+   * Create a SourceMapConsumer from a SourceMapGenerator.
+   *
+   * @param SourceMapGenerator aSourceMap
+   *        The source map that will be consumed.
+   * @returns SourceMapConsumer
+   */
+  SourceMapConsumer.fromSourceMap =
+    function SourceMapConsumer_fromSourceMap(aSourceMap) {
+      var smc = Object.create(SourceMapConsumer.prototype);
+
+      smc._names = ArraySet.fromArray(aSourceMap._names.toArray(), true);
+      smc._sources = ArraySet.fromArray(aSourceMap._sources.toArray(), true);
+      smc.sourceRoot = aSourceMap._sourceRoot;
+      smc.sourcesContent = aSourceMap._generateSourcesContent(smc._sources.toArray(),
+                                                              smc.sourceRoot);
+      smc.file = aSourceMap._file;
+
+      smc._generatedMappings = aSourceMap._mappings.slice()
+        .sort(util.compareByGeneratedPositions);
+      smc._originalMappings = aSourceMap._mappings.slice()
+        .sort(util.compareByOriginalPositions);
+
+      return smc;
+    };
 
   /**
    * The version of the source mapping spec that we are consuming.
@@ -189,37 +219,7 @@ define(function (require, exports, module) {
         }
       }
 
-      this._originalMappings.sort(this._compareOriginalPositions);
-    };
-
-  /**
-   * Comparator between two mappings where the original positions are compared.
-   */
-  SourceMapConsumer.prototype._compareOriginalPositions =
-    function SourceMapConsumer_compareOriginalPositions(mappingA, mappingB) {
-      if (mappingA.source > mappingB.source) {
-        return 1;
-      }
-      else if (mappingA.source < mappingB.source) {
-        return -1;
-      }
-      else {
-        var cmp = mappingA.originalLine - mappingB.originalLine;
-        return cmp === 0
-          ? mappingA.originalColumn - mappingB.originalColumn
-          : cmp;
-      }
-    };
-
-  /**
-   * Comparator between two mappings where the generated positions are compared.
-   */
-  SourceMapConsumer.prototype._compareGeneratedPositions =
-    function SourceMapConsumer_compareGeneratedPositions(mappingA, mappingB) {
-      var cmp = mappingA.generatedLine - mappingB.generatedLine;
-      return cmp === 0
-        ? mappingA.generatedColumn - mappingB.generatedColumn
-        : cmp;
+      this._originalMappings.sort(util.compareByOriginalPositions);
     };
 
   /**
@@ -272,7 +272,7 @@ define(function (require, exports, module) {
                                       this._generatedMappings,
                                       "generatedLine",
                                       "generatedColumn",
-                                      this._compareGeneratedPositions);
+                                      util.compareByGeneratedPositions);
 
       if (mapping) {
         var source = util.getArg(mapping, 'source', null);
@@ -366,7 +366,7 @@ define(function (require, exports, module) {
                                       this._originalMappings,
                                       "originalLine",
                                       "originalColumn",
-                                      this._compareOriginalPositions);
+                                      util.compareByOriginalPositions);
 
       if (mapping) {
         return {
