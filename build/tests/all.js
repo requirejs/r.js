@@ -34,6 +34,7 @@ require({
     'env!../../tests/doh/_{env}Runner.js',
     'tests/convert',
     'tests/parse',
+    'tests/pragma',
     'tests/transform',
     'tests/buildUtils',
 
