@@ -79,12 +79,12 @@ define(['logger', 'env!env/file'], function (logger, file) {
                 outBaseName, outFileNameMap, outFileNameMapContent,
                 jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
-                //Fake extern
-                externSourceFile = closurefromCode("fakeextern.js", " "),
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
+                sourceListArray = new java.util.ArrayList(),
                 options, option, FLAG_compilation_level, compiler,
-                Compiler = Packages.com.google.javascript.jscomp.Compiler;
+                Compiler = Packages.com.google.javascript.jscomp.Compiler,
+                CommandLineRunner = Packages.com.google.javascript.jscomp.CommandLineRunner;
 
             logger.trace("Minifying file: " + fileName);
 
@@ -115,8 +115,12 @@ define(['logger', 'env!env/file'], function (logger, file) {
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
+            
+            //fill the sourceArrrayList; we need the ArrayList because the only overload of compile 
+            //accepting the getDefaultExterns return value (a List) also wants the sources as a List
+            sourceListArray.add(jsSourceFile);
 
-            result = compiler.compile(externSourceFile, jsSourceFile, options);
+            result = compiler.compile(CommandLineRunner.getDefaultExterns(), sourceListArray, options);
             if (result.success) {
                 optimized = String(compiler.toSource());
 
