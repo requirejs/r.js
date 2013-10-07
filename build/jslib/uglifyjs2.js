@@ -1016,6 +1016,9 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                 if (x instanceof type) return x;
             }
         },
+        has_directive: function(type) {
+            return this.find_parent(AST_Scope).has_directive(type);
+        },
         in_boolean_context: function() {
             var stack = this.stack;
             var i = stack.length, self = stack[--i];
@@ -1169,7 +1172,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             S.tokpos = S.pos;
         }
         function token(type, value, is_comment) {
-            S.regex_allowed = type == "operator" && !UNARY_POSTFIX[value] || type == "keyword" && KEYWORDS_BEFORE_EXPRESSION(value) || type == "punc" && PUNC_BEFORE_EXPRESSION(value);
+            S.regex_allowed = type == "operator" && !UNARY_POSTFIX(value) || type == "keyword" && KEYWORDS_BEFORE_EXPRESSION(value) || type == "punc" && PUNC_BEFORE_EXPRESSION(value);
             var ret = {
                 type: type,
                 value: value,
@@ -1255,7 +1258,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                 return "\f";
 
               case 48:
-                return "\0";
+                return "\x00";
 
               case 120:
                 return String.fromCharCode(hex_bytes(2));
@@ -2340,6 +2343,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             self.definitions = do_list(self.definitions, tw);
         });
         _(AST_VarDef, function(self, tw) {
+            self.name = self.name.transform(tw);
             if (self.value) self.value = self.value.transform(tw);
         });
         _(AST_Lambda, function(self, tw) {
@@ -2791,14 +2795,13 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             inline_script: false,
             width: 80,
             max_line_len: 32e3,
-            ie_proof: true,
             beautify: false,
             source_map: null,
             bracketize: false,
             semicolons: true,
             comments: false,
             preserve_line: false,
-            negate_iife: !(options && options.beautify)
+            screw_ie8: false
         }, true);
         var indentation = 0;
         var current_col = 0;
@@ -2850,8 +2853,8 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                     ++sq;
                     return "'";
 
-                  case "\0":
-                    return "\\0";
+                  case "\x00":
+                    return "\\x00";
                 }
                 return s;
             });
@@ -3083,20 +3086,16 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
         }
         AST_Node.DEFMETHOD("print", function(stream, force_parens) {
             var self = this, generator = self._codegen;
-            stream.push_node(self);
-            var needs_parens = self.needs_parens(stream);
-            var fc = self instanceof AST_Function && stream.option("negate_iife");
-            if (force_parens || needs_parens && !fc) {
-                stream.with_parens(function() {
-                    self.add_comments(stream);
-                    self.add_source_map(stream);
-                    generator(self, stream);
-                });
-            } else {
+            function doit() {
                 self.add_comments(stream);
-                if (needs_parens && fc) stream.print("!");
                 self.add_source_map(stream);
                 generator(self, stream);
+            }
+            stream.push_node(self);
+            if (force_parens || self.needs_parens(stream)) {
+                stream.with_parens(doit);
+            } else {
+                doit();
             }
             stream.pop_node();
         });
@@ -3393,7 +3392,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                 return;
             }
             if (!self.body) return output.force_semicolon();
-            if (self.body instanceof AST_Do && output.option("ie_proof")) {
+            if (self.body instanceof AST_Do && !output.option("screw_ie8")) {
                 make_block(self.body, output);
                 return;
             }
@@ -3612,6 +3611,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                 a.forEach(function(exp, i) {
                     if (i) output.comma();
                     exp.print(output);
+                    if (i === len - 1 && exp instanceof AST_Hole) output.comma();
                 });
                 if (len > 0) output.space();
             });
@@ -3635,10 +3635,10 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                 output.print_string(key + "");
             } else if ((typeof key == "number" || !output.option("beautify") && +key + "" == key) && parseFloat(key) >= 0) {
                 output.print(make_num(key));
-            } else if (!is_identifier(key)) {
-                output.print_string(key);
-            } else {
+            } else if (RESERVED_WORDS(key) ? output.option("screw_ie8") : is_identifier_string(key)) {
                 output.print_name(key);
+            } else {
+                output.print_string(key);
             }
             output.colon();
             self.value.print(output);
@@ -3800,6 +3800,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             join_vars: !false_by_default,
             cascade: !false_by_default,
             side_effects: !false_by_default,
+            negate_iife: !false_by_default,
             screw_ie8: false,
             warnings: true,
             global_defs: {}
@@ -3925,6 +3926,9 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                     statements = join_consecutive_vars(statements, compressor);
                 }
             } while (CHANGED);
+            if (compressor.option("negate_iife")) {
+                negate_iifes(statements, compressor);
+            }
             return statements;
             function eliminate_spurious_blocks(statements) {
                 var seen_dirs = [];
@@ -4165,6 +4169,35 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                     return a;
                 }, []);
             }
+            function negate_iifes(statements, compressor) {
+                statements.forEach(function(stat) {
+                    if (stat instanceof AST_SimpleStatement) {
+                        stat.body = function transform(thing) {
+                            return thing.transform(new TreeTransformer(function(node) {
+                                if (node instanceof AST_Call && node.expression instanceof AST_Function) {
+                                    return make_node(AST_UnaryPrefix, node, {
+                                        operator: "!",
+                                        expression: node
+                                    });
+                                } else if (node instanceof AST_Call) {
+                                    node.expression = transform(node.expression);
+                                } else if (node instanceof AST_Seq) {
+                                    node.car = transform(node.car);
+                                } else if (node instanceof AST_Conditional) {
+                                    var expr = transform(node.condition);
+                                    if (expr !== node.condition) {
+                                        node.condition = expr;
+                                        var tmp = node.consequent;
+                                        node.consequent = node.alternative;
+                                        node.alternative = tmp;
+                                    }
+                                }
+                                return node;
+                            }));
+                        }(stat.body);
+                    }
+                });
+            }
         }
         function extract_declarations_from_unreachable_code(compressor, stat, target) {
             compressor.warn("Dropping unreachable code [{file}:{line},{col}]", stat.start);
@@ -4260,7 +4293,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                 throw new Error(string_template("Cannot evaluate a statement [{file}:{line},{col}]", this.start));
             });
             def(AST_Function, function() {
-                return [ this ];
+                throw def;
             });
             function ev(node) {
                 return node._eval();
@@ -4639,7 +4672,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
                     });
                 }
                 var tt = new TreeTransformer(function before(node, descend, in_list) {
-                    if (node instanceof AST_Lambda) {
+                    if (node instanceof AST_Lambda && !(node instanceof AST_Accessor)) {
                         for (var a = node.argnames, i = a.length; --i >= 0; ) {
                             var sym = a[i];
                             if (sym.unreferenced()) {
@@ -5377,14 +5410,14 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
         });
         var commutativeOperators = makePredicate("== === != !== * & | ^");
         OPT(AST_Binary, function(self, compressor) {
-            function reverse(op, force) {
+            var reverse = compressor.has_directive("use asm") ? noop : function(op, force) {
                 if (force || !(self.left.has_side_effects() || self.right.has_side_effects())) {
                     if (op) self.operator = op;
                     var tmp = self.left;
                     self.left = self.right;
                     self.right = tmp;
                 }
-            }
+            };
             if (commutativeOperators(self.operator)) {
                 if (self.right instanceof AST_Constant && !(self.left instanceof AST_Constant)) {
                     reverse(null, true);
@@ -5588,7 +5621,7 @@ define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, M
             var prop = self.property;
             if (prop instanceof AST_String && compressor.option("properties")) {
                 prop = prop.getValue();
-                if (compressor.option("screw_ie8") && RESERVED_WORDS(prop) || !RESERVED_WORDS(prop) && is_identifier_string(prop)) {
+                if (RESERVED_WORDS(prop) ? compressor.option("screw_ie8") : is_identifier_string(prop)) {
                     return make_node(AST_Dot, self, {
                         expression: self.expression,
                         property: prop
@@ -6027,6 +6060,8 @@ exports.minify = function(files, options, name) {
     if (typeof files == "string")
         files = [ files ];
 
+    UglifyJS.base54.reset();
+
     // 1. parse
     var toplevel = null;
     files.forEach(function(file){
@@ -6056,17 +6091,18 @@ exports.minify = function(files, options, name) {
     }
 
     // 4. output
-    var map = null;
-    var inMap = null;
-    if (options.inSourceMap) {
+    var inMap = options.inSourceMap;
+    var output = {};
+    if (typeof options.inSourceMap == "string") {
         inMap = rjsFile.readFile(options.inSourceMap, "utf8");
     }
-    if (options.outSourceMap) map = UglifyJS.SourceMap({
-        file: options.outSourceMap,
-        orig: inMap,
-        root: options.sourceRoot
-    });
-    var output = { source_map: map };
+    if (options.outSourceMap) {
+        output.source_map = UglifyJS.SourceMap({
+            file: options.outSourceMap,
+            orig: inMap,
+            root: options.sourceRoot
+        });
+    }
     if (options.output) {
         UglifyJS.merge(output, options.output);
     }
@@ -6074,7 +6110,7 @@ exports.minify = function(files, options, name) {
     toplevel.print(stream);
     return {
         code : stream + "",
-        map  : map + ""
+        map  : output.source_map + ""
     };
 };
 

@@ -105,8 +105,10 @@ define(function (require, exports, module) {
       }
 
       this._mappings.push({
-        generated: generated,
-        original: original,
+        generatedLine: generated.line,
+        generatedColumn: generated.column,
+        originalLine: original != null && original.line,
+        originalColumn: original != null && original.column,
         source: source,
         name: name
       });
@@ -167,11 +169,11 @@ define(function (require, exports, module) {
 
       // Find mappings for the "aSourceFile"
       this._mappings.forEach(function (mapping) {
-        if (mapping.source === aSourceFile && mapping.original) {
+        if (mapping.source === aSourceFile && mapping.originalLine) {
           // Check if it can be mapped by the source map, then update the mapping.
           var original = aSourceMapConsumer.originalPositionFor({
-            line: mapping.original.line,
-            column: mapping.original.column
+            line: mapping.originalLine,
+            column: mapping.originalColumn
           });
           if (original.source !== null) {
             // Copy mapping
@@ -180,8 +182,8 @@ define(function (require, exports, module) {
             } else {
               mapping.source = original.source;
             }
-            mapping.original.line = original.line;
-            mapping.original.column = original.column;
+            mapping.originalLine = original.line;
+            mapping.originalColumn = original.column;
             if (original.name !== null && mapping.name !== null) {
               // Only use the identifier name if it's an identifier
               // in both SourceMaps
@@ -245,27 +247,14 @@ define(function (require, exports, module) {
         return;
       }
       else {
-        throw new Error('Invalid mapping.');
+        throw new Error('Invalid mapping: ' + JSON.stringify({
+          generated: aGenerated,
+          source: aSource,
+          orginal: aOriginal,
+          name: aName
+        }));
       }
     };
-
-  function cmpLocation(loc1, loc2) {
-    var cmp = (loc1 && loc1.line) - (loc2 && loc2.line);
-    return cmp ? cmp : (loc1 && loc1.column) - (loc2 && loc2.column);
-  }
-
-  function strcmp(str1, str2) {
-    str1 = str1 || '';
-    str2 = str2 || '';
-    return (str1 > str2) - (str1 < str2);
-  }
-
-  function cmpMapping(mappingA, mappingB) {
-    return cmpLocation(mappingA.generated, mappingB.generated) ||
-      cmpLocation(mappingA.original, mappingB.original) ||
-      strcmp(mappingA.source, mappingB.source) ||
-      strcmp(mappingA.name, mappingB.name);
-  }
 
   /**
    * Serialize the accumulated mappings in to the stream of base 64 VLQs
@@ -287,44 +276,44 @@ define(function (require, exports, module) {
       // via the ';' separators) will be all messed up. Note: it might be more
       // performant to maintain the sorting as we insert them, rather than as we
       // serialize them, but the big O is the same either way.
-      this._mappings.sort(cmpMapping);
+      this._mappings.sort(util.compareByGeneratedPositions);
 
       for (var i = 0, len = this._mappings.length; i < len; i++) {
         mapping = this._mappings[i];
 
-        if (mapping.generated.line !== previousGeneratedLine) {
+        if (mapping.generatedLine !== previousGeneratedLine) {
           previousGeneratedColumn = 0;
-          while (mapping.generated.line !== previousGeneratedLine) {
+          while (mapping.generatedLine !== previousGeneratedLine) {
             result += ';';
             previousGeneratedLine++;
           }
         }
         else {
           if (i > 0) {
-            if (!cmpMapping(mapping, this._mappings[i - 1])) {
+            if (!util.compareByGeneratedPositions(mapping, this._mappings[i - 1])) {
               continue;
             }
             result += ',';
           }
         }
 
-        result += base64VLQ.encode(mapping.generated.column
+        result += base64VLQ.encode(mapping.generatedColumn
                                    - previousGeneratedColumn);
-        previousGeneratedColumn = mapping.generated.column;
+        previousGeneratedColumn = mapping.generatedColumn;
 
-        if (mapping.source && mapping.original) {
+        if (mapping.source) {
           result += base64VLQ.encode(this._sources.indexOf(mapping.source)
                                      - previousSource);
           previousSource = this._sources.indexOf(mapping.source);
 
           // lines are stored 0-based in SourceMap spec version 3
-          result += base64VLQ.encode(mapping.original.line - 1
+          result += base64VLQ.encode(mapping.originalLine - 1
                                      - previousOriginalLine);
-          previousOriginalLine = mapping.original.line - 1;
+          previousOriginalLine = mapping.originalLine - 1;
 
-          result += base64VLQ.encode(mapping.original.column
+          result += base64VLQ.encode(mapping.originalColumn
                                      - previousOriginalColumn);
-          previousOriginalColumn = mapping.original.column;
+          previousOriginalColumn = mapping.originalColumn;
 
           if (mapping.name) {
             result += base64VLQ.encode(this._names.indexOf(mapping.name)
@@ -335,6 +324,23 @@ define(function (require, exports, module) {
       }
 
       return result;
+    };
+
+  SourceMapGenerator.prototype._generateSourcesContent =
+    function SourceMapGenerator_generateSourcesContent(aSources, aSourceRoot) {
+      return aSources.map(function (source) {
+        if (!this._sourcesContents) {
+          return null;
+        }
+        if (aSourceRoot) {
+          source = util.relative(aSourceRoot, source);
+        }
+        var key = util.toSetString(source);
+        return Object.prototype.hasOwnProperty.call(this._sourcesContents,
+                                                    key)
+          ? this._sourcesContents[key]
+          : null;
+      }, this);
     };
 
   /**
@@ -353,16 +359,9 @@ define(function (require, exports, module) {
         map.sourceRoot = this._sourceRoot;
       }
       if (this._sourcesContents) {
-        map.sourcesContent = map.sources.map(function (source) {
-          if (map.sourceRoot) {
-            source = util.relative(map.sourceRoot, source);
-          }
-          return Object.prototype.hasOwnProperty.call(
-            this._sourcesContents, util.toSetString(source))
-            ? this._sourcesContents[util.toSetString(source)]
-            : null;
-        }, this);
+        map.sourcesContent = this._generateSourcesContent(map.sources, map.sourceRoot);
       }
+
       return map;
     };
 
