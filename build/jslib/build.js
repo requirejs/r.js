@@ -1342,7 +1342,8 @@ define(function (require) {
             require(lang.deeplikeCopy(baseLoaderConfig));
         }
 
-        logger.trace("\nTracing dependencies for: " + (module.name || module.out));
+        logger.trace("\nTracing dependencies for: " + (module.name ||
+                     (typeof module.out === 'function' ? 'FUNCTION' : module.out)));
         include = module.name && !module.create ? [module.name] : [];
         if (module.include) {
             include = include.concat(module.include);
