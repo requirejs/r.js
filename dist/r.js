@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Mon, 07 Oct 2013 01:35:32 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Mon, 07 Oct 2013 23:30:32 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Mon, 07 Oct 2013 01:35:32 GMT',
+        version = '2.1.8+ Mon, 07 Oct 2013 23:30:32 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22687,12 +22687,12 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
                 outBaseName, outFileNameMap, outFileNameMapContent,
                 jscomp = Packages.com.google.javascript.jscomp,
                 flags = Packages.com.google.common.flags,
-                //Fake extern
-                externSourceFile = closurefromCode("fakeextern.js", " "),
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
+                sourceListArray = new java.util.ArrayList(),
                 options, option, FLAG_compilation_level, compiler,
-                Compiler = Packages.com.google.javascript.jscomp.Compiler;
+                Compiler = Packages.com.google.javascript.jscomp.Compiler,
+                CommandLineRunner = Packages.com.google.javascript.jscomp.CommandLineRunner;
 
             logger.trace("Minifying file: " + fileName);
 
@@ -22723,8 +22723,12 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
+            
+            //fill the sourceArrrayList; we need the ArrayList because the only overload of compile 
+            //accepting the getDefaultExterns return value (a List) also wants the sources as a List
+            sourceListArray.add(jsSourceFile);
 
-            result = compiler.compile(externSourceFile, jsSourceFile, options);
+            result = compiler.compile(CommandLineRunner.getDefaultExterns(), sourceListArray, options);
             if (result.success) {
                 optimized = String(compiler.toSource());
 
@@ -25202,6 +25206,13 @@ define('build', function (require) {
         //Figure out module layer dependencies by calling require to do the work.
         require(include, includeFinished, deferred.reject);
 
+        // If a sync env, then with the "two IDs to same anon module path"
+        // issue, the require never completes, need to check for errors
+        // here.
+        if (syncChecks[env.get()]) {
+            build.checkForErrors(context);
+        }
+
         return deferred.promise.then(function () {
             //Reset config
             if (module.override && baseLoaderConfig) {
@@ -25217,7 +25228,7 @@ define('build', function (require) {
     build.checkForErrors = function (context) {
         //Check to see if it all loaded. If not, then throw, and give
         //a message on what is left.
-        var id, prop, mod, errUrl, idParts, pluginId,
+        var id, prop, mod, idParts, pluginId,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
@@ -25225,28 +25236,37 @@ define('build', function (require) {
             errUrlMap = {},
             errUrlConflicts = {},
             hasErrUrl = false,
+            hasUndefined = false,
+            defined = context.defined,
             registry = context.registry;
+
+        function populateErrUrlMap(id, errUrl, skipNew) {
+            if (!skipNew) {
+                errIds.push(id);
+            }
+
+            if (errUrlMap[errUrl]) {
+                hasErrUrl = true;
+                //This error module has the same URL as another
+                //error module, could be misconfiguration.
+                if (!errUrlConflicts[errUrl]) {
+                    errUrlConflicts[errUrl] = [];
+                    //Store the original module that had the same URL.
+                    errUrlConflicts[errUrl].push(errUrlMap[errUrl]);
+                }
+                errUrlConflicts[errUrl].push(id);
+            } else if (!skipNew) {
+                errUrlMap[errUrl] = id;
+            }
+        }
 
         for (id in registry) {
             if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
+                hasUndefined = true;
                 mod = getOwn(registry, id);
-                if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
-                    errIds.push(id);
-                    errUrl = mod.map.url;
 
-                    if (errUrlMap[errUrl]) {
-                        hasErrUrl = true;
-                        //This error module has the same URL as another
-                        //error module, could be misconfiguration.
-                        if (!errUrlConflicts[errUrl]) {
-                            errUrlConflicts[errUrl] = [];
-                            //Store the original module that had the same URL.
-                            errUrlConflicts[errUrl].push(errUrlMap[errUrl]);
-                        }
-                        errUrlConflicts[errUrl].push(id);
-                    } else {
-                        errUrlMap[errUrl] = id;
-                    }
+                if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
+                    populateErrUrlMap(id, mod.map.url);
                 }
 
                 //Look for plugins that did not call load()
@@ -25255,6 +25275,16 @@ define('build', function (require) {
                 if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
                     failedPluginIds.push(pluginId);
                     failedPluginMap[pluginId] = true;
+                }
+            }
+        }
+
+        // If have some modules that are not defined/stuck in the registry,
+        // then check defined modules for URL overlap.
+        if (hasUndefined) {
+            for (id in defined) {
+                if (hasProp(defined, id) && id.indexOf('!') === -1) {
+                    populateErrUrlMap(id, require.toUrl(id) + '.js', true);
                 }
             }
         }
@@ -25282,7 +25312,6 @@ define('build', function (require) {
             }
             throw new Error(errMessage);
         }
-
     };
 
     build.createOverrideConfig = function (config, override) {
