@@ -823,18 +823,25 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * @returns {String} a JS source string.
      */
     parse.nodeToString = function (contents, node) {
-        var loc = node.loc,
+        var extracted,
+            loc = node.loc,
             lines = contents.split('\n'),
             firstLine = loc.start.line > 1 ?
                         lines.slice(0, loc.start.line - 1).join('\n') + '\n' :
                         '',
             preamble = firstLine +
-                       lines[loc.start.line - 1].substring(0, loc.start.column),
+                       lines[loc.start.line - 1].substring(0, loc.start.column);
+
+        if (loc.start.line === loc.end.line) {
+            extracted = lines[loc.start.line - 1].substring(loc.start.column,
+                                                            loc.end.column);
+        } else {
             extracted =  lines[loc.start.line - 1].substring(loc.start.column) +
                      '\n' +
                      lines.slice(loc.start.line, loc.end.line - 1).join('\n') +
                      '\n' +
                      lines[loc.end.line - 1].substring(0, loc.end.column);
+        }
 
         return {
             value: extracted,

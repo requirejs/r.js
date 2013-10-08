@@ -35,6 +35,30 @@ define(['transform', 'env!env/file'], function (transform, file) {
                     return config;
                 });
 
+                test(t, 'emptyObject.js', function (config) {
+                    if (!config.paths) {
+                        config.paths = {};
+                    }
+                    config.paths.a = 'a';
+                    return config;
+                });
+
+                test(t, 'startLineBreak.js', function (config) {
+                    if (!config.paths) {
+                        config.paths = {};
+                    }
+                    config.paths.a = 'a';
+                    return config;
+                });
+
+                test(t, 'bothLineBreak.js', function (config) {
+                    if (!config.paths) {
+                        config.paths = {};
+                    }
+                    config.paths.a = 'a';
+                    return config;
+                });
+
                 //Rhino's Function.toString strips comments and
                 //does not maintain indentation, so need a different
                 //comparison file to use for the results. xpconnect
