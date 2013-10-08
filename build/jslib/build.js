@@ -156,6 +156,8 @@ define(function (require) {
 
             return build._run(cmdConfig);
         }).then(null, function (e) {
+            var err;
+
             errorMsg = e.toString();
             errorTree = e.moduleTree;
             stackMatch = stackRegExp.exec(errorMsg);
@@ -196,7 +198,9 @@ define(function (require) {
                 }
             }
 
-            throw new Error(errorMsg);
+            err = new Error(errorMsg);
+            err.originalError = e;
+            throw err;
         });
     };
 
