@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Mon, 07 Oct 2013 23:30:32 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Tue, 08 Oct 2013 00:45:43 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Mon, 07 Oct 2013 23:30:32 GMT',
+        version = '2.1.8+ Tue, 08 Oct 2013 00:45:43 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -21801,18 +21801,25 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * @returns {String} a JS source string.
      */
     parse.nodeToString = function (contents, node) {
-        var loc = node.loc,
+        var extracted,
+            loc = node.loc,
             lines = contents.split('\n'),
             firstLine = loc.start.line > 1 ?
                         lines.slice(0, loc.start.line - 1).join('\n') + '\n' :
                         '',
             preamble = firstLine +
-                       lines[loc.start.line - 1].substring(0, loc.start.column),
+                       lines[loc.start.line - 1].substring(0, loc.start.column);
+
+        if (loc.start.line === loc.end.line) {
+            extracted = lines[loc.start.line - 1].substring(loc.start.column,
+                                                            loc.end.column);
+        } else {
             extracted =  lines[loc.start.line - 1].substring(loc.start.column) +
                      '\n' +
                      lines.slice(loc.start.line, loc.end.line - 1).join('\n') +
                      '\n' +
                      lines[loc.end.line - 1].substring(0, loc.end.column);
+        }
 
         return {
             value: extracted,
