@@ -2032,6 +2032,30 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    //Allow wrap config in overrides
+    //https://github.com/jrburke/r.js/issues/503
+    doh.register("overrideWrap",
+        [
+            function overrideWrap(t) {
+                file.deleteFile("lib/override/wrap/built");
+
+                build(["lib/override/wrap/build.js"]);
+
+                t.is(nol(c("lib/override/wrap/expected/a.js")),
+                     nol(c("lib/override/wrap/built/a.js")));
+                t.is(nol(c("lib/override/wrap/expected/b.js")),
+                     nol(c("lib/override/wrap/built/b.js")));
+                t.is(nol(c("lib/override/wrap/expected/c.js")),
+                     nol(c("lib/override/wrap/built/c.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     //Do not removeCombined files that are outside the build dir.
     //https://github.com/jrburke/requirejs/issues/755
     doh.register("removeCombinedPaths",

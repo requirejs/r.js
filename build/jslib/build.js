@@ -942,6 +942,26 @@ define(function (require) {
         }
     }
 
+    function normalizeWrapConfig(config, absFilePath) {
+        //Get any wrap text.
+        try {
+            if (config.wrap) {
+                if (config.wrap === true) {
+                    //Use default values.
+                    config.wrap = {
+                        start: '(function () {',
+                        end: '}());'
+                    };
+                } else {
+                    flattenWrapFile(config.wrap, 'start', absFilePath);
+                    flattenWrapFile(config.wrap, 'end', absFilePath);
+                }
+            }
+        } catch (wrapError) {
+            throw new Error('Malformed wrap config: ' + wrapError.toString());
+        }
+    }
+
     /**
      * Creates a config object for an optimization build.
      * It will also read the build profile if it is available, to create
@@ -1219,26 +1239,15 @@ define(function (require) {
                         mod.stubModules._byName[id] = true;
                     });
                 }
+
+                //Allow wrap config in overrides, but normalize it.
+                if (mod.override) {
+                    normalizeWrapConfig(mod.override, absFilePath);
+                }
             });
         }
 
-        //Get any wrap text.
-        try {
-            if (config.wrap) {
-                if (config.wrap === true) {
-                    //Use default values.
-                    config.wrap = {
-                        start: '(function () {',
-                        end: '}());'
-                    };
-                } else {
-                    flattenWrapFile(config.wrap, 'start', absFilePath);
-                    flattenWrapFile(config.wrap, 'end', absFilePath);
-                }
-            }
-        } catch (wrapError) {
-            throw new Error('Malformed wrap config: ' + wrapError.toString());
-        }
+        normalizeWrapConfig(config, absFilePath);
 
         //Do final input verification
         if (config.context) {
