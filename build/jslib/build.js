@@ -1710,7 +1710,8 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
-                        var sourceMapPath, sourceMapLineNumber,
+                        var refPath,
+                            sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
                         module.onCompleteData.included.push(shortPath);
@@ -1735,7 +1736,15 @@ define(function (require) {
 
                         //Add to the source map
                         if (sourceMapGenerator) {
-                            sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
+                            refPath = config.out ? config.baseUrl : module._buildPath;
+                            if (path.indexOf('!') === -1) {
+                                //Not a plugin resource, fix the path
+                                sourceMapPath = build.makeRelativeFilePath(refPath, path);
+                            } else {
+                                //Plugin resource, best to not to make it relative.
+                                sourceMapPath = path;
+                            }
+
                             sourceMapLineNumber = fileContents.split('\n').length - 1;
                             lineCount = singleContents.split('\n').length;
                             for (var i = 1; i <= lineCount; i += 1) {

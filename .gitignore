@@ -75,6 +75,8 @@ build/tests/lib/rhino-186/built
 build/tests/lib/semicolonInsert/a-built.js
 build/tests/lib/shimFakeDefine/main-built.js
 build/tests/lib/sourcemap/www-built
+build/tests/lib/sourcemap/onejs/built.js
+build/tests/lib/sourcemap/onejs/built.js.map
 build/tests/lib/stubModules/create/foobar-built.js
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/stubModules/perModule/built

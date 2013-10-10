@@ -1971,6 +1971,26 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    //Make sure "onejs" builds generate source map files relative to baseUrl,
+    //and not the output file:
+    //https://github.com/jrburke/r.js/issues/477
+    doh.register("sourcemapOneJs",
+        [
+            function sourcemapOneJs(t) {
+                file.deleteFile("lib/sourcemap/onejs/built.js");
+                file.deleteFile("lib/sourcemap/onejs/built.js.map");
+
+                build(["lib/sourcemap/onejs/build.js"]);
+
+                t.is(nol(c("lib/sourcemap/onejs/expected.map")),
+                     nol(c("lib/sourcemap/onejs/built.js.map")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
     //Allow the target of an optimization to be a module that is only
     //provided in the rawText config.
     //Test single file JS optimization with source map generation
