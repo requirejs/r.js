@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Fri, 11 Oct 2013 06:05:19 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Fri, 11 Oct 2013 18:37:42 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Fri, 11 Oct 2013 06:05:19 GMT',
+        version = '2.1.8+ Fri, 11 Oct 2013 18:37:42 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -25667,7 +25667,7 @@ define('build', function (require) {
                             });
                         }
                     }).then(function () {
-                        var refPath, pluginId, resourcePath,
+                        var refPath, pluginId, resourcePath, mapSingleContents,
                             sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
@@ -25713,7 +25713,14 @@ define('build', function (require) {
                                 }
                             }
 
-                            sourceMapLineNumber = fileContents.split('\n').length - 1;
+                            //singleContents always has a line break added from
+                            //the above code. However, that line break is not in
+                            //the original code. So the sourceMapLineNumber
+                            //needs to start + 1 to skip over that line, and the
+                            //singleContents put into the map also needs to
+                            //remove the line break for things to line up.
+                            sourceMapLineNumber = fileContents.split('\n').length - 1 + 1;
+                            mapSingleContents = singleContents.substring(1);
                             lineCount = singleContents.split('\n').length;
                             for (var i = 1; i <= lineCount; i += 1) {
                                 sourceMapGenerator.addMapping({
@@ -25733,7 +25740,7 @@ define('build', function (require) {
                             //map since other transforms later like minification
                             //can mess up translating back to the original
                             //source
-                            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+                            sourceMapGenerator.setSourceContent(sourceMapPath, mapSingleContents);
                         }
 
                         //Add the file to the final contents
