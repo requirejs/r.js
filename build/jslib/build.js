@@ -27,7 +27,8 @@ define(function (require) {
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
-        endsWithSemiColonRegExp = /;\s*$/;
+        endsWithSemiColonRegExp = /;\s*$/,
+        resourceIsModuleIdRegExp = /^[\w\/\\\.]+$/;
 
     prim.nextTick = function (fn) {
         fn();
@@ -1710,7 +1711,7 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
-                        var refPath,
+                        var refPath, pluginId, resourcePath,
                             sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
@@ -1737,12 +1738,23 @@ define(function (require) {
                         //Add to the source map
                         if (sourceMapGenerator) {
                             refPath = config.out ? config.baseUrl : module._buildPath;
-                            if (path.indexOf('!') === -1) {
+                            parts = path.split('!');
+                            if (parts.length === 1) {
                                 //Not a plugin resource, fix the path
                                 sourceMapPath = build.makeRelativeFilePath(refPath, path);
                             } else {
-                                //Plugin resource, best to not to make it relative.
-                                sourceMapPath = path;
+                                //Plugin resource. If it looks like just a plugin
+                                //followed by a module ID, pull off the plugin
+                                //and put it at the end of the name, otherwise
+                                //just leave it alone.
+                                pluginId = parts.shift();
+                                resourcePath = parts.join('!');
+                                if (resourceIsModuleIdRegExp.test(resourcePath)) {
+                                    sourceMapPath = build.makeRelativeFilePath(refPath, require.toUrl(resourcePath)) +
+                                                    '!' + pluginId;
+                                } else {
+                                    sourceMapPath = path;
+                                }
                             }
 
                             sourceMapLineNumber = fileContents.split('\n').length - 1;
