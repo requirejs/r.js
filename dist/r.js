@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Thu, 10 Oct 2013 22:04:24 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Fri, 11 Oct 2013 06:05:19 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Thu, 10 Oct 2013 22:04:24 GMT',
+        version = '2.1.8+ Fri, 11 Oct 2013 06:05:19 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23983,7 +23983,8 @@ define('build', function (require) {
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
-        endsWithSemiColonRegExp = /;\s*$/;
+        endsWithSemiColonRegExp = /;\s*$/,
+        resourceIsModuleIdRegExp = /^[\w\/\\\.]+$/;
 
     prim.nextTick = function (fn) {
         fn();
@@ -25666,7 +25667,7 @@ define('build', function (require) {
                             });
                         }
                     }).then(function () {
-                        var refPath,
+                        var refPath, pluginId, resourcePath,
                             sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
@@ -25693,12 +25694,23 @@ define('build', function (require) {
                         //Add to the source map
                         if (sourceMapGenerator) {
                             refPath = config.out ? config.baseUrl : module._buildPath;
-                            if (path.indexOf('!') === -1) {
+                            parts = path.split('!');
+                            if (parts.length === 1) {
                                 //Not a plugin resource, fix the path
                                 sourceMapPath = build.makeRelativeFilePath(refPath, path);
                             } else {
-                                //Plugin resource, best to not to make it relative.
-                                sourceMapPath = path;
+                                //Plugin resource. If it looks like just a plugin
+                                //followed by a module ID, pull off the plugin
+                                //and put it at the end of the name, otherwise
+                                //just leave it alone.
+                                pluginId = parts.shift();
+                                resourcePath = parts.join('!');
+                                if (resourceIsModuleIdRegExp.test(resourcePath)) {
+                                    sourceMapPath = build.makeRelativeFilePath(refPath, require.toUrl(resourcePath)) +
+                                                    '!' + pluginId;
+                                } else {
+                                    sourceMapPath = path;
+                                }
                             }
 
                             sourceMapLineNumber = fileContents.split('\n').length - 1;
