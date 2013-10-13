@@ -41,6 +41,41 @@ function (lang,   logger,   envOptimize,        file,           parse,
         return url;
     }
 
+    function fixCssUrlPaths(fileName, path, contents, cssPrefix) {
+        return contents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
+            var colonIndex, parts, i,
+                fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
+
+            fixedUrlMatch = fixedUrlMatch.replace(lang.backSlashRegExp, "/");
+
+            //Only do the work for relative URLs. Skip things that start with / or have
+            //a protocol.
+            colonIndex = fixedUrlMatch.indexOf(":");
+            if (fixedUrlMatch.charAt(0) !== "/" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
+                //It is a relative URL, tack on the cssPrefix and path prefix
+                urlMatch = cssPrefix + path + fixedUrlMatch;
+
+            } else {
+                logger.trace(fileName + "\n  URL not a relative URL, skipping: " + urlMatch);
+            }
+
+            //Collapse .. and .
+            parts = urlMatch.split("/");
+            for (i = parts.length - 1; i > 0; i--) {
+                if (parts[i] === ".") {
+                    parts.splice(i, 1);
+                } else if (parts[i] === "..") {
+                    if (i !== 0 && parts[i - 1] !== "..") {
+                        parts.splice(i - 1, 2);
+                        i -= 1;
+                    }
+                }
+            }
+
+            return "url(" + parts.join("/") + ")";
+        });
+    }
+
     /**
      * Inlines nested stylesheets that have @import calls in them.
      * @param {String} fileName the file name
@@ -49,7 +84,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
      * @param {String} cssPrefix string to be prefixed before relative URLs
      * @param {Object} included an object used to track the files already imported
      */
-    function flattenCss(fileName, fileContents, cssImportIgnore, cssPrefix, included) {
+    function flattenCss(fileName, fileContents, cssImportIgnore, cssPrefix, included, topLevel) {
         //Find the last slash in the name.
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
@@ -60,7 +95,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             importList = [],
             skippedList = [];
 
-        //First make a pass by removing an commented out @import calls.
+        //First make a pass by removing any commented out @import calls.
         fileContents = fileContents.replace(cssCommentImportRegExp, '');
 
         //Make sure we have a delimited ignore list to make matching faster
@@ -90,8 +125,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 //If it is not a relative path, then the readFile below will fail,
                 //and we will just skip that import.
                 var fullImportFileName = importFileName.charAt(0) === "/" ? importFileName : filePath + importFileName,
-                    importContents = file.readFile(fullImportFileName), i,
-                    importEndIndex, importPath, fixedUrlMatch, colonIndex, parts, flat;
+                    importContents = file.readFile(fullImportFileName),
+                    importEndIndex, importPath, flat;
 
                 //Skip the file if it has already been included.
                 if (included[fullImportFileName]) {
@@ -121,36 +156,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 importPath = importPath.replace(/^\.\//, '');
 
                 //Modify URL paths to match the path represented by this file.
-                importContents = importContents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
-                    fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
-                    fixedUrlMatch = fixedUrlMatch.replace(lang.backSlashRegExp, "/");
-
-                    //Only do the work for relative URLs. Skip things that start with / or have
-                    //a protocol.
-                    colonIndex = fixedUrlMatch.indexOf(":");
-                    if (fixedUrlMatch.charAt(0) !== "/" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
-                        //It is a relative URL, tack on the cssPrefix and path prefix
-                        urlMatch = cssPrefix + importPath + fixedUrlMatch;
-
-                    } else {
-                        logger.trace(importFileName + "\n  URL not a relative URL, skipping: " + urlMatch);
-                    }
-
-                    //Collapse .. and .
-                    parts = urlMatch.split("/");
-                    for (i = parts.length - 1; i > 0; i--) {
-                        if (parts[i] === ".") {
-                            parts.splice(i, 1);
-                        } else if (parts[i] === "..") {
-                            if (i !== 0 && parts[i - 1] !== "..") {
-                                parts.splice(i - 1, 2);
-                                i -= 1;
-                            }
-                        }
-                    }
-
-                    return "url(" + parts.join("/") + ")";
-                });
+                importContents = fixCssUrlPaths(importFileName, importPath, importContents, cssPrefix);
 
                 importList.push(fullImportFileName);
                 return importContents;
@@ -159,6 +165,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 return fullMatch;
             }
         });
+
+        if (cssPrefix && topLevel) {
+            //Modify URL paths to match the path represented by this file.
+            fileContents = fixCssUrlPaths(fileName, '', fileContents, cssPrefix);
+        }
 
         return {
             importList : importList,
@@ -269,7 +280,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
             //Read in the file. Make sure we have a JS string.
             var originalFileContents = file.readFile(fileName),
-                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, config.cssPrefix, {}),
+                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, config.cssPrefix, {}, true),
                 //Do not use the flattened CSS if there was one that was skipped.
                 fileContents = flat.skippedList.length ? originalFileContents : flat.fileContents,
                 startIndex, endIndex, buildText, comment;
