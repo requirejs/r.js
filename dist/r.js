@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.8+ Sun, 13 Oct 2013 00:52:22 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.8+ Sun, 13 Oct 2013 02:52:19 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.8+ Sun, 13 Oct 2013 00:52:22 GMT',
+        version = '2.1.8+ Sun, 13 Oct 2013 02:52:19 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2391,10 +2391,16 @@ var requirejs, require, define, xpcUtil;
         fn();
     }
 
+    function makeError(message, moduleName) {
+        var err = new Error(message);
+        err.requireModules = [moduleName];
+        return err;
+    }
+
     //Supply an implementation that allows synchronous get of a module.
     req.get = function (context, moduleName, relModuleMap, localRequire) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
-            req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
+            context.onError(makeError("Explicit require of " + moduleName + " is not allowed.", moduleName));
         }
 
         var ret, oldTick,
@@ -2477,8 +2483,9 @@ var requirejs, require, define, xpcUtil;
                                 moduleName + '" failed with error: ' + e);
                 err.originalError = e;
                 err.moduleName = moduleName;
+                err.requireModules = [moduleName];
                 err.fileName = url;
-                return req.onError(err);
+                return context.onError(err);
             }
         } else {
             def(moduleName, function () {
@@ -2507,7 +2514,8 @@ var requirejs, require, define, xpcUtil;
                                      'with error: ' + e);
                     err.originalError = e;
                     err.moduleName = originalName;
-                    return req.onError(err);
+                    err.requireModules = [moduleName];
+                    return context.onError(err);
                 }
             });
         }
