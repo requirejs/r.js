@@ -339,6 +339,12 @@
         {
             name: "foo/bar/bop",
 
+            //create: true can be used to create the modul layer at the given
+            //name, if it does not already exist in the source location. If
+            //there is a module at the source location with this name, then
+            //create: true is superfluous.
+            create: true,
+
             //For build profiles that contain more than one modules entry,
             //allow overrides for the properties that set for the whole build,
             //for example a different set of pragmas for this module.
