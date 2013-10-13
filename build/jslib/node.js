@@ -35,10 +35,16 @@
         fn();
     }
 
+    function makeError(message, moduleName) {
+        var err = new Error(message);
+        err.requireModules = [moduleName];
+        return err;
+    }
+
     //Supply an implementation that allows synchronous get of a module.
     req.get = function (context, moduleName, relModuleMap, localRequire) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
-            req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
+            context.onError(makeError("Explicit require of " + moduleName + " is not allowed.", moduleName));
         }
 
         var ret, oldTick,
@@ -121,8 +127,9 @@
                                 moduleName + '" failed with error: ' + e);
                 err.originalError = e;
                 err.moduleName = moduleName;
+                err.requireModules = [moduleName];
                 err.fileName = url;
-                return req.onError(err);
+                return context.onError(err);
             }
         } else {
             def(moduleName, function () {
@@ -151,7 +158,8 @@
                                      'with error: ' + e);
                     err.originalError = e;
                     err.moduleName = originalName;
-                    return req.onError(err);
+                    err.requireModules = [moduleName];
+                    return context.onError(err);
                 }
             });
         }
