@@ -1711,7 +1711,7 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
-                        var refPath, pluginId, resourcePath, mapSingleContents,
+                        var refPath, pluginId, resourcePath,
                             sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
@@ -1757,15 +1757,8 @@ define(function (require) {
                                 }
                             }
 
-                            //singleContents always has a line break added from
-                            //the above code. However, that line break is not in
-                            //the original code. So the sourceMapLineNumber
-                            //needs to start + 1 to skip over that line, and the
-                            //singleContents put into the map also needs to
-                            //remove the line break for things to line up.
-                            sourceMapLineNumber = fileContents.split('\n').length - 1 + 1;
-                            mapSingleContents = singleContents.substring(1);
-                            lineCount = mapSingleContents.split('\n').length;
+                            sourceMapLineNumber = fileContents.split('\n').length - 1;
+                            lineCount = singleContents.split('\n').length;
                             for (var i = 1; i <= lineCount; i += 1) {
                                 sourceMapGenerator.addMapping({
                                     generated: {
@@ -1784,7 +1777,7 @@ define(function (require) {
                             //map since other transforms later like minification
                             //can mess up translating back to the original
                             //source.
-                            sourceMapGenerator.setSourceContent(sourceMapPath, mapSingleContents);
+                            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
                         }
 
                         //Add the file to the final contents
