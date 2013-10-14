@@ -196,7 +196,7 @@
     //returns. (r.js 1.0.8+)
     optimizeCss: "standard.keepLines",
 
-    //If optimizeCss is in use, a list of of files to ignore for the @import
+    //If optimizeCss is in use, a list of files to ignore for the @import
     //inlining. The value of this option should be a string of comma separated
     //CSS file names to ignore (like 'a.css,b.css'. The file names should match
     //whatever strings are used in the @import calls.
