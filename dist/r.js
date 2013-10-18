@@ -22078,6 +22078,13 @@ function (esprima, parse, logger, lang) {
     }
 
     transform = {
+        _esprimaParseHash: {},
+        _esprimaParse: function(path, contents, options) {
+            return this._esprimaParseHash[path] ||
+                (this._esprimaParseHash[path] = esprima.parse(contents, {
+                    loc: true
+                }));
+        },
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
             options = options || {};
 
@@ -22088,9 +22095,7 @@ function (esprima, parse, logger, lang) {
                 defineInfos = [];
 
             try {
-                astRoot = esprima.parse(contents, {
-                    loc: true
-                });
+                astRoot = this._esprimaParse(path, contents);
             } catch (e) {
                 logger.trace('toTransport skipping ' + path + ': ' +
                              e.toString());
