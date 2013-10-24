@@ -22079,7 +22079,7 @@ function (esprima, parse, logger, lang) {
 
     transform = {
         _esprimaParseHash: {},
-        _esprimaParse: function(path, contents, options) {
+        _esprimaParse: function(path, contents) {
             return this._esprimaParseHash[path] ||
                 (this._esprimaParseHash[path] = esprima.parse(contents, {
                     loc: true
