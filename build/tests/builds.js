@@ -989,6 +989,23 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    doh.register("cssKeepWhitespace",
+        [
+            function cssKeepComments(t) {
+                file.deleteFile("lib/cssKeepWhitespace/main-built.css");
+
+                build(["lib/cssKeepWhitespace/build.js"]);
+
+                t.is(nol(c("lib/cssKeepWhitespace/expected.css")),
+                     nol(c("lib/cssKeepWhitespace/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("cssKeepLicense",
         [
             function cssKeepLicense(t) {

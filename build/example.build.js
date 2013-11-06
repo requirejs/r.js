@@ -196,7 +196,7 @@
     //- "standard.keepComments.keepLines": keeps the file comments and line
     //returns. (r.js 1.0.8+)
     //- "standard.keepWhitespace": like "standard" but keeps unnecessary whitespace.
-    optimizeCss: "standard.keepLines",
+    optimizeCss: "standard.keepLines.keepWhitespace",
 
     //If optimizeCss is in use, a list of of files to ignore for the @import
     //inlining. The value of this option should be a string of comma separated
