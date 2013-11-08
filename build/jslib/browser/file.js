@@ -7,7 +7,7 @@
 /*jslint sloppy: true, nomen: true */
 /*global require, define, console, XMLHttpRequest, requirejs, location */
 
-define(['prim'], function (prim) {
+define(['prim', 'logger'], function (prim, logger) {
 
     var file,
         currDirRegExp = /^\.(\/|$)/;
@@ -118,6 +118,7 @@ define(['prim'], function (prim) {
          * Reads a *text* file.
          */
         readFile: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var xhr = new XMLHttpRequest();
 
             //Oh yeah, that is right SYNC IO. Behold its glory
@@ -129,6 +130,7 @@ define(['prim'], function (prim) {
         },
 
         readFileAsync: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var xhr = new XMLHttpRequest(),
                 d = prim();
 
@@ -150,14 +152,17 @@ define(['prim'], function (prim) {
 
         saveUtf8File: function (fileName, fileContents) {
             //summary: saves a *text* file using UTF-8 encoding.
+            logger.trace("Saving file " + fileName);
             file.saveFile(fileName, fileContents, "utf8");
         },
 
         saveFile: function (fileName, fileContents, encoding) {
+            logger.trace("Saving file " + fileName);
             requirejs.browser.saveFile(fileName, fileContents, encoding);
         },
 
         deleteFile: function (fileName) {
+            logger.trace("Deleting file " + fileName);
             console.log('file.deleteFile is no-op in browser');
         },
 
