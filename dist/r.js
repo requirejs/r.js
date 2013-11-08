@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9 Fri, 08 Nov 2013 04:13:42 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9 Fri, 08 Nov 2013 06:15:00 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9 Fri, 08 Nov 2013 04:13:42 GMT',
+        version = '2.1.9 Fri, 08 Nov 2013 06:15:00 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -3864,9 +3864,6 @@ define('rhino/file', ['prim', 'logger'], function (prim, logger) {
             var destFile = new java.io.File(destFileName), srcFile, parentDir,
             srcChannel, destChannel;
 
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
-
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
             if (onlyCopyNew) {
@@ -4178,9 +4175,6 @@ define('xpconnect/file', ['prim', 'logger'], function (prim, logger) {
             var destFile = xpfile(destFileName),
             srcFile = xpfile(srcFileName);
 
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
-
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
             if (onlyCopyNew) {
@@ -4443,7 +4437,7 @@ define('logger', ['env!env/print'], function (print) {
         WARN: 2,
         ERROR: 3,
         SILENT: 4,
-        level: 0,
+        level: 1,
         logPrefix: "",
 
         logLevel: function( level ) {
