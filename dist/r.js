@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9 Fri, 08 Nov 2013 06:15:00 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9',
+        version = '2.1.9 Fri, 08 Nov 2013 06:15:00 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2302,7 +2302,7 @@ var requirejs, require, define, xpcUtil;
 
     if (env === 'browser') {
         /**
- * @license RequireJS rhino Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS rhino Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2331,7 +2331,7 @@ var requirejs, require, define, xpcUtil;
 }());
     } else if (env === 'rhino') {
         /**
- * @license RequireJS rhino Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS rhino Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2355,7 +2355,7 @@ var requirejs, require, define, xpcUtil;
         require.nodeRequire = nodeRequire;
 
         /**
- * @license RequireJS node Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS node Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2569,7 +2569,7 @@ var requirejs, require, define, xpcUtil;
      */
     function loadLib() {
         /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2622,7 +2622,7 @@ var requirejs, require, define, xpcUtil;
         }
     });
 }());/**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2999,7 +2999,7 @@ var prim;
 }());
 if(env === 'browser') {
 /**
- * @license RequireJS Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3016,7 +3016,7 @@ define('browser/assert', function () {
 
 if(env === 'node') {
 /**
- * @license RequireJS Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3033,7 +3033,7 @@ define('node/assert', ['assert'], function (assert) {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3067,7 +3067,7 @@ define('xpconnect/assert', function () {
 
 if(env === 'browser') {
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3084,7 +3084,7 @@ define('browser/args', function () {
 
 if(env === 'node') {
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3108,7 +3108,7 @@ define('node/args', function () {
 
 if(env === 'rhino') {
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3158,7 +3158,7 @@ define('xpconnect/args', function () {
 
 if(env === 'browser') {
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3178,7 +3178,7 @@ define('browser/load', ['./file'], function (file) {
 
 if(env === 'node') {
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3199,7 +3199,7 @@ define('node/load', ['fs'], function (fs) {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3231,7 +3231,7 @@ define('xpconnect/load', function () {
 
 if(env === 'browser') {
 /**
- * @license Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3239,7 +3239,7 @@ if(env === 'browser') {
 /*jslint sloppy: true, nomen: true */
 /*global require, define, console, XMLHttpRequest, requirejs, location */
 
-define('browser/file', ['prim'], function (prim) {
+define('browser/file', ['prim', 'logger'], function (prim, logger) {
 
     var file,
         currDirRegExp = /^\.(\/|$)/;
@@ -3350,6 +3350,7 @@ define('browser/file', ['prim'], function (prim) {
          * Reads a *text* file.
          */
         readFile: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var xhr = new XMLHttpRequest();
 
             //Oh yeah, that is right SYNC IO. Behold its glory
@@ -3361,6 +3362,7 @@ define('browser/file', ['prim'], function (prim) {
         },
 
         readFileAsync: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var xhr = new XMLHttpRequest(),
                 d = prim();
 
@@ -3382,14 +3384,17 @@ define('browser/file', ['prim'], function (prim) {
 
         saveUtf8File: function (fileName, fileContents) {
             //summary: saves a *text* file using UTF-8 encoding.
+            logger.trace("Saving file " + fileName);
             file.saveFile(fileName, fileContents, "utf8");
         },
 
         saveFile: function (fileName, fileContents, encoding) {
+            logger.trace("Saving file " + fileName);
             requirejs.browser.saveFile(fileName, fileContents, encoding);
         },
 
         deleteFile: function (fileName) {
+            logger.trace("Deleting file " + fileName);
             console.log('file.deleteFile is no-op in browser');
         },
 
@@ -3409,7 +3414,7 @@ define('browser/file', ['prim'], function (prim) {
 
 if(env === 'node') {
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3417,7 +3422,7 @@ if(env === 'node') {
 /*jslint plusplus: false, octal:false, strict: false */
 /*global define: false, process: false */
 
-define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
+define('node/file', ['fs', 'path', 'prim', 'logger'], function (fs, path, prim, logger) {
 
     var isWindows = process.platform === 'win32',
         windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
@@ -3555,6 +3560,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
         copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
             //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
             //file should be copied. Returns a list file name strings of the destinations that were copied.
+            logger.trace("Copying directory " + srcDir + " to " + destDir);
             regExpFilter = regExpFilter || /\w/;
 
             //Normalize th directory names, but keep front slashes.
@@ -3580,10 +3586,8 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
         copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
             //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
             //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
+            logger.trace("Copying file " + srcFileName + " to " + destFileName);
             var parentDir;
-
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
 
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
@@ -3608,6 +3612,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
          * Renames a file. May fail if "to" already exists or is on another drive.
          */
         renameFile: function (from, to) {
+            logger.trace("Renaming file " + from + " to " + to);
             return fs.renameSync(from, to);
         },
 
@@ -3615,6 +3620,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
          * Reads a *text* file.
          */
         readFile: function (/*String*/path, /*String?*/encoding) {
+            logger.trace("Reading file " + path);
             if (encoding === 'utf-8') {
                 encoding = 'utf8';
             }
@@ -3634,6 +3640,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
         },
 
         readFileAsync: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var d = prim();
             try {
                 d.resolve(file.readFile(path, encoding));
@@ -3645,11 +3652,13 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
 
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
             //summary: saves a *text* file using UTF-8 encoding.
+            logger.trace("Saving file " + fileName);
             file.saveFile(fileName, fileContents, "utf8");
         },
 
         saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
             //summary: saves a *text* file.
+            logger.trace("Saving file " + fileName);
             var parentDir;
 
             if (encoding === 'utf-8') {
@@ -3670,6 +3679,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
 
         deleteFile: function (/*String*/fileName) {
             //summary: deletes a file or directory if it exists.
+            logger.trace("Deleting file " + fileName);
             var files, i, stat;
             if (file.exists(fileName)) {
                 stat = fs.statSync(fileName);
@@ -3719,7 +3729,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3728,7 +3738,7 @@ if(env === 'rhino') {
 /*jslint plusplus: false */
 /*global java: false, define: false */
 
-define('rhino/file', ['prim'], function (prim) {
+define('rhino/file', ['prim', 'logger'], function (prim, logger) {
     var file = {
         backSlashRegExp: /\\/g,
 
@@ -3829,6 +3839,7 @@ define('rhino/file', ['prim'], function (prim) {
         copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
             //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
             //file should be copied. Returns a list file name strings of the destinations that were copied.
+            logger.trace("Copying directory " + srcDir + " to " + destDir);
             regExpFilter = regExpFilter || /\w/;
 
             var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
@@ -3849,11 +3860,9 @@ define('rhino/file', ['prim'], function (prim) {
         copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
             //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
             //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
+            logger.trace("Copying file " + srcFileName + " to " + destFileName);
             var destFile = new java.io.File(destFileName), srcFile, parentDir,
             srcChannel, destChannel;
-
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
 
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
@@ -3886,11 +3895,13 @@ define('rhino/file', ['prim'], function (prim) {
          * Renames a file. May fail if "to" already exists or is on another drive.
          */
         renameFile: function (from, to) {
+            logger.trace("Renaming file " + from + " to " + to);
             return (new java.io.File(from)).renameTo((new java.io.File(to)));
         },
 
         readFile: function (/*String*/path, /*String?*/encoding) {
             //A file read function that can deal with BOMs
+            logger.trace("Reading file " + path);
             encoding = encoding || "utf-8";
             var fileObj = new java.io.File(path),
                     input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(fileObj), encoding)),
@@ -3923,6 +3934,7 @@ define('rhino/file', ['prim'], function (prim) {
         },
 
         readFileAsync: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var d = prim();
             try {
                 d.resolve(file.readFile(path, encoding));
@@ -3934,11 +3946,13 @@ define('rhino/file', ['prim'], function (prim) {
 
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
             //summary: saves a file using UTF-8 encoding.
+            logger.trace("Saving file " + fileName);
             file.saveFile(fileName, fileContents, "utf-8");
         },
 
         saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
             //summary: saves a file.
+            logger.trace("Saving file " + fileName);
             var outFile = new java.io.File(fileName), outWriter, parentDir, os;
 
             parentDir = outFile.getAbsoluteFile().getParentFile();
@@ -3964,6 +3978,7 @@ define('rhino/file', ['prim'], function (prim) {
 
         deleteFile: function (/*String*/fileName) {
             //summary: deletes a file or directory if it exists.
+            logger.trace("Deleting file " + fileName);
             var fileObj = new java.io.File(fileName), files, i;
             if (fileObj.exists()) {
                 if (fileObj.isDirectory()) {
@@ -4022,7 +4037,7 @@ if(env === 'xpconnect') {
 /*jslint plusplus: false */
 /*global define, Components, xpcUtil */
 
-define('xpconnect/file', ['prim'], function (prim) {
+define('xpconnect/file', ['prim', 'logger'], function (prim, logger) {
     var file,
         Cc = Components.classes,
         Ci = Components.interfaces,
@@ -4135,6 +4150,7 @@ define('xpconnect/file', ['prim'], function (prim) {
         copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
             //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
             //file should be copied. Returns a list file name strings of the destinations that were copied.
+            logger.trace("Copying directory " + srcDir + " to " + destDir);
             regExpFilter = regExpFilter || /\w/;
 
             var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
@@ -4155,11 +4171,9 @@ define('xpconnect/file', ['prim'], function (prim) {
         copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
             //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
             //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
+            logger.trace("Copying file " + srcFileName + " to " + destFileName);
             var destFile = xpfile(destFileName),
             srcFile = xpfile(srcFileName);
-
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
 
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
@@ -4178,6 +4192,7 @@ define('xpconnect/file', ['prim'], function (prim) {
          * Renames a file. May fail if "to" already exists or is on another drive.
          */
         renameFile: function (from, to) {
+            logger.trace("Renaming file " + from + " to " + to);
             var toFile = xpfile(to);
             return xpfile(from).moveTo(toFile.parent, toFile.leafName);
         },
@@ -4185,6 +4200,7 @@ define('xpconnect/file', ['prim'], function (prim) {
         readFile: xpcUtil.readFile,
 
         readFileAsync: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var d = prim();
             try {
                 d.resolve(file.readFile(path, encoding));
@@ -4196,10 +4212,12 @@ define('xpconnect/file', ['prim'], function (prim) {
 
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
             //summary: saves a file using UTF-8 encoding.
+            logger.trace("Saving file " + fileName);
             file.saveFile(fileName, fileContents, "utf-8");
         },
 
         saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
+            logger.trace("Saving file " + fileName);
             var outStream, convertStream,
                 fileObj = xpfile(fileName);
 
@@ -4230,6 +4248,7 @@ define('xpconnect/file', ['prim'], function (prim) {
 
         deleteFile: function (/*String*/fileName) {
             //summary: deletes a file or directory if it exists.
+            logger.trace("Deleting file " + fileName);
             var fileObj = xpfile(fileName);
             if (fileObj.exists()) {
                 fileObj.remove(true);
@@ -4333,7 +4352,7 @@ define('xpconnect/quit', function () {
 
 if(env === 'browser') {
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4353,7 +4372,7 @@ define('browser/print', function () {
 
 if(env === 'node') {
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4373,7 +4392,7 @@ define('node/print', function () {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4403,7 +4422,7 @@ define('xpconnect/print', function () {
 
 }
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4418,7 +4437,7 @@ define('logger', ['env!env/print'], function (print) {
         WARN: 2,
         ERROR: 3,
         SILENT: 4,
-        level: 0,
+        level: 1,
         logPrefix: "",
 
         logLevel: function( level ) {
@@ -8373,7 +8392,7 @@ parseStatement: true, parseSourceElement: true */
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
 /**
- * @license Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21127,7 +21146,7 @@ exports.describe_ast = function() {
 
 });
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -21135,7 +21154,7 @@ exports.describe_ast = function() {
 /*jslint plusplus: true */
 /*global define: false */
 
-define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
+define('parse', ['./esprimaAdapter', 'lang', 'logger'], function (esprima, lang, logger) {
     'use strict';
 
     function arrayToString(ary) {
@@ -21245,6 +21264,8 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
      */
     function parse(moduleName, fileName, fileContents, options) {
         options = options || {};
+
+        logger.trace("Parsing file: " + fileName);
 
         //Set up source input
         var i, moduleCall, depString,
@@ -21375,6 +21396,8 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             if (parse.hasDefineAmd(node)) {
                 found = true;
 
+                logger.trace("File defines require: " + fileName);
+                
                 //Stop traversal
                 return false;
             }
@@ -21605,6 +21628,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
             if (deps) {
+                logger.trace("File has dependency: " + fileName);
                 dependencies = dependencies.concat(deps);
             }
         }, options);
@@ -21628,6 +21652,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                     node[argPropName].length === 1) {
                 arg = node[argPropName][0];
                 if (arg.type === 'Literal') {
+                    logger.trace("File has CJS dependency: " + fileName);
                     dependencies.push(arg.value);
                 }
             }
@@ -22053,7 +22078,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
     return parse;
 });
 /**
- * @license Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -22471,7 +22496,7 @@ function (esprima, parse, logger, lang) {
     return transform;
 });
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -22736,7 +22761,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
 });
 if(env === 'browser') {
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -22750,7 +22775,7 @@ define('browser/optimize', {});
 
 if(env === 'node') {
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -22764,7 +22789,7 @@ define('node/optimize', {});
 
 if(env === 'rhino') {
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -22940,7 +22965,7 @@ if(env === 'xpconnect') {
 define('xpconnect/optimize', {});
 }
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -23027,6 +23052,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
      */
     function flattenCss(fileName, fileContents, cssImportIgnore, cssPrefix, included, topLevel) {
         //Find the last slash in the name.
+        logger.trace("Deleting File: " + fileName);
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
             //Make a file path based on the last slash.
@@ -23162,6 +23188,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
                 licenseContents = '';
+
+            logger.trace("Optimizing File: " + fileName + " to " + outFileName);
 
             config = config || {};
 
@@ -23299,6 +23327,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 importList = [],
                 shouldRemove = config.dir && config.removeCombined,
                 i, fileName, result, fileList;
+
             if (config.optimizeCss.indexOf("standard") !== -1) {
                 fileList = file.getFilteredFileList(startDir, /\.css$/, true);
                 if (fileList) {
@@ -23412,7 +23441,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
     return optimize;
 });
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -23884,7 +23913,7 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
     };
 });
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -23988,7 +24017,7 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
     return commonJs;
 });
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -25983,7 +26012,7 @@ define('build', function (require) {
         loadLib();
 
         /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */

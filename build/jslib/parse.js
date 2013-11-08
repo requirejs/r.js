@@ -7,7 +7,7 @@
 /*jslint plusplus: true */
 /*global define: false */
 
-define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
+define(['./esprimaAdapter', 'lang', 'logger'], function (esprima, lang, logger) {
     'use strict';
 
     function arrayToString(ary) {
@@ -117,6 +117,8 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
      */
     function parse(moduleName, fileName, fileContents, options) {
         options = options || {};
+
+        logger.trace("Parsing file: " + fileName);
 
         //Set up source input
         var i, moduleCall, depString,
@@ -247,6 +249,8 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             if (parse.hasDefineAmd(node)) {
                 found = true;
 
+                logger.trace("File defines require: " + fileName);
+                
                 //Stop traversal
                 return false;
             }
@@ -477,6 +481,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
         parse.recurse(astRoot, function (callName, config, name, deps) {
             if (deps) {
+                logger.trace("File has dependency: " + fileName);
                 dependencies = dependencies.concat(deps);
             }
         }, options);
@@ -500,6 +505,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                     node[argPropName].length === 1) {
                 arg = node[argPropName][0];
                 if (arg.type === 'Literal') {
+                    logger.trace("File has CJS dependency: " + fileName);
                     dependencies.push(arg.value);
                 }
             }

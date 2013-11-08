@@ -86,6 +86,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
      */
     function flattenCss(fileName, fileContents, cssImportIgnore, cssPrefix, included, topLevel) {
         //Find the last slash in the name.
+        logger.trace("Deleting File: " + fileName);
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
             //Make a file path based on the last slash.
@@ -221,6 +222,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 optimizerName = parts[0],
                 keepLines = parts[1] === 'keepLines',
                 licenseContents = '';
+
+            logger.trace("Optimizing File: " + fileName + " to " + outFileName);
 
             config = config || {};
 
@@ -358,6 +361,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 importList = [],
                 shouldRemove = config.dir && config.removeCombined,
                 i, fileName, result, fileList;
+
             if (config.optimizeCss.indexOf("standard") !== -1) {
                 fileList = file.getFilteredFileList(startDir, /\.css$/, true);
                 if (fileList) {

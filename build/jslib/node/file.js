@@ -7,7 +7,7 @@
 /*jslint plusplus: false, octal:false, strict: false */
 /*global define: false, process: false */
 
-define(['fs', 'path', 'prim'], function (fs, path, prim) {
+define(['fs', 'path', 'prim', 'logger'], function (fs, path, prim, logger) {
 
     var isWindows = process.platform === 'win32',
         windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
@@ -145,6 +145,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
         copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
             //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
             //file should be copied. Returns a list file name strings of the destinations that were copied.
+            logger.trace("Copying directory " + srcDir + " to " + destDir);
             regExpFilter = regExpFilter || /\w/;
 
             //Normalize th directory names, but keep front slashes.
@@ -170,10 +171,8 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
         copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
             //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
             //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
+            logger.trace("Copying file " + srcFileName + " to " + destFileName);
             var parentDir;
-
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
 
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
@@ -198,6 +197,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
          * Renames a file. May fail if "to" already exists or is on another drive.
          */
         renameFile: function (from, to) {
+            logger.trace("Renaming file " + from + " to " + to);
             return fs.renameSync(from, to);
         },
 
@@ -205,6 +205,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
          * Reads a *text* file.
          */
         readFile: function (/*String*/path, /*String?*/encoding) {
+            logger.trace("Reading file " + path);
             if (encoding === 'utf-8') {
                 encoding = 'utf8';
             }
@@ -224,6 +225,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
         },
 
         readFileAsync: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var d = prim();
             try {
                 d.resolve(file.readFile(path, encoding));
@@ -235,11 +237,13 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
 
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
             //summary: saves a *text* file using UTF-8 encoding.
+            logger.trace("Saving file " + fileName);
             file.saveFile(fileName, fileContents, "utf8");
         },
 
         saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
             //summary: saves a *text* file.
+            logger.trace("Saving file " + fileName);
             var parentDir;
 
             if (encoding === 'utf-8') {
@@ -260,6 +264,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
 
         deleteFile: function (/*String*/fileName) {
             //summary: deletes a file or directory if it exists.
+            logger.trace("Deleting file " + fileName);
             var files, i, stat;
             if (file.exists(fileName)) {
                 stat = fs.statSync(fileName);

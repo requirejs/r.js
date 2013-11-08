@@ -14,7 +14,7 @@ define(['env!env/print'], function (print) {
         WARN: 2,
         ERROR: 3,
         SILENT: 4,
-        level: 0,
+        level: 1,
         logPrefix: "",
 
         logLevel: function( level ) {

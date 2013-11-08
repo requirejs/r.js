@@ -8,7 +8,7 @@
 /*jslint plusplus: false */
 /*global define, Components, xpcUtil */
 
-define(['prim'], function (prim) {
+define(['prim', 'logger'], function (prim, logger) {
     var file,
         Cc = Components.classes,
         Ci = Components.interfaces,
@@ -121,6 +121,7 @@ define(['prim'], function (prim) {
         copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
             //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
             //file should be copied. Returns a list file name strings of the destinations that were copied.
+            logger.trace("Copying directory " + srcDir + " to " + destDir);
             regExpFilter = regExpFilter || /\w/;
 
             var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
@@ -141,11 +142,9 @@ define(['prim'], function (prim) {
         copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
             //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
             //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
+            logger.trace("Copying file " + srcFileName + " to " + destFileName);
             var destFile = xpfile(destFileName),
             srcFile = xpfile(srcFileName);
-
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
 
             //If onlyCopyNew is true, then compare dates and only copy if the src is newer
             //than dest.
@@ -164,6 +163,7 @@ define(['prim'], function (prim) {
          * Renames a file. May fail if "to" already exists or is on another drive.
          */
         renameFile: function (from, to) {
+            logger.trace("Renaming file " + from + " to " + to);
             var toFile = xpfile(to);
             return xpfile(from).moveTo(toFile.parent, toFile.leafName);
         },
@@ -171,6 +171,7 @@ define(['prim'], function (prim) {
         readFile: xpcUtil.readFile,
 
         readFileAsync: function (path, encoding) {
+            logger.trace("Reading file " + path);
             var d = prim();
             try {
                 d.resolve(file.readFile(path, encoding));
@@ -182,10 +183,12 @@ define(['prim'], function (prim) {
 
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
             //summary: saves a file using UTF-8 encoding.
+            logger.trace("Saving file " + fileName);
             file.saveFile(fileName, fileContents, "utf-8");
         },
 
         saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
+            logger.trace("Saving file " + fileName);
             var outStream, convertStream,
                 fileObj = xpfile(fileName);
 
@@ -216,6 +219,7 @@ define(['prim'], function (prim) {
 
         deleteFile: function (/*String*/fileName) {
             //summary: deletes a file or directory if it exists.
+            logger.trace("Deleting file " + fileName);
             var fileObj = xpfile(fileName);
             if (fileObj.exists()) {
                 fileObj.remove(true);
