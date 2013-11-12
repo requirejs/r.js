@@ -339,7 +339,7 @@
         {
             name: "foo/bar/bop",
 
-            //create: true can be used to create the modul layer at the given
+            //create: true can be used to create the module layer at the given
             //name, if it does not already exist in the source location. If
             //there is a module at the source location with this name, then
             //create: true is superfluous.
