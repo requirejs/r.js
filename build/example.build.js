@@ -101,9 +101,9 @@
 
     //Introduced in 2.1.2 and considered experimental.
     //If the minifier specified in the "optimize" option supports generating
-    //source maps for the minfied code, then generate them. The source maps
+    //source maps for the minified code, then generate them. The source maps
     //generated only translate minified JS to non-minified JS, it does not do
-    //anything magical for translating minfied JS to transpiled source code.
+    //anything magical for translating minified JS to transpiled source code.
     //Currently only optimize: "uglify2" is supported when running in node or
     //rhino, and if running in rhino, "closure" with a closure compiler jar
     //build after r1592 (20111114 release).
@@ -538,7 +538,7 @@
         data.path: the bundle path relative to the output directory.
         data.included: an array of items included in the build bundle.
         If a file path, it is relative to the output directory. Loader
-        plugin IDs are also included in this array, but dependending
+        plugin IDs are also included in this array, but depending
         on the plugin, may or may not have something inlined in the
         module bundle.
         */
