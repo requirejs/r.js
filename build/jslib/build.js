@@ -344,6 +344,18 @@ define(function (require) {
                     modules.forEach(function (module) {
                         if (module.name) {
                             module._buildPath = buildContext.nameToUrl(module.name, null);
+
+                            //If buildPath and sourcePath are the same, throw since this
+                            //would result in modifying source. This condition can happen
+                            //with some more tricky paths: config and appDir/baseUrl
+                            //setting, which is a sign of incorrect config.
+                            if (module._buildPath === module._sourcePath) {
+                                throw new Error('Module ID \'' + module.name  +
+                                                '\' has a source path that is same as output path: ' +
+                                                module._sourcePath +
+                                                '. Stopping, config is malformed.');
+                            }
+
                             if (!module.create) {
                                 file.copyFile(module._sourcePath, module._buildPath);
                             }
