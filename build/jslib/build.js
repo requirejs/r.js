@@ -1036,40 +1036,51 @@ define(function (require) {
 
         mainConfigFile = config.mainConfigFile || (buildFileConfig && buildFileConfig.mainConfigFile);
         if (mainConfigFile) {
-            mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
-            if (!file.exists(mainConfigFile)) {
-                throw new Error(mainConfigFile + ' does not exist.');
-            }
-            try {
-                mainConfig = parse.findConfig(file.readFile(mainConfigFile)).config;
-            } catch (configError) {
-                throw new Error('The config in mainConfigFile ' +
-                        mainConfigFile +
-                        ' cannot be used because it cannot be evaluated' +
-                        ' correctly while running in the optimizer. Try only' +
-                        ' using a config that is also valid JSON, or do not use' +
-                        ' mainConfigFile and instead copy the config values needed' +
-                        ' into a build file or command line arguments given to the optimizer.\n' +
-                        'Source error from parsing: ' + mainConfigFile + ': ' + configError);
-            }
-            if (mainConfig) {
-                mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
-
-                //Add in some existing config, like appDir, since they can be
-                //used inside the mainConfigFile -- paths and baseUrl are
-                //relative to them.
-                if (config.appDir && !mainConfig.appDir) {
-                    mainConfig.appDir = config.appDir;
+            var mixSingleConfigFile = function(configFile) {              
+                configFile = build.makeAbsPath(configFile, absFilePath);
+                if (!file.exists(configFile)) {
+                    throw new Error(configFile + ' does not exist.');
                 }
-
-                //If no baseUrl, then use the directory holding the main config.
-                if (!mainConfig.baseUrl) {
-                    mainConfig.baseUrl = mainConfigPath;
+                try {
+                    mainConfig = parse.findConfig(file.readFile(configFile)).config;
+                } catch (configError) {
+                    throw new Error('The config in mainConfigFile ' +
+                            configFile +
+                            ' cannot be used because it cannot be evaluated' +
+                            ' correctly while running in the optimizer. Try only' +
+                            ' using a config that is also valid JSON, or do not use' +
+                            ' mainConfigFile and instead copy the config values needed' +
+                            ' into a build file or command line arguments given to the optimizer.\n' +
+                            'Source error from parsing: ' + configFile + ': ' + configError);
                 }
+                if (mainConfig) {
+                    mainConfigPath = configFile.substring(0, configFile.lastIndexOf('/'));
 
-                build.makeAbsConfig(mainConfig, mainConfigPath);
-                mixConfig(config, mainConfig);
+                    //Add in some existing config, like appDir, since they can be
+                    //used inside the mainConfigFile -- paths and baseUrl are
+                    //relative to them.
+                    if (config.appDir && !mainConfig.appDir) {
+                        mainConfig.appDir = config.appDir;
+                    }
+
+                    //If no baseUrl, then use the directory holding the main config.
+                    if (!mainConfig.baseUrl) {
+                        mainConfig.baseUrl = mainConfigPath;
+                    }
+
+                    build.makeAbsConfig(mainConfig, mainConfigPath);
+                    mixConfig(config, mainConfig);
+                }
             }
+        }        
+    
+        //Handle array of config files so that they are all run in order and mixed in.
+        if (lang.isArray(mainConfigFile)) {
+          for (var idx = 0; idx < mainConfigFile.length; idx++) {
+            mixSingleConfigFile(mainConfigFile[idx]);
+          }
+        } else {
+          mixSingleConfigFile(mainConfigFile);
         }
 
         //Mix in build file config, but only after mainConfig has been mixed in.
