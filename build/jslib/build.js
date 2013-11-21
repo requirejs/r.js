@@ -907,7 +907,7 @@ define(function (require) {
      * nested config, like paths, correctly.
      */
     function mixConfig(target, source) {
-        var prop, value;
+        var prop, value, packages = target['packages'] || [];
 
         for (prop in source) {
             if (hasProp(source, prop)) {
@@ -918,10 +918,21 @@ define(function (require) {
                         !lang.isArray(value) && !lang.isFunction(value) &&
                         !lang.isRegExp(value)) {
                     target[prop] = lang.mixin({}, target[prop], value, true);
+                } else if (prop === 'packages') {
+                    // Accumulate all the packages.
+                    for (var idx = 0; idx < value.length; idx++) {
+                        packages.push(value[idx]);
+                    }
+                    target[prop] = value;
                 } else {
                     target[prop] = value;
                 }
             }
+        }
+        
+        // Overwrite the packages target with our new list of packages.
+        if (lang.hasProp(target, 'packages')) {
+          target['packages'] = packages;
         }
 
         //Set up log level since it can affect if errors are thrown
