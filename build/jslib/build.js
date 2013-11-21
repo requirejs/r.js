@@ -1083,15 +1083,15 @@ define(function (require) {
                     mixConfig(config, mainConfig);
                 }
             }
-        }        
-    
-        //Handle array of config files so that they are all run in order and mixed in.
-        if (lang.isArray(mainConfigFile)) {
-          for (var idx = 0; idx < mainConfigFile.length; idx++) {
-            mixSingleConfigFile(mainConfigFile[idx]);
-          }
-        } else {
-          mixSingleConfigFile(mainConfigFile);
+            
+            //Handle array of config files so that they are all run in order and mixed in.
+            if (lang.isArray(mainConfigFile)) {
+                for (var i = 0; i < mainConfigFile.length; i++) {
+                    mixSingleConfigFile(mainConfigFile[i]);
+                }
+            } else {
+                mixSingleConfigFile(mainConfigFile);
+            }
         }
 
         //Mix in build file config, but only after mainConfig has been mixed in.
