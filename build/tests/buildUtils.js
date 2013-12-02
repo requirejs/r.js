@@ -139,6 +139,10 @@ define(['build'], function (build) {
                 t.is('../../../Applications/foo/',
                     build.makeRelativeFilePath('/Users/some/thing/',
                                            '/Applications/foo/'));
+
+                t.is('modules/player.js',
+                    build.makeRelativeFilePath('/some/other/www-built/js/app/main.js',
+                                                '/some/other/www-built/js/main/lib/../../app/modules/player.js'));
             }
         ]);
     doh.run();

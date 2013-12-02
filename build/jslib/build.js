@@ -864,7 +864,7 @@ define(function (require) {
     build.makeRelativeFilePath = function (refPath, targetPath) {
         var i, dotLength, finalParts, length,
             refParts = refPath.split('/'),
-            targetParts = targetPath.split('/'),
+            targetParts = file.normalize(targetPath).split('/'),
             //Pull off file name
             targetName = targetParts.pop(),
             dotParts = [];
