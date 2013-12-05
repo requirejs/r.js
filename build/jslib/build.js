@@ -327,7 +327,7 @@ define(function (require) {
                 require(config);
                 if (!config.cssIn) {
                     config.modules[0]._buildPath = typeof config.out === 'function' ?
-                                                   'FUNCTION' : config.out;
+                                                   'FUNCTION' : process.cwd()+'/'+config.out;
                 }
             } else if (!config.cssIn) {
                 //Now set up the config for require to use the build area, and calculate the
