@@ -43,15 +43,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     function fixCssUrlPaths(fileName, path, contents, cssPrefix) {
         return contents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
-            var colonIndex, parts, i,
+            var colonIndex, firstChar, parts, i,
                 fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
 
             fixedUrlMatch = fixedUrlMatch.replace(lang.backSlashRegExp, "/");
 
-            //Only do the work for relative URLs. Skip things that start with / or have
+            //Only do the work for relative URLs. Skip things that start with / or #, or have
             //a protocol.
+            firstChar = fixedUrlMatch.charAt(0);
             colonIndex = fixedUrlMatch.indexOf(":");
-            if (fixedUrlMatch.charAt(0) !== "/" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
+            if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
                 //It is a relative URL, tack on the cssPrefix and path prefix
                 urlMatch = cssPrefix + path + fixedUrlMatch;
 
