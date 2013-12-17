@@ -11,7 +11,7 @@
 define(function (require) {
     'use strict';
 
-    var build, buildBaseConfig,
+    var build,
         lang = require('lang'),
         prim = require('prim'),
         logger = require('logger'),
@@ -57,22 +57,24 @@ define(function (require) {
         }
     };
 
-    buildBaseConfig = {
-        appDir: "",
-        pragmas: {},
-        paths: {},
-        optimize: "uglify",
-        optimizeCss: "standard.keepLines",
-        inlineText: true,
-        isBuild: true,
-        optimizeAllPluginResources: false,
-        findNestedDependencies: false,
-        preserveLicenseComments: true,
-        //By default, all files/directories are copied, unless
-        //they match this regexp, by default just excludes .folders
-        dirExclusionRegExp: file.dirExclusionRegExp,
-        _buildPathToModuleIndex: {}
-    };
+    function makeBuildBaseConfig() {
+        return {
+            appDir: "",
+            pragmas: {},
+            paths: {},
+            optimize: "uglify",
+            optimizeCss: "standard.keepLines",
+            inlineText: true,
+            isBuild: true,
+            optimizeAllPluginResources: false,
+            findNestedDependencies: false,
+            preserveLicenseComments: true,
+            //By default, all files/directories are copied, unless
+            //they match this regexp, by default just excludes .folders
+            dirExclusionRegExp: file.dirExclusionRegExp,
+            _buildPathToModuleIndex: {}
+        };
+    }
 
     /**
      * Some JS may not be valid if concatenated with other JS, in particular
@@ -988,8 +990,10 @@ define(function (require) {
      */
     build.createConfig = function (cfg) {
         /*jslint evil: true */
-        var config = {}, buildFileContents, buildFileConfig, mainConfig,
-            mainConfigFile, mainConfigPath, buildFile, absFilePath;
+        var buildFileContents, buildFileConfig, mainConfig,
+            mainConfigFile, mainConfigPath, buildFile, absFilePath,
+            config = {},
+            buildBaseConfig = makeBuildBaseConfig();
 
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
