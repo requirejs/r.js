@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Mon, 18 Nov 2013 20:28:43 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Tue, 17 Dec 2013 01:04:57 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Mon, 18 Nov 2013 20:28:43 GMT',
+        version = '2.1.9+ Tue, 17 Dec 2013 01:04:57 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24009,7 +24009,7 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
 define('build', function (require) {
     'use strict';
 
-    var build, buildBaseConfig,
+    var build,
         lang = require('lang'),
         prim = require('prim'),
         logger = require('logger'),
@@ -24055,22 +24055,24 @@ define('build', function (require) {
         }
     };
 
-    buildBaseConfig = {
-        appDir: "",
-        pragmas: {},
-        paths: {},
-        optimize: "uglify",
-        optimizeCss: "standard.keepLines",
-        inlineText: true,
-        isBuild: true,
-        optimizeAllPluginResources: false,
-        findNestedDependencies: false,
-        preserveLicenseComments: true,
-        //By default, all files/directories are copied, unless
-        //they match this regexp, by default just excludes .folders
-        dirExclusionRegExp: file.dirExclusionRegExp,
-        _buildPathToModuleIndex: {}
-    };
+    function makeBuildBaseConfig() {
+        return {
+            appDir: "",
+            pragmas: {},
+            paths: {},
+            optimize: "uglify",
+            optimizeCss: "standard.keepLines",
+            inlineText: true,
+            isBuild: true,
+            optimizeAllPluginResources: false,
+            findNestedDependencies: false,
+            preserveLicenseComments: true,
+            //By default, all files/directories are copied, unless
+            //they match this regexp, by default just excludes .folders
+            dirExclusionRegExp: file.dirExclusionRegExp,
+            _buildPathToModuleIndex: {}
+        };
+    }
 
     /**
      * Some JS may not be valid if concatenated with other JS, in particular
@@ -24986,8 +24988,10 @@ define('build', function (require) {
      */
     build.createConfig = function (cfg) {
         /*jslint evil: true */
-        var config = {}, buildFileContents, buildFileConfig, mainConfig,
-            mainConfigFile, mainConfigPath, buildFile, absFilePath;
+        var buildFileContents, buildFileConfig, mainConfig,
+            mainConfigFile, mainConfigPath, buildFile, absFilePath,
+            config = {},
+            buildBaseConfig = makeBuildBaseConfig();
 
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
