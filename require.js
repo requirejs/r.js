@@ -291,12 +291,17 @@ var requirejs, require, define;
                     trimDots(name);
 
                     //Some use of packages may use a . path to reference the
-                    //'main' module name, so normalize for that.
+                    //'main' module name, so normalize for that. Use the
+                    //package location for relative paths if one is specified.
                     pkgConfig = getOwn(config.pkgs, (pkgName = name[0]));
-                    name = name.join('/');
-                    if (pkgConfig && name === pkgName + '/' + pkgConfig.main) {
-                        name = pkgName;
+                    if (pkgConfig) {
+                        if (name.join('/') === pkgName + '/' + pkgConfig.main) {
+                            name = pkgName;
+                        } else if (pkgConfig.location) {
+                            name[0] = pkgConfig.location;
+                        }
                     }
+                    name = name.join('/');
                 } else if (name.indexOf('./') === 0) {
                     // No baseName, so this is ID is resolved relative
                     // to baseUrl, pull off the leading dot.
