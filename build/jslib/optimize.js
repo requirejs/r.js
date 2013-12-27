@@ -426,6 +426,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     baseName = fileName && fileName.split('/').pop();
 
                 config = config || {};
+                var patt = new RegExp('\#.sourceMappingURL\=[a-zA-Z0-9\-\_\.]*');
+                var filereg = patt.exec((fileContents.length)? fileContents : '' );
+                existingMapPath = filereg? existingMapPath.split('/').slice(0,-1).join('/')+filereg[0].split('=')[1] : existingMapPath;
 
                 lang.mixin(uconfig, config, true);
 
