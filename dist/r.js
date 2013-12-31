@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Tue, 17 Dec 2013 01:04:57 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Tue, 31 Dec 2013 03:35:30 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Tue, 17 Dec 2013 01:04:57 GMT',
+        version = '2.1.9+ Tue, 31 Dec 2013 03:35:30 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23276,6 +23276,20 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     fileContents = fileContents.replace(/(\r\n)+/g, "\r\n");
                     fileContents = fileContents.replace(/(\n)+/g, "\n");
                 }
+                //Remove unnecessary whitespace
+                if (config.optimizeCss.indexOf(".keepWhitespace") === -1) {
+                    //Remove leading and trailing whitespace from lines
+                    fileContents = fileContents.replace(/^[ \t]+/gm, "");
+                    fileContents = fileContents.replace(/[ \t]+$/gm, "");
+                    //Remove whitespace after semicolon, colon, curly brackets and commas
+                    fileContents = fileContents.replace(/(;|:|\{|}|,)[ \t]+/g, "$1");
+                    //Remove whitespace before opening curly brackets
+                    fileContents = fileContents.replace(/[ \t]+(\{)/g, "$1");
+                    //Truncate double whitespace
+                    fileContents = fileContents.replace(/([ \t])+/g, "$1");
+                    //Remove empty lines
+                    fileContents = fileContents.replace(/^[ \t]*[\r\n]/gm,'');
+                }
             } catch (e) {
                 fileContents = originalFileContents;
                 logger.error("Could not optimized CSS file: " + fileName + ", error: " + e);
@@ -24061,7 +24075,7 @@ define('build', function (require) {
             pragmas: {},
             paths: {},
             optimize: "uglify",
-            optimizeCss: "standard.keepLines",
+            optimizeCss: "standard.keepLines.keepWhitespace",
             inlineText: true,
             isBuild: true,
             optimizeAllPluginResources: false,
