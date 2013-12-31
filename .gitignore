@@ -14,6 +14,7 @@ build/tests/lib/configPackageShim/built
 build/tests/lib/cssComment138/main-built.css
 build/tests/lib/cssDuplicates/main-built.css
 build/tests/lib/cssKeepComments/main-built.css
+build/tests/lib/cssKeepWhitespace/main-built.css
 build/tests/lib/cssKeepLicense/main-license-built.css
 build/tests/lib/cssKeepLicense/main-built.css
 build/tests/lib/cssMediaQuery/main-built.css

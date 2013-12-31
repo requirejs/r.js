@@ -63,7 +63,7 @@ define(function (require) {
             pragmas: {},
             paths: {},
             optimize: "uglify",
-            optimizeCss: "standard.keepLines",
+            optimizeCss: "standard.keepLines.keepWhitespace",
             inlineText: true,
             isBuild: true,
             optimizeAllPluginResources: false,

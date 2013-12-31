@@ -185,7 +185,8 @@
     },
 
     //Allow CSS optimizations. Allowed values:
-    //- "standard": @import inlining, comment removal and line returns.
+    //- "standard": @import inlining and removal of comments, unnecessary
+    //whitespace and line returns.
     //Removing line returns may have problems in IE, depending on the type
     //of CSS.
     //- "standard.keepLines": like "standard" but keeps line returns.
@@ -194,7 +195,8 @@
     //returns.  (r.js 1.0.8+)
     //- "standard.keepComments.keepLines": keeps the file comments and line
     //returns. (r.js 1.0.8+)
-    optimizeCss: "standard.keepLines",
+    //- "standard.keepWhitespace": like "standard" but keeps unnecessary whitespace.
+    optimizeCss: "standard.keepLines.keepWhitespace",
 
     //If optimizeCss is in use, a list of files to ignore for the @import
     //inlining. The value of this option should be a string of comma separated
