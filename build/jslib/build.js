@@ -1451,7 +1451,7 @@ define(function (require) {
     build.checkForErrors = function (context) {
         //Check to see if it all loaded. If not, then throw, and give
         //a message on what is left.
-        var id, prop, mod, idParts, pluginId,
+        var id, prop, mod, idParts, pluginId, pluginResources,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
@@ -1464,6 +1464,11 @@ define(function (require) {
             registry = context.registry;
 
         function populateErrUrlMap(id, errUrl, skipNew) {
+            // Loader plugins do not have an errUrl, so skip them.
+            if (!errUrl) {
+                return;
+            }
+
             if (!skipNew) {
                 errIds.push(id);
             }
@@ -1487,17 +1492,24 @@ define(function (require) {
             if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
                 hasUndefined = true;
                 mod = getOwn(registry, id);
+                idParts = id.split('!');
+                pluginId = idParts[0];
 
                 if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
                     populateErrUrlMap(id, mod.map.url);
                 }
 
                 //Look for plugins that did not call load()
-                idParts = id.split('!');
-                pluginId = idParts[0];
-                if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
-                    failedPluginIds.push(pluginId);
-                    failedPluginMap[pluginId] = true;
+
+                if (idParts.length > 1) {
+                    if (falseProp(failedPluginMap, pluginId)) {
+                        failedPluginIds.push(pluginId);
+                    }
+                    pluginResources = failedPluginMap[pluginId];
+                    if (!pluginResources) {
+                        pluginResources = failedPluginMap[pluginId] = [];
+                    }
+                    pluginResources.push(id + (mod.error ? ': ' + mod.error : ''));
                 }
             }
         }
@@ -1517,8 +1529,11 @@ define(function (require) {
                 errMessage += 'Loader plugin' +
                     (failedPluginIds.length === 1 ? '' : 's') +
                     ' did not call ' +
-                    'the load callback in the build: ' +
-                    failedPluginIds.join(', ') + '\n';
+                    'the load callback in the build:\n' +
+                    failedPluginIds.map(function (pluginId) {
+                        var pluginResources = failedPluginMap[pluginId];
+                        return pluginId + ':\n  ' + pluginResources.join('\n  ');
+                    }).join('\n') + '\n';
             }
             errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
 
