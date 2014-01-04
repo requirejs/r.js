@@ -262,7 +262,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
             //summary: deletes a file or directory if it exists.
             var files, i, stat;
             if (file.exists(fileName)) {
-                stat = fs.statSync(fileName);
+                stat = fs.lstatSync(fileName);
                 if (stat.isDirectory()) {
                     files = fs.readdirSync(fileName);
                     for (i = 0; i < files.length; i++) {
@@ -287,7 +287,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
                 for (i = 0; i < dirFileArray.length; i++) {
                     fileName = dirFileArray[i];
                     filePath = path.join(startDir, fileName);
-                    stat = fs.statSync(filePath);
+                    stat = fs.lstatSync(filePath);
                     if (stat.isDirectory()) {
                         file.deleteEmptyDirs(filePath);
                     }
