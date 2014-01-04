@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Tue, 31 Dec 2013 08:07:36 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Sat, 04 Jan 2014 23:02:08 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Tue, 31 Dec 2013 08:07:36 GMT',
+        version = '2.1.9+ Sat, 04 Jan 2014 23:02:08 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -347,7 +347,10 @@ var requirejs, require, define, xpcUtil;
         if (source) {
             eachProp(source, function (value, prop) {
                 if (force || !hasProp(target, prop)) {
-                    if (deepStringMixin && typeof value !== 'string') {
+                    if (deepStringMixin && typeof value === 'object' && value &&
+                        !isArray(value) && !isFunction(value) &&
+                        !(value instanceof RegExp)) {
+
                         if (!target[prop]) {
                             target[prop] = {};
                         }
@@ -826,7 +829,7 @@ var requirejs, require, define, xpcUtil;
                                       getOwn(config.config, mod.map.id);
                             return  c || {};
                         },
-                        exports: defined[mod.map.id]
+                        exports: handlers.exports(mod)
                     });
                 }
             }
@@ -1109,17 +1112,14 @@ var requirejs, require, define, xpcUtil;
                                 exports = context.execCb(id, factory, depExports, exports);
                             }
 
-                            if (this.map.isDefine) {
-                                //If setting exports via 'module' is in play,
-                                //favor that over return value and exports. After that,
-                                //favor a non-undefined return value over exports use.
+                            // Favor return value over exports. If node/cjs in play,
+                            // then will not have a return value anyway. Favor
+                            // module.exports assignment over exports object.
+                            if (this.map.isDefine && exports === undefined) {
                                 cjsModule = this.module;
-                                if (cjsModule &&
-                                        cjsModule.exports !== undefined &&
-                                        //Make sure it is not already the exports value
-                                        cjsModule.exports !== this.exports) {
+                                if (cjsModule) {
                                     exports = cjsModule.exports;
-                                } else if (exports === undefined && this.usingExports) {
+                                } else if (this.usingExports) {
                                     //exports already set the defined value.
                                     exports = this.exports;
                                 }
@@ -1500,14 +1500,10 @@ var requirejs, require, define, xpcUtil;
 
                 eachProp(cfg, function (value, prop) {
                     if (objs[prop]) {
-                        if (prop === 'map') {
-                            if (!config.map) {
-                                config.map = {};
-                            }
-                            mixin(config[prop], value, true, true);
-                        } else {
-                            mixin(config[prop], value, true);
+                        if (!config[prop]) {
+                            config[prop] = {};
                         }
+                        mixin(config[prop], value, true, true);
                     } else {
                         config[prop] = value;
                     }
@@ -22993,15 +22989,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     function fixCssUrlPaths(fileName, path, contents, cssPrefix) {
         return contents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
-            var colonIndex, parts, i,
+            var colonIndex, firstChar, parts, i,
                 fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
 
             fixedUrlMatch = fixedUrlMatch.replace(lang.backSlashRegExp, "/");
 
-            //Only do the work for relative URLs. Skip things that start with / or have
+            //Only do the work for relative URLs. Skip things that start with / or #, or have
             //a protocol.
+            firstChar = fixedUrlMatch.charAt(0);
             colonIndex = fixedUrlMatch.indexOf(":");
-            if (fixedUrlMatch.charAt(0) !== "/" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
+            if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
                 //It is a relative URL, tack on the cssPrefix and path prefix
                 urlMatch = cssPrefix + path + fixedUrlMatch;
 
@@ -25463,7 +25460,7 @@ define('build', function (require) {
     build.checkForErrors = function (context) {
         //Check to see if it all loaded. If not, then throw, and give
         //a message on what is left.
-        var id, prop, mod, idParts, pluginId,
+        var id, prop, mod, idParts, pluginId, pluginResources,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
@@ -25476,6 +25473,11 @@ define('build', function (require) {
             registry = context.registry;
 
         function populateErrUrlMap(id, errUrl, skipNew) {
+            // Loader plugins do not have an errUrl, so skip them.
+            if (!errUrl) {
+                return;
+            }
+
             if (!skipNew) {
                 errIds.push(id);
             }
@@ -25499,17 +25501,24 @@ define('build', function (require) {
             if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
                 hasUndefined = true;
                 mod = getOwn(registry, id);
+                idParts = id.split('!');
+                pluginId = idParts[0];
 
                 if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
                     populateErrUrlMap(id, mod.map.url);
                 }
 
                 //Look for plugins that did not call load()
-                idParts = id.split('!');
-                pluginId = idParts[0];
-                if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
-                    failedPluginIds.push(pluginId);
-                    failedPluginMap[pluginId] = true;
+
+                if (idParts.length > 1) {
+                    if (falseProp(failedPluginMap, pluginId)) {
+                        failedPluginIds.push(pluginId);
+                    }
+                    pluginResources = failedPluginMap[pluginId];
+                    if (!pluginResources) {
+                        pluginResources = failedPluginMap[pluginId] = [];
+                    }
+                    pluginResources.push(id + (mod.error ? ': ' + mod.error : ''));
                 }
             }
         }
@@ -25529,8 +25538,11 @@ define('build', function (require) {
                 errMessage += 'Loader plugin' +
                     (failedPluginIds.length === 1 ? '' : 's') +
                     ' did not call ' +
-                    'the load callback in the build: ' +
-                    failedPluginIds.join(', ') + '\n';
+                    'the load callback in the build:\n' +
+                    failedPluginIds.map(function (pluginId) {
+                        var pluginResources = failedPluginMap[pluginId];
+                        return pluginId + ':\n  ' + pluginResources.join('\n  ');
+                    }).join('\n') + '\n';
             }
             errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
 
