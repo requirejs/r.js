@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Sat, 04 Jan 2014 23:02:08 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Sat, 04 Jan 2014 23:28:31 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Sat, 04 Jan 2014 23:02:08 GMT',
+        version = '2.1.9+ Sat, 04 Jan 2014 23:28:31 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -3677,7 +3677,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
             //summary: deletes a file or directory if it exists.
             var files, i, stat;
             if (file.exists(fileName)) {
-                stat = fs.statSync(fileName);
+                stat = fs.lstatSync(fileName);
                 if (stat.isDirectory()) {
                     files = fs.readdirSync(fileName);
                     for (i = 0; i < files.length; i++) {
@@ -3702,7 +3702,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
                 for (i = 0; i < dirFileArray.length; i++) {
                     fileName = dirFileArray[i];
                     filePath = path.join(startDir, fileName);
-                    stat = fs.statSync(filePath);
+                    stat = fs.lstatSync(filePath);
                     if (stat.isDirectory()) {
                         file.deleteEmptyDirs(filePath);
                     }
