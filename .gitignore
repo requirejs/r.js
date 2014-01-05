@@ -82,6 +82,7 @@ build/tests/lib/stubModules/create/foobar-built.js
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/stubModules/perModule/built
 build/tests/lib/transportBeforeMinify/www-built
+build/tests/lib/unicode/main-built.js
 build/tests/lib/urlToEmpty/main-built.js
 build/tests/lib/wrap/outBothArray.js
 build/tests/lib/wrap/outOnlyEnd.js

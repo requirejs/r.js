@@ -2112,4 +2112,24 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
         ]
     );
     doh.run();
+
+
+    //Test single file JS optimization with source map generation
+    doh.register("unicode",
+        [
+            function unicode(t) {
+                file.deleteFile("lib/unicode/main-built.js");
+
+                build(["lib/unicode/build.js"]);
+
+                t.is(nol(c("lib/unicode/expected.js")),
+                     nol(c("lib/unicode/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
