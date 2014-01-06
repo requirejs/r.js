@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Sun, 05 Jan 2014 05:24:49 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Mon, 06 Jan 2014 06:06:17 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Sun, 05 Jan 2014 05:24:49 GMT',
+        version = '2.1.9+ Mon, 06 Jan 2014 06:06:17 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -469,8 +469,8 @@ var requirejs, require, define, xpcUtil;
          * @param {Array} ary the array of path segments.
          */
         function trimDots(ary) {
-            var i, part;
-            for (i = 0; ary[i]; i += 1) {
+            var i, part, length = ary.length;
+            for (i = 0; i < length; i++) {
                 part = ary[i];
                 if (part === '.') {
                     ary.splice(i, 1);
@@ -550,7 +550,7 @@ var requirejs, require, define, xpcUtil;
             if (applyMap && map && (baseParts || starMap)) {
                 nameParts = name.split('/');
 
-                for (i = nameParts.length; i > 0; i -= 1) {
+                outerLoop: for (i = nameParts.length; i > 0; i -= 1) {
                     nameSegment = nameParts.slice(0, i).join('/');
 
                     if (baseParts) {
@@ -567,14 +567,10 @@ var requirejs, require, define, xpcUtil;
                                     //Match, update name to the new value.
                                     foundMap = mapValue;
                                     foundI = i;
-                                    break;
+                                    break outerLoop;
                                 }
                             }
                         }
-                    }
-
-                    if (foundMap) {
-                        break;
                     }
 
                     //Check for a star map match, but just hold on to it,
@@ -2520,7 +2516,7 @@ var requirejs, require, define, xpcUtil;
                     err.originalError = e;
                     err.moduleName = originalName;
                     err.requireModules = [moduleName];
-                    return context.onError(err);
+                    throw err;
                 }
             });
         }
