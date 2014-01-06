@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Mon, 06 Jan 2014 06:55:42 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Mon, 06 Jan 2014 22:58:39 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Mon, 06 Jan 2014 06:55:42 GMT',
+        version = '2.1.9+ Mon, 06 Jan 2014 22:58:39 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -443,6 +443,7 @@ var requirejs, require, define, xpcUtil;
                 waitSeconds: 7,
                 baseUrl: './',
                 paths: {},
+                bundles: {},
                 pkgs: {},
                 shim: {},
                 config: {}
@@ -456,6 +457,7 @@ var requirejs, require, define, xpcUtil;
             defQueue = [],
             defined = {},
             urlFetched = {},
+            bundlesMap = {},
             requireCounter = 1,
             unnormalizedCounter = 1;
 
@@ -1175,6 +1177,7 @@ var requirejs, require, define, xpcUtil;
 
                 on(pluginMap, 'defined', bind(this, function (plugin) {
                     var load, normalizedMap, normalizedMod,
+                        bundleId = getOwn(bundlesMap, this.map.id),
                         name = this.map.name,
                         parentName = this.map.parentMap ? this.map.parentMap.name : null,
                         localRequire = context.makeRequire(map.parentMap, {
@@ -1217,6 +1220,14 @@ var requirejs, require, define, xpcUtil;
                             normalizedMod.enable();
                         }
 
+                        return;
+                    }
+
+                    //If a paths config, then just load that file instead to
+                    //resolve the plugin, as it is built into that paths layer.
+                    if (bundleId) {
+                        this.map.url = context.nameToUrl(bundleId);
+                        this.load();
                         return;
                     }
 
@@ -1490,6 +1501,7 @@ var requirejs, require, define, xpcUtil;
                     shim = config.shim,
                     objs = {
                         paths: true,
+                        bundles: true,
                         config: true,
                         map: true
                     };
@@ -1504,6 +1516,17 @@ var requirejs, require, define, xpcUtil;
                         config[prop] = value;
                     }
                 });
+
+                //Reverse map the bundles
+                if (cfg.bundles) {
+                    eachProp(cfg.bundles, function (value, prop) {
+                        each(value, function (v) {
+                            if (v !== prop) {
+                                bundlesMap[v] = prop;
+                            }
+                        });
+                    });
+                }
 
                 //Merge shim
                 if (cfg.shim) {
@@ -1803,7 +1826,12 @@ var requirejs, require, define, xpcUtil;
              */
             nameToUrl: function (moduleName, ext, skipExt) {
                 var paths, pkgs, pkg, pkgPath, syms, i, parentModule, url,
-                    parentPath;
+                    parentPath,
+                    bundleId = getOwn(bundlesMap, moduleName);
+
+                if (bundleId) {
+                    return context.nameToUrl(bundleId, ext, skipExt);
+                }
 
                 //If a colon is in the URL, it indicates a protocol is used and it is just
                 //an URL to a file, or if it starts with a slash, contains a query arg (i.e. ?)
