@@ -5,16 +5,26 @@
  */
 
 /*jslint plusplus: true */
-/*global define */
+/*global define, java */
 
 define(function () {
     'use strict';
 
-    var lang,
+    var lang, isJavaObj,
         hasOwn = Object.prototype.hasOwnProperty;
 
     function hasProp(obj, prop) {
         return hasOwn.call(obj, prop);
+    }
+
+    isJavaObj = function () {
+        return false;
+    };
+
+    if (typeof java !== 'undefined' && java.lang && java.lang.Object) {
+        isJavaObj = function (obj) {
+            return obj instanceof java.lang.Object;
+        };
     }
 
     lang = {
@@ -102,7 +112,7 @@ define(function () {
             type = typeof obj;
             if (obj === null || obj === undefined || type === 'boolean' ||
                 type === 'string' || type === 'number' || lang.isFunction(obj) ||
-                lang.isRegExp(obj)) {
+                lang.isRegExp(obj)|| isJavaObj(obj)) {
                 return obj;
             }
 
