@@ -159,7 +159,7 @@
                     err.originalError = e;
                     err.moduleName = originalName;
                     err.requireModules = [moduleName];
-                    return context.onError(err);
+                    throw err;
                 }
             });
         }

@@ -44,6 +44,17 @@ require({
     );
     doh.run();
 
+    define('testError', function () {
+        requirejs(['nonExistingModule'], function () {
+            console.log('BIG TIME FAIL');
+        }, function (err) {
+            console.log('OK');
+        });
+    });
+
+    require(['testError']);
+
+
     //Print out the test summary.
     doh.run();
 });
