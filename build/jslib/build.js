@@ -1592,7 +1592,7 @@ define(function (require) {
 
         return prim().start(function () {
             var reqIndex, currContents,
-                moduleName, shim, packageConfig, nonPackageName,
+                moduleName, shim, packageMain, packageName,
                 parts, builder, writeApi,
                 namespace, namespaceWithDot, stubModulesByName,
                 context = layer.context,
@@ -1644,13 +1644,15 @@ define(function (require) {
                         singleContents = '';
 
                     moduleName = layer.buildFileToModule[path];
+                    packageName = moduleName.split('/').shift();
+
                     //If the moduleName is for a package main, then update it to the
                     //real main value.
-                    packageConfig = layer.context.config.pkgs &&
-                                    getOwn(layer.context.config.pkgs, moduleName);
-                    if (packageConfig) {
-                        nonPackageName = moduleName;
-                        moduleName += '/' + packageConfig.main;
+                    packageMain = layer.context.config.pkgs &&
+                                    getOwn(layer.context.config.pkgs, packageName);
+                    if (packageMain !== moduleName) {
+                        // Not a match, clear packageMain
+                        packageMain = undefined;
                     }
 
                     return prim().start(function () {
@@ -1713,8 +1715,8 @@ define(function (require) {
                                     currContents = config.onBuildRead(moduleName, path, currContents);
                                 }
 
-                                if (packageConfig) {
-                                    hasPackageName = (nonPackageName === parse.getNamedDefine(currContents));
+                                if (packageMain) {
+                                    hasPackageName = (packageName === parse.getNamedDefine(currContents));
                                 }
 
                                 if (namespace) {
@@ -1725,10 +1727,10 @@ define(function (require) {
                                     useSourceUrl: config.useSourceUrl
                                 });
 
-                                if (packageConfig && !hasPackageName) {
+                                if (packageMain && !hasPackageName) {
                                     currContents = addSemiColon(currContents, config) + '\n';
                                     currContents += namespaceWithDot + "define('" +
-                                                    packageConfig.name + "', ['" + moduleName +
+                                                    packageName + "', ['" + moduleName +
                                                     "'], function (main) { return main; });\n";
                                 }
 
@@ -1754,7 +1756,7 @@ define(function (require) {
                         //after the module is processed.
                         //If we have a name, but no defined module, then add in the placeholder.
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
-                            shim = config.shim && (getOwn(config.shim, moduleName) || (packageConfig && getOwn(config.shim, nonPackageName)));
+                            shim = config.shim && (getOwn(config.shim, moduleName) || (packageMain && getOwn(config.shim, moduleName) || getOwn(config.shim, packageName)));
                             if (shim) {
                                 singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                                  (shim.deps && shim.deps.length ?
