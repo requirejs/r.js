@@ -56,6 +56,7 @@ build/tests/lib/onBuildRead/main-built.js
 build/tests/lib/onBuildWrite/main-built.js
 build/tests/lib/override/wrap/built
 build/tests/lib/packages/main-built.js
+build/tests/lib/packagesNode/main-built.js
 build/tests/lib/pathsNoCopy/js-built
 build/tests/lib/pluginBuilder/main-built.js
 build/tests/lib/pluginShimDep/main-built.js

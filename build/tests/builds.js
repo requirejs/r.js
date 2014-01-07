@@ -1582,6 +1582,26 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    //Confirm node-style package module IDs, which may end in '.js', work in
+    //optimizer.
+    //https://github.com/jrburke/r.js/pull/591
+    doh.register("packagesNode",
+        [
+            function packagesNode(t) {
+                file.deleteFile("lib/packagesNode/main-built.js");
+
+                build(["lib/packagesNode/build.js"]);
+
+                t.is(nol(c("lib/packagesNode/expected.js")),
+                     nol(c("lib/packagesNode/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Confirm package adapter module is skipped if the main package
     //module names itself.
     //https://github.com/jrburke/r.js/issues/328
