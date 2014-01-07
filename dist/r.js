@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Tue, 07 Jan 2014 17:50:18 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Tue, 07 Jan 2014 22:50:02 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Tue, 07 Jan 2014 17:50:18 GMT',
+        version = '2.1.9+ Tue, 07 Jan 2014 22:50:02 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -505,7 +505,7 @@ var requirejs, require, define, xpcUtil;
          * @returns {String} normalized name
          */
         function normalize(name, baseName, applyMap) {
-            var pkgMain, mapValue, nameParts, i, j, nameSegment,
+            var pkgMain, mapValue, nameParts, i, j, nameSegment, lastIndex,
                 foundMap, foundI, foundStarMap, starI,
                 baseParts = baseName && baseName.split('/'),
                 normalizedBaseParts = baseParts,
@@ -524,8 +524,19 @@ var requirejs, require, define, xpcUtil;
                     //'one/two/three.js', but we want the directory, 'one/two' for
                     //this normalization.
                     normalizedBaseParts = baseParts.slice(0, baseParts.length - 1);
+                    name = name.split('/');
+                    lastIndex = name.length - 1;
 
-                    name = normalizedBaseParts.concat(name.split('/'));
+                    // If inside a package and name ends in .js, strip
+                    // it out, because of node. Have to do this here, and
+                    // not in nameToUrl because node allows either .js or
+                    // non .js to map to same file.
+                    if (getOwn(config.pkgs, normalizedBaseParts[0]) &&
+                        req.jsExtRegExp.test(name[lastIndex])) {
+                        name[lastIndex] = name[lastIndex].replace(req.jsExtRegExp, '');
+                    }
+
+                    name = normalizedBaseParts.concat(name);
                     trimDots(name);
                     name = name.join('/');
                 } else if (name.indexOf('./') === 0) {
