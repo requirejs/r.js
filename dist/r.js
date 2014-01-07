@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Tue, 07 Jan 2014 22:50:02 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Tue, 07 Jan 2014 23:20:25 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Tue, 07 Jan 2014 22:50:02 GMT',
+        version = '2.1.9+ Tue, 07 Jan 2014 23:20:25 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -532,8 +532,8 @@ var requirejs, require, define, xpcUtil;
                     // not in nameToUrl because node allows either .js or
                     // non .js to map to same file.
                     if (getOwn(config.pkgs, normalizedBaseParts[0]) &&
-                        req.jsExtRegExp.test(name[lastIndex])) {
-                        name[lastIndex] = name[lastIndex].replace(req.jsExtRegExp, '');
+                        jsSuffixRegExp.test(name[lastIndex])) {
+                        name[lastIndex] = name[lastIndex].replace(jsSuffixRegExp, '');
                     }
 
                     name = normalizedBaseParts.concat(name);
