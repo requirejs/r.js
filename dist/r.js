@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Wed, 08 Jan 2014 20:58:19 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.10 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Wed, 08 Jan 2014 20:58:19 GMT',
+        version = '2.1.10',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -238,7 +238,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.9+ Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.10 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -251,7 +251,7 @@ var requirejs, require, define, xpcUtil;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.9+',
+        version = '2.1.10',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -2316,7 +2316,7 @@ var requirejs, require, define, xpcUtil;
 
     if (env === 'browser') {
         /**
- * @license RequireJS rhino Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS rhino Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2345,7 +2345,7 @@ var requirejs, require, define, xpcUtil;
 }());
     } else if (env === 'rhino') {
         /**
- * @license RequireJS rhino Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS rhino Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2369,7 +2369,7 @@ var requirejs, require, define, xpcUtil;
         require.nodeRequire = nodeRequire;
 
         /**
- * @license RequireJS node Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS node Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2548,7 +2548,7 @@ var requirejs, require, define, xpcUtil;
 
     } else if (env === 'xpconnect') {
         /**
- * @license RequireJS xpconnect Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS xpconnect Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2583,7 +2583,7 @@ var requirejs, require, define, xpcUtil;
      */
     function loadLib() {
         /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2636,7 +2636,7 @@ var requirejs, require, define, xpcUtil;
         }
     });
 }());/**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -2828,7 +2828,7 @@ define('lang', function () {
     return lang;
 });
 /**
- * prim 0.0.1 Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * prim 0.0.1 Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/requirejs/prim for details
  */
@@ -3023,7 +3023,7 @@ var prim;
 }());
 if(env === 'browser') {
 /**
- * @license RequireJS Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3040,7 +3040,7 @@ define('browser/assert', function () {
 
 if(env === 'node') {
 /**
- * @license RequireJS Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3057,7 +3057,7 @@ define('node/assert', ['assert'], function (assert) {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3074,7 +3074,7 @@ define('rhino/assert', function () {
 
 if(env === 'xpconnect') {
 /**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3091,7 +3091,7 @@ define('xpconnect/assert', function () {
 
 if(env === 'browser') {
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3108,7 +3108,7 @@ define('browser/args', function () {
 
 if(env === 'node') {
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3132,7 +3132,7 @@ define('node/args', function () {
 
 if(env === 'rhino') {
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3157,7 +3157,7 @@ define('rhino/args', function () {
 
 if(env === 'xpconnect') {
 /**
- * @license Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3182,7 +3182,7 @@ define('xpconnect/args', function () {
 
 if(env === 'browser') {
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3202,7 +3202,7 @@ define('browser/load', ['./file'], function (file) {
 
 if(env === 'node') {
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3223,7 +3223,7 @@ define('node/load', ['fs'], function (fs) {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3239,7 +3239,7 @@ define('rhino/load', function () {
 
 if(env === 'xpconnect') {
 /**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3255,7 +3255,7 @@ define('xpconnect/load', function () {
 
 if(env === 'browser') {
 /**
- * @license Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3433,7 +3433,7 @@ define('browser/file', ['prim'], function (prim) {
 
 if(env === 'node') {
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -3743,7 +3743,7 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4037,7 +4037,7 @@ define('rhino/file', ['prim'], function (prim) {
 
 if(env === 'xpconnect') {
 /**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4357,7 +4357,7 @@ define('xpconnect/quit', function () {
 
 if(env === 'browser') {
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4377,7 +4377,7 @@ define('browser/print', function () {
 
 if(env === 'node') {
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4397,7 +4397,7 @@ define('node/print', function () {
 
 if(env === 'rhino') {
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4413,7 +4413,7 @@ define('rhino/print', function () {
 
 if(env === 'xpconnect') {
 /**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -4427,7 +4427,7 @@ define('xpconnect/print', function () {
 
 }
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -8397,7 +8397,7 @@ parseStatement: true, parseSourceElement: true */
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
 /**
- * @license Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -22557,7 +22557,7 @@ exports.describe_ast = function() {
 
 });
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -23483,7 +23483,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
     return parse;
 });
 /**
- * @license Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -23924,7 +23924,7 @@ function (esprima, parse, logger, lang) {
     return transform;
 });
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -24191,7 +24191,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
 });
 if(env === 'browser') {
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -24205,7 +24205,7 @@ define('browser/optimize', {});
 
 if(env === 'node') {
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -24219,7 +24219,7 @@ define('node/optimize', {});
 
 if(env === 'rhino') {
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -24395,7 +24395,7 @@ if(env === 'xpconnect') {
 define('xpconnect/optimize', {});
 }
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -24900,7 +24900,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
     return optimize;
 });
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -25372,7 +25372,7 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
     };
 });
 /**
- * @license RequireJS Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -25476,7 +25476,7 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
     return commonJs;
 });
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -25505,6 +25505,7 @@ define('build', function (require) {
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
         endsWithSemiColonRegExp = /;\s*$/,
+        endsWithSlashRegExp = /[\/\\]$/,
         resourceIsModuleIdRegExp = /^[\w\/\\\.]+$/;
 
     prim.nextTick = function (fn) {
@@ -26349,12 +26350,18 @@ define('build', function (require) {
      * make sure paths end in a trailing '/'.
      */
     build.makeRelativeFilePath = function (refPath, targetPath) {
-        var i, dotLength, finalParts, length,
+        var i, dotLength, finalParts, length, targetParts, targetName,
             refParts = refPath.split('/'),
-            targetParts = file.normalize(targetPath).split('/'),
-            //Pull off file name
-            targetName = targetParts.pop(),
+            hasEndSlash = endsWithSlashRegExp.test(targetPath),
             dotParts = [];
+
+        targetPath = file.normalize(targetPath);
+        if (hasEndSlash && !endsWithSlashRegExp.test(targetPath)) {
+            targetPath += '/';
+        }
+        targetParts = targetPath.split('/');
+        //Pull off file name
+        targetName = targetParts.pop();
 
         //Also pop off the ref file name to make the matches against
         //targetParts equivalent.
@@ -26393,18 +26400,30 @@ define('build', function (require) {
      * Mixes additional source config into target config, and merges some
      * nested config, like paths, correctly.
      */
-    function mixConfig(target, source) {
-        var prop, value;
+    function mixConfig(target, source, skipArrays) {
+        var prop, value, isArray, targetValue;
 
         for (prop in source) {
             if (hasProp(source, prop)) {
                 //If the value of the property is a plain object, then
                 //allow a one-level-deep mixing of it.
                 value = source[prop];
+                isArray = lang.isArray(value);
                 if (typeof value === 'object' && value &&
-                        !lang.isArray(value) && !lang.isFunction(value) &&
+                        !isArray && !lang.isFunction(value) &&
                         !lang.isRegExp(value)) {
                     target[prop] = lang.mixin({}, target[prop], value, true);
+                } else if (isArray) {
+                    if (!skipArrays) {
+                        // Some config, like packages, are arrays. For those,
+                        // just merge the results.
+                        targetValue = target[prop];
+                        if (lang.isArray(targetValue)) {
+                            target[prop] = targetValue.concat(value);
+                        } else {
+                            target[prop] = value;
+                        }
+                    }
                 } else {
                     target[prop] = value;
                 }
@@ -26525,50 +26544,58 @@ define('build', function (require) {
 
         mainConfigFile = config.mainConfigFile || (buildFileConfig && buildFileConfig.mainConfigFile);
         if (mainConfigFile) {
-            mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
-            if (!file.exists(mainConfigFile)) {
-                throw new Error(mainConfigFile + ' does not exist.');
+            if (typeof mainConfigFile === 'string') {
+                mainConfigFile = [mainConfigFile];
             }
-            try {
-                mainConfig = parse.findConfig(file.readFile(mainConfigFile)).config;
-            } catch (configError) {
-                throw new Error('The config in mainConfigFile ' +
-                        mainConfigFile +
-                        ' cannot be used because it cannot be evaluated' +
-                        ' correctly while running in the optimizer. Try only' +
-                        ' using a config that is also valid JSON, or do not use' +
-                        ' mainConfigFile and instead copy the config values needed' +
-                        ' into a build file or command line arguments given to the optimizer.\n' +
-                        'Source error from parsing: ' + mainConfigFile + ': ' + configError);
-            }
-            if (mainConfig) {
-                mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
 
-                //Add in some existing config, like appDir, since they can be
-                //used inside the mainConfigFile -- paths and baseUrl are
-                //relative to them.
-                if (config.appDir && !mainConfig.appDir) {
-                    mainConfig.appDir = config.appDir;
+            mainConfigFile.forEach(function (configFile) {
+                configFile = build.makeAbsPath(configFile, absFilePath);
+                if (!file.exists(configFile)) {
+                    throw new Error(configFile + ' does not exist.');
                 }
-
-                //If no baseUrl, then use the directory holding the main config.
-                if (!mainConfig.baseUrl) {
-                    mainConfig.baseUrl = mainConfigPath;
+                try {
+                    mainConfig = parse.findConfig(file.readFile(configFile)).config;
+                } catch (configError) {
+                    throw new Error('The config in mainConfigFile ' +
+                            configFile +
+                            ' cannot be used because it cannot be evaluated' +
+                            ' correctly while running in the optimizer. Try only' +
+                            ' using a config that is also valid JSON, or do not use' +
+                            ' mainConfigFile and instead copy the config values needed' +
+                            ' into a build file or command line arguments given to the optimizer.\n' +
+                            'Source error from parsing: ' + configFile + ': ' + configError);
                 }
+                if (mainConfig) {
+                    mainConfigPath = configFile.substring(0, configFile.lastIndexOf('/'));
 
-                build.makeAbsConfig(mainConfig, mainConfigPath);
-                mixConfig(config, mainConfig);
-            }
+                    //Add in some existing config, like appDir, since they can be
+                    //used inside the configFile -- paths and baseUrl are
+                    //relative to them.
+                    if (config.appDir && !mainConfig.appDir) {
+                        mainConfig.appDir = config.appDir;
+                    }
+
+                    //If no baseUrl, then use the directory holding the main config.
+                    if (!mainConfig.baseUrl) {
+                        mainConfig.baseUrl = mainConfigPath;
+                    }
+
+                    build.makeAbsConfig(mainConfig, mainConfigPath);
+                    mixConfig(config, mainConfig);
+                }
+            });
         }
 
         //Mix in build file config, but only after mainConfig has been mixed in.
+        //Since this is a re-application, skip array merging.
         if (buildFileConfig) {
-            mixConfig(config, buildFileConfig);
+            mixConfig(config, buildFileConfig, true);
         }
 
         //Re-apply the override config values. Command line
         //args should take precedence over build file values.
-        mixConfig(config, cfg);
+        //Since this is a re-application, skip array merging.
+        mixConfig(config, cfg, true);
 
         //Fix paths to full paths so that they can be adjusted consistently
         //lately to be in the output area.
@@ -27515,7 +27542,7 @@ define('build', function (require) {
         loadLib();
 
         /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
