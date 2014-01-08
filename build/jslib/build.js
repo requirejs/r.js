@@ -532,7 +532,9 @@ define(function (require) {
                 if (fileName === 'FUNCTION') {
                     outOrigSourceMap = config.modules[0]._buildSourceMap;
                     config._buildSourceMap = outOrigSourceMap;
-                    config.modules[0]._buildText = optimize.js(fileName,
+                    config.modules[0]._buildText = optimize.js((config.modules[0].name ||
+                                                                config.modules[0].include[0] ||
+                                                                fileName) + '.build.js',
                                                                config.modules[0]._buildText,
                                                                null,
                                                                config);
@@ -1597,7 +1599,7 @@ define(function (require) {
             buildFileContents = '';
 
         return prim().start(function () {
-            var reqIndex, currContents,
+            var reqIndex, currContents, fileForSourceMap,
                 moduleName, shim, packageMain, packageName,
                 parts, builder, writeApi,
                 namespace, namespaceWithDot, stubModulesByName,
@@ -1637,8 +1639,11 @@ define(function (require) {
 
             if (config.generateSourceMaps) {
                 sourceMapBase = config.dir || config.baseUrl;
+                fileForSourceMap = module._buildPath === 'FUNCTION' ?
+                                   (module.name || module.include[0] || 'FUNCTION') + '.build.js' :
+                                   module._buildPath.replace(sourceMapBase, '');
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
-                    file: module._buildPath.replace(sourceMapBase, '')
+                    file: fileForSourceMap
                 });
             }
 

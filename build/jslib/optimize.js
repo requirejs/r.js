@@ -482,13 +482,14 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             file.saveFile(outFileName + '.src.js', fileContents);
                         }
 
+                        fileContents = result.code;
+
                         if (config._buildSourceMap) {
                             config._buildSourceMap = resultMap;
                         } else {
                             file.saveFile(outFileName + '.map', resultMap);
+                            fileContents += "\n//# sourceMappingURL=" + baseName + ".map";
                         }
-
-                        fileContents = result.code + "\n//# sourceMappingURL=" + baseName + ".map";
                     } else {
                         fileContents = result.code;
                     }
