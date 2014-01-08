@@ -892,6 +892,26 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Multiple mainConfigFile entries
+    //https://github.com/jrburke/r.js/pull/572
+    doh.register("mainConfigFileMulti",
+        [
+            function mainConfigFileMulti(t) {
+                file.deleteFile("lib/mainConfigFile/multi/main-built.js");
+
+                build(["lib/mainConfigFile/multi/tools/build.js"]);
+
+                t.is(nol(c("lib/mainConfigFile/multi/expected.js")),
+                     nol(c("lib/mainConfigFile/multi/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     doh.register("onBuildAllDir",
         [
             function onBuildAllDir(t) {

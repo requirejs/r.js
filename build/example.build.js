@@ -32,6 +32,8 @@
     //in a separate configuration, set this property to the location of that
     //main JS file. The first requirejs({}), require({}), requirejs.config({}),
     //or require.config({}) call found in that file will be used.
+    //As of 2.1.10, mainConfigFile can be an array of values, with the last
+    //value's config take precedence over previous values in the array.
     mainConfigFile: '../some/path/to/main.js',
 
     //Set paths for modules. If relative paths, set relative to baseUrl above.

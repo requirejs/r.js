@@ -916,18 +916,30 @@ define(function (require) {
      * Mixes additional source config into target config, and merges some
      * nested config, like paths, correctly.
      */
-    function mixConfig(target, source) {
-        var prop, value;
+    function mixConfig(target, source, skipArrays) {
+        var prop, value, isArray, targetValue;
 
         for (prop in source) {
             if (hasProp(source, prop)) {
                 //If the value of the property is a plain object, then
                 //allow a one-level-deep mixing of it.
                 value = source[prop];
+                isArray = lang.isArray(value);
                 if (typeof value === 'object' && value &&
-                        !lang.isArray(value) && !lang.isFunction(value) &&
+                        !isArray && !lang.isFunction(value) &&
                         !lang.isRegExp(value)) {
                     target[prop] = lang.mixin({}, target[prop], value, true);
+                } else if (isArray) {
+                    if (!skipArrays) {
+                        // Some config, like packages, are arrays. For those,
+                        // just merge the results.
+                        targetValue = target[prop];
+                        if (lang.isArray(targetValue)) {
+                            target[prop] = targetValue.concat(value);
+                        } else {
+                            target[prop] = value;
+                        }
+                    }
                 } else {
                     target[prop] = value;
                 }
@@ -1048,50 +1060,58 @@ define(function (require) {
 
         mainConfigFile = config.mainConfigFile || (buildFileConfig && buildFileConfig.mainConfigFile);
         if (mainConfigFile) {
-            mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
-            if (!file.exists(mainConfigFile)) {
-                throw new Error(mainConfigFile + ' does not exist.');
+            if (typeof mainConfigFile === 'string') {
+                mainConfigFile = [mainConfigFile];
             }
-            try {
-                mainConfig = parse.findConfig(file.readFile(mainConfigFile)).config;
-            } catch (configError) {
-                throw new Error('The config in mainConfigFile ' +
-                        mainConfigFile +
-                        ' cannot be used because it cannot be evaluated' +
-                        ' correctly while running in the optimizer. Try only' +
-                        ' using a config that is also valid JSON, or do not use' +
-                        ' mainConfigFile and instead copy the config values needed' +
-                        ' into a build file or command line arguments given to the optimizer.\n' +
-                        'Source error from parsing: ' + mainConfigFile + ': ' + configError);
-            }
-            if (mainConfig) {
-                mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
 
-                //Add in some existing config, like appDir, since they can be
-                //used inside the mainConfigFile -- paths and baseUrl are
-                //relative to them.
-                if (config.appDir && !mainConfig.appDir) {
-                    mainConfig.appDir = config.appDir;
+            mainConfigFile.forEach(function (configFile) {
+                configFile = build.makeAbsPath(configFile, absFilePath);
+                if (!file.exists(configFile)) {
+                    throw new Error(configFile + ' does not exist.');
                 }
-
-                //If no baseUrl, then use the directory holding the main config.
-                if (!mainConfig.baseUrl) {
-                    mainConfig.baseUrl = mainConfigPath;
+                try {
+                    mainConfig = parse.findConfig(file.readFile(configFile)).config;
+                } catch (configError) {
+                    throw new Error('The config in mainConfigFile ' +
+                            configFile +
+                            ' cannot be used because it cannot be evaluated' +
+                            ' correctly while running in the optimizer. Try only' +
+                            ' using a config that is also valid JSON, or do not use' +
+                            ' mainConfigFile and instead copy the config values needed' +
+                            ' into a build file or command line arguments given to the optimizer.\n' +
+                            'Source error from parsing: ' + configFile + ': ' + configError);
                 }
+                if (mainConfig) {
+                    mainConfigPath = configFile.substring(0, configFile.lastIndexOf('/'));
 
-                build.makeAbsConfig(mainConfig, mainConfigPath);
-                mixConfig(config, mainConfig);
-            }
+                    //Add in some existing config, like appDir, since they can be
+                    //used inside the configFile -- paths and baseUrl are
+                    //relative to them.
+                    if (config.appDir && !mainConfig.appDir) {
+                        mainConfig.appDir = config.appDir;
+                    }
+
+                    //If no baseUrl, then use the directory holding the main config.
+                    if (!mainConfig.baseUrl) {
+                        mainConfig.baseUrl = mainConfigPath;
+                    }
+
+                    build.makeAbsConfig(mainConfig, mainConfigPath);
+                    mixConfig(config, mainConfig);
+                }
+            });
         }
 
         //Mix in build file config, but only after mainConfig has been mixed in.
+        //Since this is a re-application, skip array merging.
         if (buildFileConfig) {
-            mixConfig(config, buildFileConfig);
+            mixConfig(config, buildFileConfig, true);
         }
 
         //Re-apply the override config values. Command line
         //args should take precedence over build file values.
-        mixConfig(config, cfg);
+        //Since this is a re-application, skip array merging.
+        mixConfig(config, cfg, true);
 
         //Fix paths to full paths so that they can be adjusted consistently
         //lately to be in the output area.
