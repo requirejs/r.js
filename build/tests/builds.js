@@ -1,7 +1,7 @@
 /*jslint plusplus: true, nomen: true */
 /*global define: false, require: false, doh: false */
 
-define(['build', 'env!env/file', 'env'], function (build, file, env) {
+define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lang) {
     'use strict';
 
     //Remove any old builds
@@ -2146,6 +2146,72 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
                      nol(c("lib/unicode/main-built.js")));
 
                 require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //out function should get source map if available.
+    //https://github.com/jrburke/r.js/issues/590
+    doh.register("sourcemapOutFunction",
+        [
+            function sourcemapOutFunction(t) {
+
+                var ugly, plain,
+                    config = {
+                        baseUrl: 'lib/sourcemapOutFunction/js',
+                        generateSourceMaps: true,
+                        preserveLicenseComments: false,
+                        name: 'main'
+                    };
+
+                build(lang.mixin({
+                    optimize: 'uglify2',
+                    out: function (text, sourceMap) {
+                        ugly = {
+                            text: text,
+                            sourceMap: sourceMap
+                        };
+                    }
+                }, config));
+
+                require._buildReset();
+
+                build(lang.mixin({
+                    optimize: 'none',
+                    out: function (text, sourceMap) {
+                        plain = {
+                            text: text,
+                            sourceMap: sourceMap
+                        };
+                    }
+                }, config));
+
+                /*
+                console.log(ugly.text);
+                console.log('=======');
+                console.log(ugly.sourceMap);
+                console.log('== NONE ==');
+                console.log(plain.text);
+                console.log('=======');
+                console.log(plain.sourceMap);
+                */
+
+                t.is(true, !!plain.text, 'has plain text');
+                t.is(true, !!ugly.text, 'has uglified text');
+                t.is(true, plain.text !== ugly.text, 'texts are not equal');
+                t.is(true, plain.sourceMap !== ugly.sourceMap, 'source maps are not equal');
+
+                ugly.sourceMap = JSON.parse(ugly.sourceMap);
+                plain.sourceMap = JSON.parse(plain.sourceMap);
+
+                t.is(true, !!ugly.sourceMap.sourcesContent, 'has uglified sourcesContent');
+                t.is(true, !!plain.sourceMap.sourcesContent, 'has plain sourcesContent');
+                t.is(true, plain.sourceMap.mappings !== ugly.sourceMap.mappings, 'mappings are not equal');
+
+                require._buildReset();
+
             }
 
         ]

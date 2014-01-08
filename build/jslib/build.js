@@ -480,7 +480,7 @@ define(function (require) {
                 }));
             }
         }).then(function () {
-            var moduleName;
+            var moduleName, outOrigSourceMap;
             if (modules) {
                 //Now move the build layers to their final position.
                 modules.forEach(function (module) {
@@ -530,10 +530,16 @@ define(function (require) {
                 //Just need to worry about one JS file.
                 fileName = config.modules[0]._buildPath;
                 if (fileName === 'FUNCTION') {
+                    outOrigSourceMap = config.modules[0]._buildSourceMap;
+                    config._buildSourceMap = outOrigSourceMap;
                     config.modules[0]._buildText = optimize.js(fileName,
                                                                config.modules[0]._buildText,
                                                                null,
                                                                config);
+                    if (config._buildSourceMap && config._buildSourceMap !== outOrigSourceMap) {
+                        config.modules[0]._buildSourceMap = config._buildSourceMap;
+                        config._buildSourceMap = null;
+                    }
                 } else {
                     optimize.jsFile(fileName, null, fileName, config);
                 }
@@ -684,7 +690,7 @@ define(function (require) {
             }
 
             if (typeof config.out === 'function') {
-                config.out(config.modules[0]._buildText);
+                config.out(config.modules[0]._buildText, config.modules[0]._buildSourceMap);
             }
 
             //Print out what was built into which layers.
