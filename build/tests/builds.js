@@ -711,6 +711,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //https://github.com/jrburke/r.js/issues/574
+    doh.register("keepAmdefine",
+        [
+            function amdefineStrip(t) {
+                file.deleteFile("lib/keepAmdefine/built.js");
+
+                build(["lib/keepAmdefine/build.js"]);
+
+                t.is(nol(c("lib/keepAmdefine/expected.js")),
+                     nol(c("lib/keepAmdefine/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("nameInsertion",
         [
             function nameInsertion(t) {

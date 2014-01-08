@@ -30,6 +30,7 @@ build/tests/lib/iife/main-built.js
 build/tests/lib/insertRequire/main-built.js
 build/tests/lib/intDefine/main-built.js
 build/tests/lib/jqueryConfig/main-built.js
+build/tests/lib/keepAmdefine/built.js
 build/tests/lib/mainConfigFile/basic/main-built.js
 build/tests/lib/mainConfigFile/first/main-built.js
 build/tests/lib/mainConfigFile/mergeConfig/main-built.js

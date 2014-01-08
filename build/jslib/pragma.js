@@ -248,7 +248,9 @@ define(['parse', 'logger'], function (parse, logger) {
             }
 
             //Strip amdefine use for node-shared modules.
-            fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            if (!config.keepAmdefine) {
+                fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            }
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {

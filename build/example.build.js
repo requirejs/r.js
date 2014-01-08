@@ -597,5 +597,14 @@
     //you take responsibility for making sure your concatenated code works with
     //JavaScript's ASI rules, and that you use a minifier that understands when
     //to insert semicolons to avoid ASI pitfalls.
-    skipSemiColonInsertion: false
+    skipSemiColonInsertion: false,
+
+    //Introduced in 2.1.10: if set to true, will not strip amdefine use:
+    //https://github.com/jrburke/amdefine
+    //Normally you should not need to set this. It is only a concern if using
+    //a built .js file from some other source, that may have included amdefine
+    //in the built input. If you get a build error like
+    //"undefined is not a function" and the file that generated the error
+    //references amdefine, then set this to true.
+    keepAmdefine: false
 })
