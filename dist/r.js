@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Tue, 07 Jan 2014 23:20:25 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Wed, 08 Jan 2014 02:17:28 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Tue, 07 Jan 2014 23:20:25 GMT',
+        version = '2.1.9+ Wed, 08 Jan 2014 02:17:28 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24612,6 +24612,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 optConfig = config[optimizerName] || {};
                 if (config.generateSourceMaps) {
                     optConfig.generateSourceMaps = !!config.generateSourceMaps;
+                    optConfig._buildSourceMap = config._buildSourceMap;
                 }
 
                 try {
@@ -24629,12 +24630,19 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                                              outFileName,
                                                              keepLines,
                                                              optConfig);
+                    if (optConfig._buildSourceMap && optConfig._buildSourceMap !== config._buildSourceMap) {
+                        config._buildSourceMap = optConfig._buildSourceMap;
+                    }
                 } catch (e) {
                     if (config.throwWhen && config.throwWhen.optimize) {
                         throw e;
                     } else {
                         logger.error(e);
                     }
+                }
+            } else {
+                if (config._buildSourceMap) {
+                    config._buildSourceMap = null;
                 }
             }
 
@@ -24818,10 +24826,13 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 uconfig.fromString = true;
 
-                if (config.generateSourceMaps && outFileName) {
+                if (config.generateSourceMaps && (outFileName || config._buildSourceMap)) {
                     uconfig.outSourceMap = baseName;
 
-                    if (file.exists(existingMapPath)) {
+                    if (config._buildSourceMap) {
+                        existingMap = JSON.parse(config._buildSourceMap);
+                        uconfig.inSourceMap = existingMap;
+                    } else if (file.exists(existingMapPath)) {
                         uconfig.inSourceMap = existingMapPath;
                         existingMap = JSON.parse(file.readFile(existingMapPath));
                     }
@@ -24839,10 +24850,16 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
                             finalMap.applySourceMap(new SourceMapConsumer(existingMap));
                             resultMap = finalMap.toString();
-                        } else {
+                        } else if (!config._buildSourceMap) {
                             file.saveFile(outFileName + '.src.js', fileContents);
                         }
-                        file.saveFile(outFileName + '.map', resultMap);
+
+                        if (config._buildSourceMap) {
+                            config._buildSourceMap = resultMap;
+                        } else {
+                            file.saveFile(outFileName + '.map', resultMap);
+                        }
+
                         fileContents = result.code + "\n//# sourceMappingURL=" + baseName + ".map";
                     } else {
                         fileContents = result.code;
@@ -25915,7 +25932,7 @@ define('build', function (require) {
                 }));
             }
         }).then(function () {
-            var moduleName;
+            var moduleName, outOrigSourceMap;
             if (modules) {
                 //Now move the build layers to their final position.
                 modules.forEach(function (module) {
@@ -25965,10 +25982,16 @@ define('build', function (require) {
                 //Just need to worry about one JS file.
                 fileName = config.modules[0]._buildPath;
                 if (fileName === 'FUNCTION') {
+                    outOrigSourceMap = config.modules[0]._buildSourceMap;
+                    config._buildSourceMap = outOrigSourceMap;
                     config.modules[0]._buildText = optimize.js(fileName,
                                                                config.modules[0]._buildText,
                                                                null,
                                                                config);
+                    if (config._buildSourceMap && config._buildSourceMap !== outOrigSourceMap) {
+                        config.modules[0]._buildSourceMap = config._buildSourceMap;
+                        config._buildSourceMap = null;
+                    }
                 } else {
                     optimize.jsFile(fileName, null, fileName, config);
                 }
@@ -26119,7 +26142,7 @@ define('build', function (require) {
             }
 
             if (typeof config.out === 'function') {
-                config.out(config.modules[0]._buildText);
+                config.out(config.modules[0]._buildText, config.modules[0]._buildSourceMap);
             }
 
             //Print out what was built into which layers.
