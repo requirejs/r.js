@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Wed, 08 Jan 2014 06:01:15 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Wed, 08 Jan 2014 06:39:00 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Wed, 08 Jan 2014 06:01:15 GMT',
+        version = '2.1.9+ Wed, 08 Jan 2014 06:39:00 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24174,7 +24174,9 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
             }
 
             //Strip amdefine use for node-shared modules.
-            fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            if (!config.keepAmdefine) {
+                fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            }
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {
