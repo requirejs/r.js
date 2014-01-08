@@ -2152,6 +2152,25 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Do not go into already concatenated files with an internal define
+    //https://github.com/jrburke/requirejs/issues/883
+    doh.register("umd",
+        [
+            function umd(t) {
+                file.deleteFile("lib/umd/main-built.js");
+
+                build(["lib/umd/build.js"]);
+
+                t.is(nol(c("lib/umd/expected.js")),
+                     nol(c("lib/umd/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //out function should get source map if available.
     //https://github.com/jrburke/r.js/issues/590
     doh.register("sourcemapOutFunction",
