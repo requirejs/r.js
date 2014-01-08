@@ -21,6 +21,7 @@ define('foo/lib/index',['./bar.js', './baz'], function (bar, baz) {
 define('foo', ['foo/lib/index'], function (main) { return main; });
 
 require({
+    nodeIdCompat: true,
     packages: [{
         name: 'foo',
         location: 'node_modules/foo',

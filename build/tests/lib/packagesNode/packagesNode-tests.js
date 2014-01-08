@@ -1,4 +1,5 @@
 require({
+    nodeIdCompat: true,
     packages: [{
         name: 'foo',
         location: 'node_modules/foo',
