@@ -28,6 +28,7 @@ define(function (require) {
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
         endsWithSemiColonRegExp = /;\s*$/,
+        endsWithSlashRegExp = /[\/\\]$/,
         resourceIsModuleIdRegExp = /^[\w\/\\\.]+$/;
 
     prim.nextTick = function (fn) {
@@ -872,12 +873,18 @@ define(function (require) {
      * make sure paths end in a trailing '/'.
      */
     build.makeRelativeFilePath = function (refPath, targetPath) {
-        var i, dotLength, finalParts, length,
+        var i, dotLength, finalParts, length, targetParts, targetName,
             refParts = refPath.split('/'),
-            targetParts = file.normalize(targetPath).split('/'),
-            //Pull off file name
-            targetName = targetParts.pop(),
+            hasEndSlash = endsWithSlashRegExp.test(targetPath),
             dotParts = [];
+
+        targetPath = file.normalize(targetPath);
+        if (hasEndSlash && !endsWithSlashRegExp.test(targetPath)) {
+            targetPath += '/';
+        }
+        targetParts = targetPath.split('/');
+        //Pull off file name
+        targetName = targetParts.pop();
 
         //Also pop off the ref file name to make the matches against
         //targetParts equivalent.
