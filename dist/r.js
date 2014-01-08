@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.9+ Wed, 08 Jan 2014 02:17:28 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.9+ Wed, 08 Jan 2014 04:27:22 GMT Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.9+ Wed, 08 Jan 2014 02:17:28 GMT',
+        version = '2.1.9+ Wed, 08 Jan 2014 04:27:22 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24854,13 +24854,14 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             file.saveFile(outFileName + '.src.js', fileContents);
                         }
 
+                        fileContents = result.code;
+
                         if (config._buildSourceMap) {
                             config._buildSourceMap = resultMap;
                         } else {
                             file.saveFile(outFileName + '.map', resultMap);
+                            fileContents += "\n//# sourceMappingURL=" + baseName + ".map";
                         }
-
-                        fileContents = result.code + "\n//# sourceMappingURL=" + baseName + ".map";
                     } else {
                         fileContents = result.code;
                     }
@@ -25984,7 +25985,9 @@ define('build', function (require) {
                 if (fileName === 'FUNCTION') {
                     outOrigSourceMap = config.modules[0]._buildSourceMap;
                     config._buildSourceMap = outOrigSourceMap;
-                    config.modules[0]._buildText = optimize.js(fileName,
+                    config.modules[0]._buildText = optimize.js((config.modules[0].name ||
+                                                                config.modules[0].include[0] ||
+                                                                fileName) + '.build.js',
                                                                config.modules[0]._buildText,
                                                                null,
                                                                config);
@@ -27049,7 +27052,7 @@ define('build', function (require) {
             buildFileContents = '';
 
         return prim().start(function () {
-            var reqIndex, currContents,
+            var reqIndex, currContents, fileForSourceMap,
                 moduleName, shim, packageMain, packageName,
                 parts, builder, writeApi,
                 namespace, namespaceWithDot, stubModulesByName,
@@ -27089,8 +27092,11 @@ define('build', function (require) {
 
             if (config.generateSourceMaps) {
                 sourceMapBase = config.dir || config.baseUrl;
+                fileForSourceMap = module._buildPath === 'FUNCTION' ?
+                                   (module.name || module.include[0] || 'FUNCTION') + '.build.js' :
+                                   module._buildPath.replace(sourceMapBase, '');
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
-                    file: module._buildPath.replace(sourceMapBase, '')
+                    file: fileForSourceMap
                 });
             }
 
