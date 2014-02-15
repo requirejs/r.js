@@ -1277,6 +1277,30 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    // test wrapShim: true config
+    //
+    doh.register("shimBasicWrap",
+        [
+            function shimBasicWrap(t) {
+                var outFile = "lib/shimBasicWrap/basic-tests-built.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/shimBasicWrap/build.js"]);
+
+                //Also remove spaces, since rhino and node differ on their
+                //Function.prototype.toString() output by whitespace, and
+                //the semicolon on end of A.name, and string quotes.
+                t.is(nol(c("lib/shimBasicWrap/expected.js")).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'),
+                     nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name')
+                     .replace(/['"]Modified["']/, "'Modified'"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 
     doh.register("shimFakeDefine",
         [

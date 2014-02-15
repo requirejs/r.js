@@ -1796,11 +1796,25 @@ define(function (require) {
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
                             shim = config.shim && (getOwn(config.shim, moduleName) || (packageMain && getOwn(config.shim, moduleName) || getOwn(config.shim, packageName)));
                             if (shim) {
-                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
-                                                 (shim.deps && shim.deps.length ?
-                                                        build.makeJsArrayString(shim.deps) + ', ' : '') +
-                                                 (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
-                                                 ');\n';
+                                if (config.wrapShim) {
+                                    singleContents = '(function(root) {' +
+                                                     '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                                     (shim.deps && shim.deps.length ?
+                                                            build.makeJsArrayString(shim.deps) + ', ' : '[], ') +
+                                                    'function() {\n' +
+                                                    '      return (function() {\n' +
+                                                             singleContents +
+                                                             (shim.exportsFn ? shim.exportsFn() : '') +
+                                                    '      }).apply(root, arguments);\n' +
+                                                    '    });\n' +
+                                                    '}(this));\n';
+                                } else {
+                                    singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                                     (shim.deps && shim.deps.length ?
+                                                            build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                                     (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
+                                                     ');\n';
+                                }
                             } else {
                                 singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }

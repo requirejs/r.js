@@ -65,6 +65,18 @@
     //inlined in the build config.
     shim: {},
 
+    //As of 2.1.11, shimmed dependencies can be wrapped in a define() wrapper
+    //to help when intermediate dependencies are AMD have dependencies of their
+    //own. The canonical example is a project using Backbone, which depends on
+    //jQuery and Underscore. Shimmed dependencies that want Backbone available
+    //immediately will not see it in a build, since AMD compatible versions of
+    //Backbone will not execute the define() function until dependencies are
+    //ready. By wrapping those shimmed dependencies, this can be avoided, but
+    //it could introduce other errors if those shimmed dependencies use the
+    //global scope in weird ways, so it is not the default behavior to wrap.
+    //More notes in http://requirejs.org/docs/api.html#config-shim
+    wrapShim: false,
+
     //As of RequireJS 2.0.2, the dir above will be deleted before the
     //build starts again. If you have a big build and are not doing
     //source transforms with onBuildRead/onBuildWrite, then you can

@@ -121,18 +121,45 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                 //spit out strings that can be used in the stringified
                 //build output.
                 context.makeShimExports = function (value) {
-                    function fn() {
-                        return '(function (global) {\n' +
-                            '    return function () {\n' +
-                            '        var ret, fn;\n' +
-                            (value.init ?
-                                    ('       fn = ' + value.init.toString() + ';\n' +
-                                    '        ret = fn.apply(global, arguments);\n') : '') +
-                            (value.exports ?
-                                    '        return ret || global.' + value.exports + ';\n' :
-                                    '        return ret;\n') +
-                            '    };\n' +
-                            '}(this))';
+                    var fn;
+                    if (context.config.wrapShim) {
+                        fn = function () {
+                            var str = 'return ';
+                            // If specifies an export that is just a global
+                            // name, no dot for a `this.` and such, then also
+                            // attach to the global, for `var a = {}` files
+                            // where the function closure would hide that from
+                            // the global object.
+                            if (value.exports && value.exports.indexOf('.') === -1) {
+                                str += 'root.' + value.exports + ' = ';
+                            }
+
+                            if (value.init) {
+                                str += '(' + value.init.toString() + '.apply(this, arguments))';
+                            }
+                            if (value.init && value.exports) {
+                                str += ' || ';
+                            }
+                            if (value.exports) {
+                                str += value.exports;
+                            }
+                            str += ';';
+                            return str;
+                        };
+                    } else {
+                        fn = function () {
+                            return '(function (global) {\n' +
+                                '    return function () {\n' +
+                                '        var ret, fn;\n' +
+                                (value.init ?
+                                        ('       fn = ' + value.init.toString() + ';\n' +
+                                        '        ret = fn.apply(global, arguments);\n') : '') +
+                                (value.exports ?
+                                        '        return ret || global.' + value.exports + ';\n' :
+                                        '        return ret;\n') +
+                                '    };\n' +
+                                '}(this))';
+                        };
                     }
 
                     return fn;
