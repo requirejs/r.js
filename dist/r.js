@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.10 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.10+ Sat, 15 Feb 2014 01:20:59 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.10',
+        version = '2.1.10+ Sat, 15 Feb 2014 01:20:59 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -25022,18 +25022,45 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                 //spit out strings that can be used in the stringified
                 //build output.
                 context.makeShimExports = function (value) {
-                    function fn() {
-                        return '(function (global) {\n' +
-                            '    return function () {\n' +
-                            '        var ret, fn;\n' +
-                            (value.init ?
-                                    ('       fn = ' + value.init.toString() + ';\n' +
-                                    '        ret = fn.apply(global, arguments);\n') : '') +
-                            (value.exports ?
-                                    '        return ret || global.' + value.exports + ';\n' :
-                                    '        return ret;\n') +
-                            '    };\n' +
-                            '}(this))';
+                    var fn;
+                    if (context.config.wrapShim) {
+                        fn = function () {
+                            var str = 'return ';
+                            // If specifies an export that is just a global
+                            // name, no dot for a `this.` and such, then also
+                            // attach to the global, for `var a = {}` files
+                            // where the function closure would hide that from
+                            // the global object.
+                            if (value.exports && value.exports.indexOf('.') === -1) {
+                                str += 'root.' + value.exports + ' = ';
+                            }
+
+                            if (value.init) {
+                                str += '(' + value.init.toString() + '.apply(this, arguments))';
+                            }
+                            if (value.init && value.exports) {
+                                str += ' || ';
+                            }
+                            if (value.exports) {
+                                str += value.exports;
+                            }
+                            str += ';';
+                            return str;
+                        };
+                    } else {
+                        fn = function () {
+                            return '(function (global) {\n' +
+                                '    return function () {\n' +
+                                '        var ret, fn;\n' +
+                                (value.init ?
+                                        ('       fn = ' + value.init.toString() + ';\n' +
+                                        '        ret = fn.apply(global, arguments);\n') : '') +
+                                (value.exports ?
+                                        '        return ret || global.' + value.exports + ';\n' :
+                                        '        return ret;\n') +
+                                '    };\n' +
+                                '}(this))';
+                        };
                     }
 
                     return fn;
@@ -27273,11 +27300,25 @@ define('build', function (require) {
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
                             shim = config.shim && (getOwn(config.shim, moduleName) || (packageMain && getOwn(config.shim, moduleName) || getOwn(config.shim, packageName)));
                             if (shim) {
-                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
-                                                 (shim.deps && shim.deps.length ?
-                                                        build.makeJsArrayString(shim.deps) + ', ' : '') +
-                                                 (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
-                                                 ');\n';
+                                if (config.wrapShim) {
+                                    singleContents = '(function(root) {' +
+                                                     '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                                     (shim.deps && shim.deps.length ?
+                                                            build.makeJsArrayString(shim.deps) + ', ' : '[], ') +
+                                                    'function() {\n' +
+                                                    '      return (function() {\n' +
+                                                             singleContents +
+                                                             (shim.exportsFn ? shim.exportsFn() : '') +
+                                                    '      }).apply(root, arguments);\n' +
+                                                    '    });\n' +
+                                                    '}(this));\n';
+                                } else {
+                                    singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                                     (shim.deps && shim.deps.length ?
+                                                            build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                                     (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
+                                                     ');\n';
+                                }
                             } else {
                                 singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }
