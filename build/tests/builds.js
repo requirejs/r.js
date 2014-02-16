@@ -2076,13 +2076,13 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     doh.register("sourcemapOneJs",
         [
             function sourcemapOneJs(t) {
-                file.deleteFile("lib/sourcemap/onejs/built.js");
-                file.deleteFile("lib/sourcemap/onejs/built.js.map");
+                file.deleteFile("lib/sourcemap/onejs/www/js/built.js");
+                file.deleteFile("lib/sourcemap/onejs/www/js/built.js.map");
 
                 build(["lib/sourcemap/onejs/build.js"]);
 
                 t.is(nol(c("lib/sourcemap/onejs/expected.map")),
-                     nol(c("lib/sourcemap/onejs/built.js.map")));
+                     nol(c("lib/sourcemap/onejs/www/js/built.js.map")));
 
                 require._buildReset();
             }
