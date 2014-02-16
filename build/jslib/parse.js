@@ -66,7 +66,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             if (object.hasOwnProperty(key)) {
                 child = object[key];
                 if (typeof child === 'object' && child !== null) {
-                    traverse(child, visitor);
+                    traverseBroad(child, visitor);
                 }
             }
         }

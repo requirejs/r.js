@@ -44,7 +44,7 @@ function (esprima, parse, logger, lang) {
             }
 
             //Find the define calls and their position in the files.
-            parse.traverseBroad(astRoot, function (node) {
+            parse.traverse(astRoot, function (node) {
                 var args, firstArg, firstArgLoc, factoryNode,
                     needsId, depAction, foundId, init,
                     sourceUrlData, range,
