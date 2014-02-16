@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.10+ Sat, 15 Feb 2014 01:21:55 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.10+ Sun, 16 Feb 2014 01:24:25 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.10+ Sat, 15 Feb 2014 01:21:55 GMT',
+        version = '2.1.10+ Sun, 16 Feb 2014 01:24:25 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -27282,7 +27282,7 @@ define('build', function (require) {
 
                                 //Semicolon is for files that are not well formed when
                                 //concatenated with other content.
-                                singleContents += "\n" + addSemiColon(currContents, config);
+                                singleContents += addSemiColon(currContents, config);
                             });
                         }
                     }).then(function () {
@@ -27323,6 +27323,12 @@ define('build', function (require) {
                                 singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }
                         }
+
+                        //Add line break at end of file, instead of at beginning,
+                        //so source map line numbers stay correct, but still allow
+                        //for some space separation between files in case ASI issues
+                        //for concatenation would cause an error otherwise.
+                        singleContents += '\n';
 
                         //Add to the source map
                         if (sourceMapGenerator) {
