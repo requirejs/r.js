@@ -2299,4 +2299,22 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //https://github.com/jrburke/r.js/issues/479
+    doh.register("allowSourceOverwrites",
+        [
+            function allowSourceOverwrites(t) {
+                file.deleteFile("lib/allowSourceOverwrites/output/main.js");
+
+                build(["lib/allowSourceOverwrites/build.js"]);
+
+                t.is(nol(c("lib/allowSourceOverwrites/expected.js")),
+                     nol(c("lib/allowSourceOverwrites/output/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

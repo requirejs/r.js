@@ -620,5 +620,16 @@
     //in the built input. If you get a build error like
     //"undefined is not a function" and the file that generated the error
     //references amdefine, then set this to true.
-    keepAmdefine: false
+    keepAmdefine: false,
+
+    //Introduced in 2.1.11. As part of fixing a bug to prevent possible
+    //overwrites of source code, https://github.com/jrburke/r.js/issues/444,
+    //it prevented some cases where generated source is used for a build, and
+    //it was OK to overwrite content in this source area as it was generated
+    //from another source area, and not allowing source overwrites meant taking
+    //another file copy hit. By setting this to true, it allows this sort of
+    //source code overwriting. However, use at your own risk, and be sure you
+    //have your configuration set correctly. For example, you may want to
+    //set "keepBuildDir" to true.
+    allowSourceOverwrites: false
 })
