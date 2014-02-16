@@ -1778,7 +1778,7 @@ define(function (require) {
 
                                 //Semicolon is for files that are not well formed when
                                 //concatenated with other content.
-                                singleContents += "\n" + addSemiColon(currContents, config);
+                                singleContents += addSemiColon(currContents, config);
                             });
                         }
                     }).then(function () {
@@ -1819,6 +1819,12 @@ define(function (require) {
                                 singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }
                         }
+
+                        //Add line break at end of file, instead of at beginning,
+                        //so source map line numbers stay correct, but still allow
+                        //for some space separation between files in case ASI issues
+                        //for concatenation would cause an error otherwise.
+                        singleContents += '\n';
 
                         //Add to the source map
                         if (sourceMapGenerator) {

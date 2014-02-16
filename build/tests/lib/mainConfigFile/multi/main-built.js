@@ -1,4 +1,3 @@
-
 define('enabled',{
     load: function (name, require, load, config) {
         if (config.enabled[name]) {
@@ -13,9 +12,12 @@ define('alpha',{
     name: 'alpha'
 });
 
+
+
 define('beta',{
     name: 'beta'
 });
+
 
 define('foo/main',{
     name: 'foo'
@@ -50,3 +52,4 @@ requirejs(['enabled!alpha', 'enabled!gamma', 'enabled!beta', 'foo', 'bar'], func
 });
 
 define("main", function(){});
+

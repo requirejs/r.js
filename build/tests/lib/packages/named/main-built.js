@@ -1,4 +1,3 @@
-
 define('foo', ['require'],function (util) {
     return {
         name: 'foo'
@@ -19,3 +18,4 @@ requirejs.config({
 define('main',['foo'], function (foo) {
     return foo;
 });
+

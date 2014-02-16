@@ -1,4 +1,3 @@
-
 define('a',['require'],function (require) {
     const name = 'a';
 
@@ -27,5 +26,6 @@ define('main',['require','a'],function (require) {
         yield false;
     }
 });
+
 
 require(["main"]);
