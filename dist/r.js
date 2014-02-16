@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.10+ Sun, 16 Feb 2014 08:01:13 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.10+ Sun, 16 Feb 2014 08:21:07 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.10+ Sun, 16 Feb 2014 08:01:13 GMT',
+        version = '2.1.10+ Sun, 16 Feb 2014 08:21:07 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22760,7 +22760,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             if (object.hasOwnProperty(key)) {
                 child = object[key];
                 if (typeof child === 'object' && child !== null) {
-                    traverse(child, visitor);
+                    traverseBroad(child, visitor);
                 }
             }
         }
@@ -23664,7 +23664,7 @@ function (esprima, parse, logger, lang) {
             }
 
             //Find the define calls and their position in the files.
-            parse.traverseBroad(astRoot, function (node) {
+            parse.traverse(astRoot, function (node) {
                 var args, firstArg, firstArgLoc, factoryNode,
                     needsId, depAction, foundId, init,
                     sourceUrlData, range,
