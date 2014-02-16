@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.10+ Sun, 16 Feb 2014 01:41:34 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.10+ Sun, 16 Feb 2014 08:01:13 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.10+ Sun, 16 Feb 2014 01:41:34 GMT',
+        version = '2.1.10+ Sun, 16 Feb 2014 08:01:13 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -26774,6 +26774,9 @@ define('build', function (require) {
         //Set final output dir
         if (hasProp(config, "baseUrl")) {
             if (config.appDir) {
+                if (!config.originalBaseUrl) {
+                    throw new Error('Please set a baseUrl in the build config');
+                }
                 config.dirBaseUrl = build.makeAbsPath(config.originalBaseUrl, config.dir);
             } else {
                 config.dirBaseUrl = config.dir || config.baseUrl;
@@ -26829,15 +26832,20 @@ define('build', function (require) {
             // Make sure the output dir is not set to a parent of the
             // source dir or the same dir, as it will result in source
             // code deletion.
-            if (config.dir === config.baseUrl ||
+            if (!config.allowSourceOverwrites && (config.dir === config.baseUrl ||
                 config.dir === config.appDir ||
                 (config.baseUrl && build.makeRelativeFilePath(config.dir,
                                            config.baseUrl).indexOf('..') !== 0) ||
                 (config.appDir &&
-                    build.makeRelativeFilePath(config.dir, config.appDir).indexOf('..') !== 0)) {
+                    build.makeRelativeFilePath(config.dir, config.appDir).indexOf('..') !== 0))) {
                 throw new Error('"dir" is set to a parent or same directory as' +
                                 ' "appDir" or "baseUrl". This can result in' +
-                                ' the deletion of source code. Stopping.');
+                                ' the deletion of source code. Stopping. If' +
+                                ' you want to allow possible overwriting of' +
+                                ' source code, set "allowSourceOverwrites"' +
+                                ' to true in the build config, but do so at' +
+                                ' your own risk. In that case, you may want' +
+                                ' to also set "keepBuildDir" to true.');
             }
         }
 
