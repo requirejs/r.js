@@ -31,7 +31,16 @@ function (esprima, parse, logger, lang) {
                 foundAnon,
                 scanCount = 0,
                 scanReset = false,
-                defineInfos = [];
+                defineInfos = [],
+                applySourceUrl = function (contents) {
+                    if (options.useSourceUrl) {
+                        contents = 'eval("' + lang.jsEscape(contents) +
+                            '\\n//# sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
+                            path +
+                            '");\n';
+                    }
+                    return contents;
+                };
 
             try {
                 astRoot = esprima.parse(contents, {
@@ -197,8 +206,9 @@ function (esprima, parse, logger, lang) {
                 }
             });
 
+
             if (!defineInfos.length) {
-                return contents;
+                return applySourceUrl(contents);
             }
 
             //Reverse the matches, need to start from the bottom of
@@ -270,14 +280,7 @@ function (esprima, parse, logger, lang) {
 
             contents = contentLines.join('\n');
 
-            if (options.useSourceUrl) {
-                contents = 'eval("' + lang.jsEscape(contents) +
-                    '\\n//# sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
-                    path +
-                    '");\n';
-            }
-
-            return contents;
+            return applySourceUrl(contents);
         },
 
         /**
