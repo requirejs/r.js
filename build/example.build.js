@@ -57,6 +57,14 @@
     //to the build file. All relative paths are relative to the build file.
     dir: "../some/path",
 
+    //As of RequireJS 2.0.2, the dir above will be deleted before the
+    //build starts again. If you have a big build and are not doing
+    //source transforms with onBuildRead/onBuildWrite, then you can
+    //set keepBuildDir to true to keep the previous dir. This allows for
+    //faster rebuilds, but it could lead to unexpected errors if the
+    //built code is transformed in some way.
+    keepBuildDir: true,
+
     //If shim config is used in the app during runtime, duplicate the config
     //here. Necessary if shim config is used, so that the shim's dependencies
     //are included in the build. Using "mainConfigFile" is a better way to
@@ -76,14 +84,6 @@
     //global scope in weird ways, so it is not the default behavior to wrap.
     //More notes in http://requirejs.org/docs/api.html#config-shim
     wrapShim: false,
-
-    //As of RequireJS 2.0.2, the dir above will be deleted before the
-    //build starts again. If you have a big build and are not doing
-    //source transforms with onBuildRead/onBuildWrite, then you can
-    //set keepBuildDir to true to keep the previous dir. This allows for
-    //faster rebuilds, but it could lead to unexpected errors if the
-    //built code is transformed in some way.
-    keepBuildDir: true,
 
     //Used to inline i18n resources into the built file. If no locale
     //is specified, i18n resources will not be inlined. Only one locale
