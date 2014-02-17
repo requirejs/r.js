@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.10+ Sun, 16 Feb 2014 08:21:07 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.10+ Sun, 16 Feb 2014 08:21:07 GMT',
+        version = '2.1.11',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -238,7 +238,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.10 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.11 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -251,7 +251,7 @@ var requirejs, require, define, xpcUtil;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.10',
+        version = '2.1.11',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -380,7 +380,7 @@ var requirejs, require, define, xpcUtil;
         throw err;
     }
 
-    //Allow getting a global that expressed in
+    //Allow getting a global that is expressed in
     //dot notation, like 'a.b.c'.
     function getGlobal(value) {
         if (!value) {
@@ -806,7 +806,7 @@ var requirejs, require, define, xpcUtil;
                 mod.usingExports = true;
                 if (mod.map.isDefine) {
                     if (mod.exports) {
-                        return mod.exports;
+                        return (defined[mod.map.id] = mod.exports);
                     } else {
                         return (mod.exports = defined[mod.map.id] = {});
                     }
@@ -822,7 +822,7 @@ var requirejs, require, define, xpcUtil;
                         config: function () {
                             return  getOwn(config.config, mod.map.id) || {};
                         },
-                        exports: handlers.exports(mod)
+                        exports: mod.exports || (mod.exports = {})
                     });
                 }
             }
@@ -1741,7 +1741,7 @@ var requirejs, require, define, xpcUtil;
             /**
              * Called to enable a module if it is still in the registry
              * awaiting enablement. A second arg, parent, the parent module,
-             * is passed in for context, when this method is overriden by
+             * is passed in for context, when this method is overridden by
              * the optimizer. Not shown here to keep code compact.
              */
             enable: function (depMap) {
@@ -23651,7 +23651,16 @@ function (esprima, parse, logger, lang) {
                 foundAnon,
                 scanCount = 0,
                 scanReset = false,
-                defineInfos = [];
+                defineInfos = [],
+                applySourceUrl = function (contents) {
+                    if (options.useSourceUrl) {
+                        contents = 'eval("' + lang.jsEscape(contents) +
+                            '\\n//# sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
+                            path +
+                            '");\n';
+                    }
+                    return contents;
+                };
 
             try {
                 astRoot = esprima.parse(contents, {
@@ -23817,8 +23826,9 @@ function (esprima, parse, logger, lang) {
                 }
             });
 
+
             if (!defineInfos.length) {
-                return contents;
+                return applySourceUrl(contents);
             }
 
             //Reverse the matches, need to start from the bottom of
@@ -23890,14 +23900,7 @@ function (esprima, parse, logger, lang) {
 
             contents = contentLines.join('\n');
 
-            if (options.useSourceUrl) {
-                contents = 'eval("' + lang.jsEscape(contents) +
-                    '\\n//# sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
-                    path +
-                    '");\n';
-            }
-
-            return contents;
+            return applySourceUrl(contents);
         },
 
         /**
