@@ -63,7 +63,7 @@
     //set keepBuildDir to true to keep the previous dir. This allows for
     //faster rebuilds, but it could lead to unexpected errors if the
     //built code is transformed in some way.
-    keepBuildDir: true,
+    keepBuildDir: false,
 
     //If shim config is used in the app during runtime, duplicate the config
     //here. Necessary if shim config is used, so that the shim's dependencies
