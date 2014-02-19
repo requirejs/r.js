@@ -16,10 +16,10 @@
     var pathRegExp = /(\/|^)env\/|\{env\}/,
         env = 'unknown';
 
-    if (typeof Packages !== 'undefined') {
-        env = 'rhino';
-    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
+    if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
+    } else if (typeof Packages !== 'undefined') {
+        env = 'rhino';
     } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
             (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
