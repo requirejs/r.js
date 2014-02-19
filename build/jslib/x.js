@@ -51,36 +51,6 @@ var requirejs, require, define, xpcUtil;
             return false;
         };
 
-    } else if (typeof Packages !== 'undefined') {
-        env = 'rhino';
-
-        fileName = args[0];
-
-        if (fileName && fileName.indexOf('-') === 0) {
-            commandOption = fileName.substring(1);
-            fileName = args[1];
-        }
-
-        //Set up execution context.
-        rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
-
-        exec = function (string, name) {
-            return rhinoContext.evaluateString(this, string, name, 0, null);
-        };
-
-        exists = function (fileName) {
-            return (new java.io.File(fileName)).exists();
-        };
-
-        //Define a console.log for easier logging. Don't
-        //get fancy though.
-        if (typeof console === 'undefined') {
-            console = {
-                log: function () {
-                    print.apply(undefined, arguments);
-                }
-            };
-        }
     } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
 
@@ -120,6 +90,36 @@ var requirejs, require, define, xpcUtil;
         if (fileName && fileName.indexOf('-') === 0) {
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
+        }
+    } else if (typeof Packages !== 'undefined') {
+        env = 'rhino';
+
+        fileName = args[0];
+
+        if (fileName && fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = args[1];
+        }
+
+        //Set up execution context.
+        rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
+
+        exec = function (string, name) {
+            return rhinoContext.evaluateString(this, string, name, 0, null);
+        };
+
+        exists = function (fileName) {
+            return (new java.io.File(fileName)).exists();
+        };
+
+        //Define a console.log for easier logging. Don't
+        //get fancy though.
+        if (typeof console === 'undefined') {
+            console = {
+                log: function () {
+                    print.apply(undefined, arguments);
+                }
+            };
         }
     } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
         env = 'xpconnect';
