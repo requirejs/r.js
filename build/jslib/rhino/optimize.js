@@ -44,7 +44,7 @@ define(['logger', 'env!env/file'], function (logger, file) {
 
     //Bind to Closure compiler, but if it is not available, do not sweat it.
     try {
-        JSSourceFilefromCode = java.lang.Class.forName('com.google.javascript.jscomp.JSSourceFile').getMethod('fromCode', [java.lang.String, java.lang.String]);
+        JSSourceFilefromCode = java.lang.Class.forName('com.google.javascript.jscomp.SourceFile').getMethod('fromCode', [java.lang.String, java.lang.String]);
     } catch (e) {}
 
     //Helper for closure compiler, because of weird Java-JavaScript interactions.
