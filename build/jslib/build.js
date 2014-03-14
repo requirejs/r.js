@@ -1396,7 +1396,6 @@ define(function (require) {
             rawTextByIds,
             syncChecks = {
                 rhino: true,
-                node: true,
                 xpconnect: true
             },
             deferred = prim();
