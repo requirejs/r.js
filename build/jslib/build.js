@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -28,6 +28,7 @@ define(function (require) {
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
         endsWithSemiColonRegExp = /;\s*$/,
+        endsWithSlashRegExp = /[\/\\]$/,
         resourceIsModuleIdRegExp = /^[\w\/\\\.]+$/;
 
     prim.nextTick = function (fn) {
@@ -480,7 +481,7 @@ define(function (require) {
                 }));
             }
         }).then(function () {
-            var moduleName;
+            var moduleName, outOrigSourceMap;
             if (modules) {
                 //Now move the build layers to their final position.
                 modules.forEach(function (module) {
@@ -530,10 +531,18 @@ define(function (require) {
                 //Just need to worry about one JS file.
                 fileName = config.modules[0]._buildPath;
                 if (fileName === 'FUNCTION') {
-                    config.modules[0]._buildText = optimize.js(fileName,
+                    outOrigSourceMap = config.modules[0]._buildSourceMap;
+                    config._buildSourceMap = outOrigSourceMap;
+                    config.modules[0]._buildText = optimize.js((config.modules[0].name ||
+                                                                config.modules[0].include[0] ||
+                                                                fileName) + '.build.js',
                                                                config.modules[0]._buildText,
                                                                null,
                                                                config);
+                    if (config._buildSourceMap && config._buildSourceMap !== outOrigSourceMap) {
+                        config.modules[0]._buildSourceMap = config._buildSourceMap;
+                        config._buildSourceMap = null;
+                    }
                 } else {
                     optimize.jsFile(fileName, null, fileName, config);
                 }
@@ -684,7 +693,7 @@ define(function (require) {
             }
 
             if (typeof config.out === 'function') {
-                config.out(config.modules[0]._buildText);
+                config.out(config.modules[0]._buildText, config.modules[0]._buildSourceMap);
             }
 
             //Print out what was built into which layers.
@@ -864,12 +873,18 @@ define(function (require) {
      * make sure paths end in a trailing '/'.
      */
     build.makeRelativeFilePath = function (refPath, targetPath) {
-        var i, dotLength, finalParts, length,
+        var i, dotLength, finalParts, length, targetParts, targetName,
             refParts = refPath.split('/'),
-            targetParts = file.normalize(targetPath).split('/'),
-            //Pull off file name
-            targetName = targetParts.pop(),
+            hasEndSlash = endsWithSlashRegExp.test(targetPath),
             dotParts = [];
+
+        targetPath = file.normalize(targetPath);
+        if (hasEndSlash && !endsWithSlashRegExp.test(targetPath)) {
+            targetPath += '/';
+        }
+        targetParts = targetPath.split('/');
+        //Pull off file name
+        targetName = targetParts.pop();
 
         //Also pop off the ref file name to make the matches against
         //targetParts equivalent.
@@ -908,18 +923,30 @@ define(function (require) {
      * Mixes additional source config into target config, and merges some
      * nested config, like paths, correctly.
      */
-    function mixConfig(target, source) {
-        var prop, value;
+    function mixConfig(target, source, skipArrays) {
+        var prop, value, isArray, targetValue;
 
         for (prop in source) {
             if (hasProp(source, prop)) {
                 //If the value of the property is a plain object, then
                 //allow a one-level-deep mixing of it.
                 value = source[prop];
+                isArray = lang.isArray(value);
                 if (typeof value === 'object' && value &&
-                        !lang.isArray(value) && !lang.isFunction(value) &&
+                        !isArray && !lang.isFunction(value) &&
                         !lang.isRegExp(value)) {
                     target[prop] = lang.mixin({}, target[prop], value, true);
+                } else if (isArray) {
+                    if (!skipArrays) {
+                        // Some config, like packages, are arrays. For those,
+                        // just merge the results.
+                        targetValue = target[prop];
+                        if (lang.isArray(targetValue)) {
+                            target[prop] = targetValue.concat(value);
+                        } else {
+                            target[prop] = value;
+                        }
+                    }
                 } else {
                     target[prop] = value;
                 }
@@ -1040,50 +1067,58 @@ define(function (require) {
 
         mainConfigFile = config.mainConfigFile || (buildFileConfig && buildFileConfig.mainConfigFile);
         if (mainConfigFile) {
-            mainConfigFile = build.makeAbsPath(mainConfigFile, absFilePath);
-            if (!file.exists(mainConfigFile)) {
-                throw new Error(mainConfigFile + ' does not exist.');
+            if (typeof mainConfigFile === 'string') {
+                mainConfigFile = [mainConfigFile];
             }
-            try {
-                mainConfig = parse.findConfig(file.readFile(mainConfigFile)).config;
-            } catch (configError) {
-                throw new Error('The config in mainConfigFile ' +
-                        mainConfigFile +
-                        ' cannot be used because it cannot be evaluated' +
-                        ' correctly while running in the optimizer. Try only' +
-                        ' using a config that is also valid JSON, or do not use' +
-                        ' mainConfigFile and instead copy the config values needed' +
-                        ' into a build file or command line arguments given to the optimizer.\n' +
-                        'Source error from parsing: ' + mainConfigFile + ': ' + configError);
-            }
-            if (mainConfig) {
-                mainConfigPath = mainConfigFile.substring(0, mainConfigFile.lastIndexOf('/'));
 
-                //Add in some existing config, like appDir, since they can be
-                //used inside the mainConfigFile -- paths and baseUrl are
-                //relative to them.
-                if (config.appDir && !mainConfig.appDir) {
-                    mainConfig.appDir = config.appDir;
+            mainConfigFile.forEach(function (configFile) {
+                configFile = build.makeAbsPath(configFile, absFilePath);
+                if (!file.exists(configFile)) {
+                    throw new Error(configFile + ' does not exist.');
                 }
-
-                //If no baseUrl, then use the directory holding the main config.
-                if (!mainConfig.baseUrl) {
-                    mainConfig.baseUrl = mainConfigPath;
+                try {
+                    mainConfig = parse.findConfig(file.readFile(configFile)).config;
+                } catch (configError) {
+                    throw new Error('The config in mainConfigFile ' +
+                            configFile +
+                            ' cannot be used because it cannot be evaluated' +
+                            ' correctly while running in the optimizer. Try only' +
+                            ' using a config that is also valid JSON, or do not use' +
+                            ' mainConfigFile and instead copy the config values needed' +
+                            ' into a build file or command line arguments given to the optimizer.\n' +
+                            'Source error from parsing: ' + configFile + ': ' + configError);
                 }
+                if (mainConfig) {
+                    mainConfigPath = configFile.substring(0, configFile.lastIndexOf('/'));
 
-                build.makeAbsConfig(mainConfig, mainConfigPath);
-                mixConfig(config, mainConfig);
-            }
+                    //Add in some existing config, like appDir, since they can be
+                    //used inside the configFile -- paths and baseUrl are
+                    //relative to them.
+                    if (config.appDir && !mainConfig.appDir) {
+                        mainConfig.appDir = config.appDir;
+                    }
+
+                    //If no baseUrl, then use the directory holding the main config.
+                    if (!mainConfig.baseUrl) {
+                        mainConfig.baseUrl = mainConfigPath;
+                    }
+
+                    build.makeAbsConfig(mainConfig, mainConfigPath);
+                    mixConfig(config, mainConfig);
+                }
+            });
         }
 
         //Mix in build file config, but only after mainConfig has been mixed in.
+        //Since this is a re-application, skip array merging.
         if (buildFileConfig) {
-            mixConfig(config, buildFileConfig);
+            mixConfig(config, buildFileConfig, true);
         }
 
         //Re-apply the override config values. Command line
         //args should take precedence over build file values.
-        mixConfig(config, cfg);
+        //Since this is a re-application, skip array merging.
+        mixConfig(config, cfg, true);
 
         //Fix paths to full paths so that they can be adjusted consistently
         //lately to be in the output area.
@@ -1099,6 +1134,9 @@ define(function (require) {
         //Set final output dir
         if (hasProp(config, "baseUrl")) {
             if (config.appDir) {
+                if (!config.originalBaseUrl) {
+                    throw new Error('Please set a baseUrl in the build config');
+                }
                 config.dirBaseUrl = build.makeAbsPath(config.originalBaseUrl, config.dir);
             } else {
                 config.dirBaseUrl = config.dir || config.baseUrl;
@@ -1154,15 +1192,20 @@ define(function (require) {
             // Make sure the output dir is not set to a parent of the
             // source dir or the same dir, as it will result in source
             // code deletion.
-            if (config.dir === config.baseUrl ||
+            if (!config.allowSourceOverwrites && (config.dir === config.baseUrl ||
                 config.dir === config.appDir ||
                 (config.baseUrl && build.makeRelativeFilePath(config.dir,
                                            config.baseUrl).indexOf('..') !== 0) ||
                 (config.appDir &&
-                    build.makeRelativeFilePath(config.dir, config.appDir).indexOf('..') !== 0)) {
+                    build.makeRelativeFilePath(config.dir, config.appDir).indexOf('..') !== 0))) {
                 throw new Error('"dir" is set to a parent or same directory as' +
                                 ' "appDir" or "baseUrl". This can result in' +
-                                ' the deletion of source code. Stopping.');
+                                ' the deletion of source code. Stopping. If' +
+                                ' you want to allow possible overwriting of' +
+                                ' source code, set "allowSourceOverwrites"' +
+                                ' to true in the build config, but do so at' +
+                                ' your own risk. In that case, you may want' +
+                                ' to also set "keepBuildDir" to true.');
             }
         }
 
@@ -1451,7 +1494,7 @@ define(function (require) {
     build.checkForErrors = function (context) {
         //Check to see if it all loaded. If not, then throw, and give
         //a message on what is left.
-        var id, prop, mod, idParts, pluginId,
+        var id, prop, mod, idParts, pluginId, pluginResources,
             errMessage = '',
             failedPluginMap = {},
             failedPluginIds = [],
@@ -1464,6 +1507,11 @@ define(function (require) {
             registry = context.registry;
 
         function populateErrUrlMap(id, errUrl, skipNew) {
+            // Loader plugins do not have an errUrl, so skip them.
+            if (!errUrl) {
+                return;
+            }
+
             if (!skipNew) {
                 errIds.push(id);
             }
@@ -1487,17 +1535,24 @@ define(function (require) {
             if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
                 hasUndefined = true;
                 mod = getOwn(registry, id);
+                idParts = id.split('!');
+                pluginId = idParts[0];
 
                 if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
                     populateErrUrlMap(id, mod.map.url);
                 }
 
                 //Look for plugins that did not call load()
-                idParts = id.split('!');
-                pluginId = idParts[0];
-                if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
-                    failedPluginIds.push(pluginId);
-                    failedPluginMap[pluginId] = true;
+
+                if (idParts.length > 1) {
+                    if (falseProp(failedPluginMap, pluginId)) {
+                        failedPluginIds.push(pluginId);
+                    }
+                    pluginResources = failedPluginMap[pluginId];
+                    if (!pluginResources) {
+                        pluginResources = failedPluginMap[pluginId] = [];
+                    }
+                    pluginResources.push(id + (mod.error ? ': ' + mod.error : ''));
                 }
             }
         }
@@ -1517,8 +1572,11 @@ define(function (require) {
                 errMessage += 'Loader plugin' +
                     (failedPluginIds.length === 1 ? '' : 's') +
                     ' did not call ' +
-                    'the load callback in the build: ' +
-                    failedPluginIds.join(', ') + '\n';
+                    'the load callback in the build:\n' +
+                    failedPluginIds.map(function (pluginId) {
+                        var pluginResources = failedPluginMap[pluginId];
+                        return pluginId + ':\n  ' + pluginResources.join('\n  ');
+                    }).join('\n') + '\n';
             }
             errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
 
@@ -1576,8 +1634,8 @@ define(function (require) {
             buildFileContents = '';
 
         return prim().start(function () {
-            var reqIndex, currContents,
-                moduleName, shim, packageConfig, nonPackageName,
+            var reqIndex, currContents, fileForSourceMap,
+                moduleName, shim, packageMain, packageName,
                 parts, builder, writeApi,
                 namespace, namespaceWithDot, stubModulesByName,
                 context = layer.context,
@@ -1616,8 +1674,11 @@ define(function (require) {
 
             if (config.generateSourceMaps) {
                 sourceMapBase = config.dir || config.baseUrl;
+                fileForSourceMap = module._buildPath === 'FUNCTION' ?
+                                   (module.name || module.include[0] || 'FUNCTION') + '.build.js' :
+                                   module._buildPath.replace(sourceMapBase, '');
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
-                    file: module._buildPath.replace(sourceMapBase, '')
+                    file: fileForSourceMap
                 });
             }
 
@@ -1629,13 +1690,15 @@ define(function (require) {
                         singleContents = '';
 
                     moduleName = layer.buildFileToModule[path];
+                    packageName = moduleName.split('/').shift();
+
                     //If the moduleName is for a package main, then update it to the
                     //real main value.
-                    packageConfig = layer.context.config.pkgs &&
-                                    getOwn(layer.context.config.pkgs, moduleName);
-                    if (packageConfig) {
-                        nonPackageName = moduleName;
-                        moduleName += '/' + packageConfig.main;
+                    packageMain = layer.context.config.pkgs &&
+                                    getOwn(layer.context.config.pkgs, packageName);
+                    if (packageMain !== moduleName) {
+                        // Not a match, clear packageMain
+                        packageMain = undefined;
                     }
 
                     return prim().start(function () {
@@ -1698,8 +1761,8 @@ define(function (require) {
                                     currContents = config.onBuildRead(moduleName, path, currContents);
                                 }
 
-                                if (packageConfig) {
-                                    hasPackageName = (nonPackageName === parse.getNamedDefine(currContents));
+                                if (packageMain) {
+                                    hasPackageName = (packageName === parse.getNamedDefine(currContents));
                                 }
 
                                 if (namespace) {
@@ -1710,10 +1773,10 @@ define(function (require) {
                                     useSourceUrl: config.useSourceUrl
                                 });
 
-                                if (packageConfig && !hasPackageName) {
+                                if (packageMain && !hasPackageName) {
                                     currContents = addSemiColon(currContents, config) + '\n';
                                     currContents += namespaceWithDot + "define('" +
-                                                    packageConfig.name + "', ['" + moduleName +
+                                                    packageName + "', ['" + moduleName +
                                                     "'], function (main) { return main; });\n";
                                 }
 
@@ -1723,7 +1786,7 @@ define(function (require) {
 
                                 //Semicolon is for files that are not well formed when
                                 //concatenated with other content.
-                                singleContents += "\n" + addSemiColon(currContents, config);
+                                singleContents += addSemiColon(currContents, config);
                             });
                         }
                     }).then(function () {
@@ -1739,17 +1802,37 @@ define(function (require) {
                         //after the module is processed.
                         //If we have a name, but no defined module, then add in the placeholder.
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
-                            shim = config.shim && (getOwn(config.shim, moduleName) || (packageConfig && getOwn(config.shim, nonPackageName)));
+                            shim = config.shim && (getOwn(config.shim, moduleName) || (packageMain && getOwn(config.shim, moduleName) || getOwn(config.shim, packageName)));
                             if (shim) {
-                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
-                                                 (shim.deps && shim.deps.length ?
-                                                        build.makeJsArrayString(shim.deps) + ', ' : '') +
-                                                 (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
-                                                 ');\n';
+                                if (config.wrapShim) {
+                                    singleContents = '(function(root) {' +
+                                                     '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                                     (shim.deps && shim.deps.length ?
+                                                            build.makeJsArrayString(shim.deps) + ', ' : '[], ') +
+                                                    'function() {\n' +
+                                                    '      return (function() {\n' +
+                                                             singleContents +
+                                                             (shim.exportsFn ? shim.exportsFn() : '') +
+                                                    '      }).apply(root, arguments);\n' +
+                                                    '    });\n' +
+                                                    '}(this));\n';
+                                } else {
+                                    singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                                     (shim.deps && shim.deps.length ?
+                                                            build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                                     (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
+                                                     ');\n';
+                                }
                             } else {
                                 singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }
                         }
+
+                        //Add line break at end of file, instead of at beginning,
+                        //so source map line numbers stay correct, but still allow
+                        //for some space separation between files in case ASI issues
+                        //for concatenation would cause an error otherwise.
+                        singleContents += '\n';
 
                         //Add to the source map
                         if (sourceMapGenerator) {

@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -31,7 +31,16 @@ function (esprima, parse, logger, lang) {
                 foundAnon,
                 scanCount = 0,
                 scanReset = false,
-                defineInfos = [];
+                defineInfos = [],
+                applySourceUrl = function (contents) {
+                    if (options.useSourceUrl) {
+                        contents = 'eval("' + lang.jsEscape(contents) +
+                            '\\n//# sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
+                            path +
+                            '");\n';
+                    }
+                    return contents;
+                };
 
             try {
                 astRoot = esprima.parse(contents, {
@@ -44,11 +53,34 @@ function (esprima, parse, logger, lang) {
             }
 
             //Find the define calls and their position in the files.
-            parse.traverseBroad(astRoot, function (node) {
+            parse.traverse(astRoot, function (node) {
                 var args, firstArg, firstArgLoc, factoryNode,
-                    needsId, depAction, foundId,
+                    needsId, depAction, foundId, init,
                     sourceUrlData, range,
                     namespaceExists = false;
+
+                // If a bundle script with a define declaration, do not
+                // parse any further at this level. Likely a built layer
+                // by some other tool.
+                if (node.type === 'VariableDeclarator' &&
+                    node.id && node.id.name === 'define' &&
+                    node.id.type === 'Identifier') {
+                    init = node.init;
+                    if (init && init.callee &&
+                        init.callee.type === 'CallExpression' &&
+                        init.callee.callee &&
+                        init.callee.callee.type === 'Identifier' &&
+                        init.callee.callee.name === 'require' &&
+                        init.callee.arguments && init.callee.arguments.length === 1 &&
+                        init.callee.arguments[0].type === 'Literal' &&
+                        init.callee.arguments[0].value &&
+                        init.callee.arguments[0].value.indexOf('amdefine') !== -1) {
+                        // the var define = require('amdefine')(module) case,
+                        // keep going in that case.
+                    } else {
+                        return false;
+                    }
+                }
 
                 namespaceExists = namespace &&
                                 node.type === 'CallExpression' &&
@@ -174,8 +206,9 @@ function (esprima, parse, logger, lang) {
                 }
             });
 
+
             if (!defineInfos.length) {
-                return contents;
+                return applySourceUrl(contents);
             }
 
             //Reverse the matches, need to start from the bottom of
@@ -247,14 +280,7 @@ function (esprima, parse, logger, lang) {
 
             contents = contentLines.join('\n');
 
-            if (options.useSourceUrl) {
-                contents = 'eval("' + lang.jsEscape(contents) +
-                    '\\n//# sourceURL=' + (path.indexOf('/') === 0 ? '' : '/') +
-                    path +
-                    '");\n';
-            }
-
-            return contents;
+            return applySourceUrl(contents);
         },
 
         /**

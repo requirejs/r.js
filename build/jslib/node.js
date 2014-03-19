@@ -1,5 +1,5 @@
 /**
- * @license RequireJS node Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS node Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -159,7 +159,7 @@
                     err.originalError = e;
                     err.moduleName = originalName;
                     err.requireModules = [moduleName];
-                    return context.onError(err);
+                    throw err;
                 }
             });
         }

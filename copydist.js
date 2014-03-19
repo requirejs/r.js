@@ -16,7 +16,7 @@ exec('node dist.js',
             fs.writeFileSync(distFileName, fs.readFileSync('r.js', 'utf8'), 'utf8');
 
             contents = fs.readFileSync(distFileName, 'utf8')
-                .replace(/\d\.\d\.\d(\+|[a-z]+)?/g, function (match) {
+                .replace(/\d\.\d\.\d+(\+|[a-z]+)?/g, function (match) {
                     //Only do date insertion twice at the top of the file.
                     count += 1;
                     if (count < 3) {

@@ -30,6 +30,7 @@ build/tests/lib/iife/main-built.js
 build/tests/lib/insertRequire/main-built.js
 build/tests/lib/intDefine/main-built.js
 build/tests/lib/jqueryConfig/main-built.js
+build/tests/lib/keepAmdefine/built.js
 build/tests/lib/mainConfigFile/basic/main-built.js
 build/tests/lib/mainConfigFile/first/main-built.js
 build/tests/lib/mainConfigFile/mergeConfig/main-built.js
@@ -56,6 +57,7 @@ build/tests/lib/onBuildRead/main-built.js
 build/tests/lib/onBuildWrite/main-built.js
 build/tests/lib/override/wrap/built
 build/tests/lib/packages/main-built.js
+build/tests/lib/packagesNode/main-built.js
 build/tests/lib/pathsNoCopy/js-built
 build/tests/lib/pluginBuilder/main-built.js
 build/tests/lib/pluginShimDep/main-built.js
@@ -74,14 +76,17 @@ build/tests/lib/removeCombinedPaths/testcase/project/build/build_output
 build/tests/lib/requireHoist/perLayer/built
 build/tests/lib/rhino-186/built
 build/tests/lib/semicolonInsert/a-built.js
+build/tests/lib/shimBasicWrap/basic-tests-built.js
 build/tests/lib/shimFakeDefine/main-built.js
 build/tests/lib/sourcemap/www-built
-build/tests/lib/sourcemap/onejs/built.js
-build/tests/lib/sourcemap/onejs/built.js.map
+build/tests/lib/sourcemap/onejs/www/js/built.js
+build/tests/lib/sourcemap/onejs/www/js/built.js.map
 build/tests/lib/stubModules/create/foobar-built.js
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/stubModules/perModule/built
 build/tests/lib/transportBeforeMinify/www-built
+build/tests/lib/umd/main-built.js
+build/tests/lib/unicode/main-built.js
 build/tests/lib/urlToEmpty/main-built.js
 build/tests/lib/wrap/outBothArray.js
 build/tests/lib/wrap/outOnlyEnd.js

@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -248,7 +248,9 @@ define(['parse', 'logger'], function (parse, logger) {
             }
 
             //Strip amdefine use for node-shared modules.
-            fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            if (!config.keepAmdefine) {
+                fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            }
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {

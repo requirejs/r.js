@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -16,10 +16,10 @@
     var pathRegExp = /(\/|^)env\/|\{env\}/,
         env = 'unknown';
 
-    if (typeof Packages !== 'undefined') {
-        env = 'rhino';
-    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
+    if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
+    } else if (typeof Packages !== 'undefined') {
+        env = 'rhino';
     } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
             (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';

@@ -1,20 +1,30 @@
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
 
 /*jslint plusplus: true */
-/*global define */
+/*global define, java */
 
 define(function () {
     'use strict';
 
-    var lang,
+    var lang, isJavaObj,
         hasOwn = Object.prototype.hasOwnProperty;
 
     function hasProp(obj, prop) {
         return hasOwn.call(obj, prop);
+    }
+
+    isJavaObj = function () {
+        return false;
+    };
+
+    if (typeof java !== 'undefined' && java.lang && java.lang.Object) {
+        isJavaObj = function (obj) {
+            return obj instanceof java.lang.Object;
+        };
     }
 
     lang = {
@@ -102,7 +112,7 @@ define(function () {
             type = typeof obj;
             if (obj === null || obj === undefined || type === 'boolean' ||
                 type === 'string' || type === 'number' || lang.isFunction(obj) ||
-                lang.isRegExp(obj)) {
+                lang.isRegExp(obj)|| isJavaObj(obj)) {
                 return obj;
             }
 

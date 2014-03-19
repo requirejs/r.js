@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -240,6 +240,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 optConfig = config[optimizerName] || {};
                 if (config.generateSourceMaps) {
                     optConfig.generateSourceMaps = !!config.generateSourceMaps;
+                    optConfig._buildSourceMap = config._buildSourceMap;
                 }
 
                 try {
@@ -257,12 +258,19 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                                              outFileName,
                                                              keepLines,
                                                              optConfig);
+                    if (optConfig._buildSourceMap && optConfig._buildSourceMap !== config._buildSourceMap) {
+                        config._buildSourceMap = optConfig._buildSourceMap;
+                    }
                 } catch (e) {
                     if (config.throwWhen && config.throwWhen.optimize) {
                         throw e;
                     } else {
                         logger.error(e);
                     }
+                }
+            } else {
+                if (config._buildSourceMap) {
+                    config._buildSourceMap = null;
                 }
             }
 
@@ -446,10 +454,13 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 uconfig.fromString = true;
 
-                if (config.generateSourceMaps && outFileName) {
+                if (config.generateSourceMaps && (outFileName || config._buildSourceMap)) {
                     uconfig.outSourceMap = baseName;
 
-                    if (file.exists(existingMapPath)) {
+                    if (config._buildSourceMap) {
+                        existingMap = JSON.parse(config._buildSourceMap);
+                        uconfig.inSourceMap = existingMap;
+                    } else if (file.exists(existingMapPath)) {
                         uconfig.inSourceMap = existingMapPath;
                         existingMap = JSON.parse(file.readFile(existingMapPath));
                     }
@@ -467,11 +478,18 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
                             finalMap.applySourceMap(new SourceMapConsumer(existingMap));
                             resultMap = finalMap.toString();
-                        } else {
+                        } else if (!config._buildSourceMap) {
                             file.saveFile(outFileName + '.src.js', fileContents);
                         }
-                        file.saveFile(outFileName + '.map', resultMap);
-                        fileContents = result.code + "\n//# sourceMappingURL=" + baseName + ".map";
+
+                        fileContents = result.code;
+
+                        if (config._buildSourceMap) {
+                            config._buildSourceMap = resultMap;
+                        } else {
+                            file.saveFile(outFileName + '.map', resultMap);
+                            fileContents += "\n//# sourceMappingURL=" + baseName + ".map";
+                        }
                     } else {
                         fileContents = result.code;
                     }

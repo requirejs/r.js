@@ -1,7 +1,7 @@
 /*jslint plusplus: true, nomen: true */
 /*global define: false, require: false, doh: false */
 
-define(['build', 'env!env/file', 'env'], function (build, file, env) {
+define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lang) {
     'use strict';
 
     //Remove any old builds
@@ -711,6 +711,24 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    //https://github.com/jrburke/r.js/issues/574
+    doh.register("keepAmdefine",
+        [
+            function amdefineStrip(t) {
+                file.deleteFile("lib/keepAmdefine/built.js");
+
+                build(["lib/keepAmdefine/build.js"]);
+
+                t.is(nol(c("lib/keepAmdefine/expected.js")),
+                     nol(c("lib/keepAmdefine/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("nameInsertion",
         [
             function nameInsertion(t) {
@@ -873,6 +891,26 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
         ]
     );
     doh.run();
+
+    //Multiple mainConfigFile entries
+    //https://github.com/jrburke/r.js/pull/572
+    doh.register("mainConfigFileMulti",
+        [
+            function mainConfigFileMulti(t) {
+                file.deleteFile("lib/mainConfigFile/multi/main-built.js");
+
+                build(["lib/mainConfigFile/multi/tools/build.js"]);
+
+                t.is(nol(c("lib/mainConfigFile/multi/expected.js")),
+                     nol(c("lib/mainConfigFile/multi/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 
     doh.register("onBuildAllDir",
         [
@@ -1239,6 +1277,30 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     );
     doh.run();
 
+    // test wrapShim: true config
+    //
+    doh.register("shimBasicWrap",
+        [
+            function shimBasicWrap(t) {
+                var outFile = "lib/shimBasicWrap/basic-tests-built.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/shimBasicWrap/build.js"]);
+
+                //Also remove spaces, since rhino and node differ on their
+                //Function.prototype.toString() output by whitespace, and
+                //the semicolon on end of A.name, and string quotes.
+                t.is(nol(c("lib/shimBasicWrap/expected.js")).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'),
+                     nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name')
+                     .replace(/['"]Modified["']/, "'Modified'"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 
     doh.register("shimFakeDefine",
         [
@@ -1574,6 +1636,26 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
 
                 t.is(nol(c("lib/packages/expected.js")),
                      nol(c("lib/packages/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Confirm node-style package module IDs, which may end in '.js', work in
+    //optimizer.
+    //https://github.com/jrburke/r.js/pull/591
+    doh.register("packagesNode",
+        [
+            function packagesNode(t) {
+                file.deleteFile("lib/packagesNode/main-built.js");
+
+                build(["lib/packagesNode/build.js"]);
+
+                t.is(nol(c("lib/packagesNode/expected.js")),
+                     nol(c("lib/packagesNode/main-built.js")));
 
                 require._buildReset();
             }
@@ -1994,13 +2076,13 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
     doh.register("sourcemapOneJs",
         [
             function sourcemapOneJs(t) {
-                file.deleteFile("lib/sourcemap/onejs/built.js");
-                file.deleteFile("lib/sourcemap/onejs/built.js.map");
+                file.deleteFile("lib/sourcemap/onejs/www/js/built.js");
+                file.deleteFile("lib/sourcemap/onejs/www/js/built.js.map");
 
                 build(["lib/sourcemap/onejs/build.js"]);
 
                 t.is(nol(c("lib/sourcemap/onejs/expected.map")),
-                     nol(c("lib/sourcemap/onejs/built.js.map")));
+                     nol(c("lib/sourcemap/onejs/www/js/built.js.map")));
 
                 require._buildReset();
             }
@@ -2112,4 +2194,127 @@ define(['build', 'env!env/file', 'env'], function (build, file, env) {
         ]
     );
     doh.run();
+
+
+    //Test single file JS optimization with source map generation
+    doh.register("unicode",
+        [
+            function unicode(t) {
+                file.deleteFile("lib/unicode/main-built.js");
+
+                build(["lib/unicode/build.js"]);
+
+                t.is(nol(c("lib/unicode/expected.js")),
+                     nol(c("lib/unicode/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Do not go into already concatenated files with an internal define
+    //https://github.com/jrburke/requirejs/issues/883
+    doh.register("umd",
+        [
+            function umd(t) {
+                file.deleteFile("lib/umd/main-built.js");
+
+                build(["lib/umd/build.js"]);
+
+                t.is(nol(c("lib/umd/expected.js")),
+                     nol(c("lib/umd/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //out function should get source map if available.
+    //https://github.com/jrburke/r.js/issues/590
+    doh.register("sourcemapOutFunction",
+        [
+            function sourcemapOutFunction(t) {
+
+                var ugly, plain,
+                    config = {
+                        baseUrl: 'lib/sourcemapOutFunction/js',
+                        generateSourceMaps: true,
+                        preserveLicenseComments: false,
+                        name: 'main'
+                    };
+
+                build(lang.mixin({
+                    optimize: 'uglify2',
+                    out: function (text, sourceMap) {
+                        ugly = {
+                            text: text,
+                            sourceMap: sourceMap
+                        };
+                    }
+                }, config));
+
+                require._buildReset();
+
+                build(lang.mixin({
+                    optimize: 'none',
+                    out: function (text, sourceMap) {
+                        plain = {
+                            text: text,
+                            sourceMap: sourceMap
+                        };
+                    }
+                }, config));
+
+                /*
+                console.log(ugly.text);
+                console.log('=======');
+                console.log(ugly.sourceMap);
+                console.log('== NONE ==');
+                console.log(plain.text);
+                console.log('=======');
+                console.log(plain.sourceMap);
+                */
+
+                t.is(true, !!plain.text, 'has plain text');
+                t.is(true, !!ugly.text, 'has uglified text');
+                t.is(true, plain.text !== ugly.text, 'texts are not equal');
+                t.is(true, plain.sourceMap !== ugly.sourceMap, 'source maps are not equal');
+
+                ugly.sourceMap = JSON.parse(ugly.sourceMap);
+                plain.sourceMap = JSON.parse(plain.sourceMap);
+
+                t.is(true, !!ugly.sourceMap.sourcesContent, 'has uglified sourcesContent');
+                t.is(true, !!plain.sourceMap.sourcesContent, 'has plain sourcesContent');
+                t.is(true, plain.sourceMap.mappings !== ugly.sourceMap.mappings, 'mappings are not equal');
+
+                require._buildReset();
+
+            }
+
+        ]
+    );
+    doh.run();
+
+    //https://github.com/jrburke/r.js/issues/479
+    doh.register("allowSourceOverwrites",
+        [
+            function allowSourceOverwrites(t) {
+                file.deleteFile("lib/allowSourceOverwrites/output/main.js");
+
+                build(["lib/allowSourceOverwrites/build.js"]);
+
+                t.is(nol(c("lib/allowSourceOverwrites/expected.js")),
+                     nol(c("lib/allowSourceOverwrites/output/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

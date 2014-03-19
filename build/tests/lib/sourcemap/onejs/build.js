@@ -5,5 +5,5 @@
     preserveLicenseComments: false,
     optimize: 'uglify2',
     name: 'app',
-    out: 'built.js'
+    out: 'www/js/built.js'
 })
