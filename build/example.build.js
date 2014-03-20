@@ -214,8 +214,11 @@
 
     //If optimizeCss is in use, a list of files to ignore for the @import
     //inlining. The value of this option should be a string of comma separated
-    //CSS file names to ignore (like 'a.css,b.css'. The file names should match
-    //whatever strings are used in the @import calls.
+    //CSS file names to ignore (like 'a.css,b.css'). The file names should match
+    //whatever strings are used in the @import calls. Alternatively, the ignore
+    //list may be specified as a single regular expression or as an array of
+    //regular expressions or strings. In the latter case, the strings must be
+    //exact matches for the file names rather than comma separated lists.
     cssImportIgnore: null,
 
     //cssIn is typically used as a command line option. It can be used
