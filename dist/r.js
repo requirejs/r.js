@@ -26833,7 +26833,7 @@ define('build', function (require) {
         }
         if (config.out && config.dir) {
             throw new Error('The "out" and "dir" options are incompatible.' +
-                            ' Use "out" if you are targeting a single file for' +
+                            ' Use "out" if you are targeting a single file' +
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
         }
