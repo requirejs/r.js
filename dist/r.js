@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Mon, 24 Mar 2014 17:31:40 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Mon, 24 Mar 2014 17:44:01 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Mon, 24 Mar 2014 17:31:40 GMT',
+        version = '2.1.11+ Mon, 24 Mar 2014 17:44:01 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24101,12 +24101,12 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         configRegExp: /(^|[^\.])(requirejs|require)(\.config)\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs,\s*require,\s*define;/,
-        defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
-        defineStringCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\[\s*["']amd["']\s*\]/g,
+        defineCheckRegExp: /typeof\s+define\s*===?\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
+        defineStringCheckRegExp: /typeof\s+define\s*===?\s*["']function["']\s*&&\s*define\s*\[\s*["']amd["']\s*\]/g,
         defineTypeFirstCheckRegExp: /\s*["']function["']\s*==(=?)\s*typeof\s+define\s*&&\s*define\s*\.\s*amd/g,
-        defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
+        defineJQueryRegExp: /typeof\s+define\s*===?\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
-        defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
+        defineTernaryRegExp: /typeof\s+define\s*===?\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
         amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
