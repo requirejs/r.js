@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Wed, 19 Mar 2014 17:08:50 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Mon, 24 Mar 2014 17:31:40 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Wed, 19 Mar 2014 17:08:50 GMT',
+        version = '2.1.11+ Mon, 24 Mar 2014 17:31:40 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24404,12 +24404,12 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
 
     //Bind to Closure compiler, but if it is not available, do not sweat it.
     try {
-        // Try for newer closure compiler that needs Java 7+
-        JSSourceFilefromCode = java.lang.Class.forName('com.google.javascript.jscomp.SourceFile').getMethod('fromCode', [java.lang.String, java.lang.String]);
-    } catch (e) {
         // Try older closure compiler that worked on Java 6
+        JSSourceFilefromCode = java.lang.Class.forName('com.google.javascript.jscomp.JSSourceFile').getMethod('fromCode', [java.lang.String, java.lang.String]);
+    } catch (e) {
         try {
-            JSSourceFilefromCode = java.lang.Class.forName('com.google.javascript.jscomp.JSSourceFile').getMethod('fromCode', [java.lang.String, java.lang.String]);
+            // Try for newer closure compiler that needs Java 7+
+            JSSourceFilefromCode = java.lang.Class.forName('com.google.javascript.jscomp.SourceFile').getMethod('fromCode', [java.lang.String, java.lang.String]);
         } catch (e) {}
     }
 
@@ -26833,7 +26833,7 @@ define('build', function (require) {
         }
         if (config.out && config.dir) {
             throw new Error('The "out" and "dir" options are incompatible.' +
-                            ' Use "out" if you are targeting a single file for' +
+                            ' Use "out" if you are targeting a single file' +
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
         }
