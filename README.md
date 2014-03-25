@@ -228,19 +228,14 @@ r.js includes modules from these projects:
 
 To do a release of version 0.0.0:
 
-* git checkout -b 0.0.0
 * Make sure the right version of require.js is in the project.
 * Modify build/jslib/x.js to update the r.js version number in two places.
 * node dist.js
 * Run the tests (see above). They should pass. :)
-* mv r.js dist/r-0.0.0.js
-* git add dist/r-0.0.0.js
-* git commit -a -m "Release 0.0.0"
+* mv r.js dist/r.js
+* git commit -am "Release 0.0.0"
 * git tag -am "Release 0.0.0" 0.0.0
-* git checkout master
-* git merge 0.0.0
 * git push origin master
 * git push --tags
-* git branch -d 0.0.0
 
 Update the RequireJS download site to point to the latest release.
