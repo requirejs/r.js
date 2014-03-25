@@ -238,4 +238,9 @@ To do a release of version 0.0.0:
 * git push origin master
 * git push --tags
 
-Update the RequireJS download site to point to the latest release.
+Update the RequireJS download site to point to the latest release, then update
+the [requirejs/requirejs-npm](https://github.com/requirejs/requirejs-npm) repo to have the latest
+changes and publish the result to npm.
+
+Make sure to keep `#!/usr/bin/env node` as the first line in bin/r.js in
+the requirejs-npm repo.
