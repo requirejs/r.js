@@ -1992,6 +1992,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    doh.register("rawTextLongId",
+        [
+            function rawTextLongId(t) {
+                file.deleteFile("lib/rawTextLongId/built.js");
+
+                build(["lib/rawTextLongId/build.js"]);
+
+                t.is(nol(c("lib/rawTextLongId/expected.js")),
+                     nol(c("lib/rawTextLongId/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     //Make sure multiple named modules do not mess up toTransport
     //https://github.com/jrburke/r.js/issues/366
     doh.register("iife",
