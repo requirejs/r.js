@@ -406,23 +406,23 @@
         },
 
         //This module entry shows the use insertRequire (first available in 2.0):
-        //if the target module only calls define and does not call require()
-        //at the top level, and this build output is used with an AMD shim
-        //loader like almond, where the data-main script in the HTML page is
-        //replaced with just a script to the built file, if there is no
-        //top-level require, no modules will execute. specify insertRequire to
-        //have a require([]) call placed at the end of the file to trigger the
-        //execution of modules. More detail at
-        //https://github.com/jrburke/almond
-        //Note that insertRequire does not affect or add to the modules
-        //that are built into the build bundle. It just adds a require([])
-        //call to the end of the built file for use during the runtime
-        //execution of the built code.
         {
             name: "foo/baz",
             insertRequire: ["foo/baz"]
         }
     ],
+
+    //If the target module only calls define and does not call require() at the
+    //top level, and this build output is used with an AMD shim loader like
+    //almond, where the data-main script in the HTML page is replaced with just
+    //a script to the built file, if there is no top-level require, no modules
+    //will execute. specify insertRequire to have a require([]) call placed at
+    //the end of the file to trigger the execution of modules. More detail at
+    //https://github.com/jrburke/almond
+    //Note that insertRequire does not affect or add to the modules that are
+    //built into the build bundle. It just adds a require([]) call to the end
+    //of the built file for use during the runtime execution of the built code.
+    insertRequire: ['foo/bar/bop'],
 
     //If you only intend to optimize a module (and its dependencies), with
     //a single file as the output, you can specify the module options inline,
