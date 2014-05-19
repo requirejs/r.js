@@ -6,6 +6,7 @@ define("a", [], function() {
         name: 'a'
     };
 }(this));
+
 return (function () {
                     window.globalA = this.A.name;
                 }.apply(this, arguments)) || A.name;
@@ -27,6 +28,7 @@ var B = {
     aValue: A.name,
     dValue: new D()
 };
+//ending comment;
 return root.B = B;
   }).apply(root, arguments);
 });
@@ -40,6 +42,7 @@ var C = {
     a: A,
     b: B
 };
+
 return root.C = C;
   }).apply(root, arguments);
 });
@@ -55,6 +58,7 @@ var e = {
         }
     }
 };
+
 return (function () {
                     return {
                         name: e.nested.e.name + 'Modified'
@@ -71,6 +75,7 @@ var FCAP = {
     name: 'FCAP',
     globalA: A
 };
+
 return (function (a) {
                     return {
                         name: FCAP.name,

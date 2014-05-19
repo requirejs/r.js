@@ -1812,7 +1812,9 @@ define(function (require) {
                                                     'function() {\n' +
                                                     '  return (function() {\n' +
                                                              singleContents +
-                                                             (shim.exportsFn ? shim.exportsFn() : '') +
+                                                             // Start with a \n in case last line is a comment
+                                                             // in the singleContents, like a sourceURL comment.
+                                                             '\n' + (shim.exportsFn ? shim.exportsFn() : '') +
                                                              '\n' +
                                                     '  }).apply(root, arguments);\n' +
                                                     '});\n' +
