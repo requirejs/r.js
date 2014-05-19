@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Mon, 19 May 2014 03:15:34 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Mon, 19 May 2014 19:09:30 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Mon, 19 May 2014 03:15:34 GMT',
+        version = '2.1.11+ Mon, 19 May 2014 19:09:30 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -238,7 +238,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.11 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.11+ Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -251,7 +251,7 @@ var requirejs, require, define, xpcUtil;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.11',
+        version = '2.1.11+',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -419,7 +419,7 @@ var requirejs, require, define, xpcUtil;
 
     if (typeof requirejs !== 'undefined') {
         if (isFunction(requirejs)) {
-            //Do not overwrite and existing requirejs instance.
+            //Do not overwrite an existing requirejs instance.
             return;
         }
         cfg = requirejs;
@@ -471,21 +471,25 @@ var requirejs, require, define, xpcUtil;
          * @param {Array} ary the array of path segments.
          */
         function trimDots(ary) {
-            var i, part, length = ary.length;
-            for (i = 0; i < length; i++) {
+            var i, part;
+            for (i = 0; i < ary.length; i++) {
                 part = ary[i];
                 if (part === '.') {
                     ary.splice(i, 1);
                     i -= 1;
                 } else if (part === '..') {
-                    if (i === 1 && (ary[2] === '..' || ary[0] === '..')) {
-                        //End of the line. Keep at least one non-dot
-                        //path segment at the front so it can be mapped
-                        //correctly to disk. Otherwise, there is likely
-                        //no path mapping for a path starting with '..'.
-                        //This can still fail, but catches the most reasonable
-                        //uses of ..
-                        break;
+                    // If at the start, or previous value is still ..,
+                    // keep them so that when converted to a path it may
+                    // still work when converted to a path, even though
+                    // as an ID it is less than ideal. In larger point
+                    // releases, may be better to just kick out an error.
+                    // Also, want to keep IDs that start with 'a/../', so
+                    // that the 'a' part can be used for ID-to-path mapping
+                    // configs like paths/packages config. This is done
+                    // for legacy code expectations, since previous approach
+                    // in this method used that logic.
+                    if (i < 2 || ary[i - 1] === '..') {
+                        continue;
                     } else if (i > 0) {
                         ary.splice(i - 1, 2);
                         i -= 2;
@@ -506,43 +510,37 @@ var requirejs, require, define, xpcUtil;
          */
         function normalize(name, baseName, applyMap) {
             var pkgMain, mapValue, nameParts, i, j, nameSegment, lastIndex,
-                foundMap, foundI, foundStarMap, starI,
-                baseParts = baseName && baseName.split('/'),
-                normalizedBaseParts = baseParts,
+                foundMap, foundI, foundStarMap, starI, normalizedBaseParts,
+                baseParts = (baseName && baseName.split('/')),
                 map = config.map,
                 starMap = map && map['*'];
 
             //Adjust any relative paths.
-            if (name && name.charAt(0) === '.') {
-                //If have a base name, try to normalize against it,
-                //otherwise, assume it is a top-level require that will
-                //be relative to baseUrl in the end.
-                if (baseName) {
+            if (name) {
+                name = name.split('/');
+                lastIndex = name.length - 1;
+
+                // If wanting node ID compatibility, strip .js from end
+                // of IDs. Have to do this here, and not in nameToUrl
+                // because node allows either .js or non .js to map
+                // to same file.
+                if (config.nodeIdCompat && jsSuffixRegExp.test(name[lastIndex])) {
+                    name[lastIndex] = name[lastIndex].replace(jsSuffixRegExp, '');
+                }
+
+                // Starts with a '.' so need the baseName
+                if (name[0].charAt(0) === '.' && baseParts) {
                     //Convert baseName to array, and lop off the last part,
                     //so that . matches that 'directory' and not name of the baseName's
                     //module. For instance, baseName of 'one/two/three', maps to
                     //'one/two/three.js', but we want the directory, 'one/two' for
                     //this normalization.
                     normalizedBaseParts = baseParts.slice(0, baseParts.length - 1);
-                    name = name.split('/');
-                    lastIndex = name.length - 1;
-
-                    // If wanting node ID compatibility, strip .js from end
-                    // of IDs. Have to do this here, and not in nameToUrl
-                    // because node allows either .js or non .js to map
-                    // to same file.
-                    if (config.nodeIdCompat && jsSuffixRegExp.test(name[lastIndex])) {
-                        name[lastIndex] = name[lastIndex].replace(jsSuffixRegExp, '');
-                    }
-
                     name = normalizedBaseParts.concat(name);
-                    trimDots(name);
-                    name = name.join('/');
-                } else if (name.indexOf('./') === 0) {
-                    // No baseName, so this is ID is resolved relative
-                    // to baseUrl, pull off the leading dot.
-                    name = name.substring(2);
                 }
+
+                trimDots(name);
+                name = name.join('/');
             }
 
             //Apply map config if available.
@@ -618,7 +616,13 @@ var requirejs, require, define, xpcUtil;
                 //retry
                 pathConfig.shift();
                 context.require.undef(id);
-                context.require([id]);
+
+                //Custom require that does not do map translation, since
+                //ID is "absolute", already mapped/resolved.
+                context.makeRequire(null, {
+                    skipMap: true
+                })([id]);
+
                 return true;
             }
         }
