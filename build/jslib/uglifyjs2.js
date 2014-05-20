@@ -3334,6 +3334,10 @@ AST_Toplevel.DEFMETHOD("mangle_names", function(options){
             node.mangled_name = name;
             return true;
         }
+        if (options.screw_ie8 && node instanceof AST_SymbolCatch) {
+            to_mangle.push(node.definition());
+            return;
+        }
     });
     this.walk(tw);
     to_mangle.forEach(function(def){ def.mangle(options) });
@@ -4895,6 +4899,7 @@ function Compressor(options, false_by_default) {
         loops         : !false_by_default,
         unused        : !false_by_default,
         hoist_funs    : !false_by_default,
+        keep_fargs    : false,
         hoist_vars    : false,
         if_return     : !false_by_default,
         join_vars     : !false_by_default,
@@ -5210,7 +5215,7 @@ merge(Compressor.prototype, {
                         stat = stat.clone();
                         stat.condition = stat.condition.negate(compressor);
                         stat.body = make_node(AST_BlockStatement, stat, {
-                            body: ret
+                            body: as_statement_array(stat.alternative).concat(ret)
                         });
                         stat.alternative = make_node(AST_BlockStatement, stat, {
                             body: body
@@ -5878,18 +5883,20 @@ merge(Compressor.prototype, {
             var tt = new TreeTransformer(
                 function before(node, descend, in_list) {
                     if (node instanceof AST_Lambda && !(node instanceof AST_Accessor)) {
-                        for (var a = node.argnames, i = a.length; --i >= 0;) {
-                            var sym = a[i];
-                            if (sym.unreferenced()) {
-                                a.pop();
-                                compressor.warn("Dropping unused function argument {name} [{file}:{line},{col}]", {
-                                    name : sym.name,
-                                    file : sym.start.file,
-                                    line : sym.start.line,
-                                    col  : sym.start.col
-                                });
+                        if (!compressor.option("keep_fargs")) {
+                            for (var a = node.argnames, i = a.length; --i >= 0;) {
+                                var sym = a[i];
+                                if (sym.unreferenced()) {
+                                    a.pop();
+                                    compressor.warn("Dropping unused function argument {name} [{file}:{line},{col}]", {
+                                        name : sym.name,
+                                        file : sym.start.file,
+                                        line : sym.start.line,
+                                        col  : sym.start.col
+                                    });
+                                }
+                                else break;
                             }
-                            else break;
                         }
                     }
                     if (node instanceof AST_Defun && node !== self) {
@@ -7130,6 +7137,19 @@ merge(Compressor.prototype, {
                 return consequent;
             }
         }
+        // x?y?z:a:a --> x&&y?z:a
+        if (consequent instanceof AST_Conditional
+            && consequent.alternative.equivalent_to(alternative)) {
+            return make_node(AST_Conditional, self, {
+                condition: make_node(AST_Binary, self, {
+                    left: self.condition,
+                    operator: "&&",
+                    right: consequent.condition
+                }),
+                consequent: consequent.consequent,
+                alternative: alternative
+            });
+        }
         return self;
     });
 
@@ -7257,6 +7277,9 @@ function SourceMap(options) {
                 line: orig_line,
                 column: orig_col
             });
+            if (info.source === null) {
+                return;
+            }
             source = info.source;
             orig_line = info.line;
             orig_col = info.column;
@@ -7560,7 +7583,8 @@ exports.minify = function(files, options, name) {
     base54.reset();
 
     // 1. parse
-    var toplevel = null;
+    var toplevel = null,
+        sourcesContent = {};
 
     if (options.spidermonkey) {
         toplevel = AST_Node.from_mozilla_ast(files);
@@ -7571,6 +7595,7 @@ exports.minify = function(files, options, name) {
             var code = options.fromString
                 ? file
                 : rjsFile.readFile(file, "utf8");
+            sourcesContent[file] = code;
             toplevel = parse(code, {
                 filename: options.fromString ? name : file,
                 toplevel: toplevel
@@ -7606,6 +7631,14 @@ exports.minify = function(files, options, name) {
             orig: inMap,
             root: options.sourceRoot
         });
+        if (options.sourceMapIncludeSources) {
+            for (var file in sourcesContent) {
+                if (sourcesContent.hasOwnProperty(file)) {
+                    options.source_map.get().setSourceContent(file, sourcesContent[file]);
+                }
+            }
+        }
+
     }
     if (options.output) {
         merge(output, options.output);
