@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Tue, 20 May 2014 06:33:08 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Wed, 21 May 2014 04:35:07 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Tue, 20 May 2014 06:33:08 GMT',
+        version = '2.1.11+ Wed, 21 May 2014 04:35:07 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -26528,7 +26528,8 @@ define('build', function (require) {
             }
         }
 
-        build.makeAbsObject(["out", "cssIn"], config, absFilePath);
+        build.makeAbsObject((config.out === "stdout" ? ["cssIn"] : ["out", "cssIn"]),
+                            config, absFilePath);
         build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
     };
 
@@ -26809,6 +26810,23 @@ define('build', function (require) {
             //Make sure dirBaseUrl ends in a slash, since it is
             //concatenated with other strings.
             config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
+        }
+
+
+        //If out=stdout, write output to STDOUT instead of a file.
+        if (config.out && config.out === 'stdout') {
+            config.out = function (content) {
+                var e = env.get();
+                if (e === 'rhino') {
+                    var out = new java.io.PrintStream(java.lang.System.out, true, 'UTF-8');
+                    out.println(content);
+                } else if (e === 'node') {
+                    process.stdout.setEncoding('utf8');
+                    process.stdout.write(content);
+                } else {
+                    console.log(content);
+                }
+            }
         }
 
         //Check for errors in config
