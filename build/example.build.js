@@ -451,9 +451,9 @@
         //to this function, sourceMapText, will be the text of the source map.
     },
 
-    //By setting "out" to "stdout", the optimized output is written to STDOUT.
-    //This can be useful for integrating r.js with other commandline tools.
-    //In order to avoid additional output "logLevel: 4" should also be used.
+    //In 2.0.12+: by setting "out" to "stdout", the optimized output is written
+    //to STDOUT. This can be useful for integrating r.js with other commandline
+    //tools. In order to avoid additional output "logLevel: 4" should also be used.
     out: "stdout",
 
     //Wrap any build bundle in a start and end text specified by wrap.

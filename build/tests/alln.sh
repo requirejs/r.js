@@ -13,6 +13,12 @@ rm -rf ./builds/
 node nodeAll.js
 rm -rf ./builds/
 
-echo "\nRunning tests via bootstrap"
+echo "Running tests via bootstrap"
 echo "=============================="
 node ../../r.js all.js
+
+echo "Testing stdout, result should be: define("main",{name:"main"});"
+echo "=============================="
+node ../../r.js -o lib/stdout/build.js
+
+echo ""
