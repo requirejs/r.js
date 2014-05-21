@@ -1022,6 +1022,22 @@ define(function (require) {
             config = {},
             buildBaseConfig = makeBuildBaseConfig();
 
+        //If out=stdout, write output to STDOUT instead of a file.
+        if (cfg.out && cfg.out === 'stdout') {
+            cfg.out = function (content) {
+                var e = env.get();
+                if (e === 'rhino') {
+                    var out = new java.io.PrintStream(java.lang.System.out, true, 'UTF-8');
+                    out.println(content);
+                } else if (e === 'node') {
+                    process.stdout.setEncoding('utf8');
+                    process.stdout.write(content);
+                } else {
+                    console.log(content);
+                }
+            }
+        }
+
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
         build.makeAbsConfig(cfg, absFilePath);
