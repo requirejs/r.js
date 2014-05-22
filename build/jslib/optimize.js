@@ -55,8 +55,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
                 //It is a relative URL, tack on the cssPrefix and path prefix
                 urlMatch = cssPrefix + path + fixedUrlMatch;
-
-            } else {
+            } else if (fixedUrlMatch.indexOf('data:') !== 0) {
                 logger.trace(fileName + "\n  URL not a relative URL, skipping: " + urlMatch);
             }
 
