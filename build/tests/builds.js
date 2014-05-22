@@ -2028,6 +2028,26 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     doh.run();
 
 
+    // deps should be integrated into the build and not trigger
+    // loads before traceDependencies, where rawText comes into play.
+    // https://github.com/jrburke/r.js/issues/658
+    doh.register("rawTextDeps",
+        [
+            function rawTextDeps(t) {
+                file.deleteFile("lib/rawTextDeps/built.js");
+
+                build(["lib/rawTextDeps/build.js"]);
+
+                t.is(nol(c("lib/rawTextDeps/expected.js")),
+                     nol(c("lib/rawTextDeps/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Make sure multiple named modules do not mess up toTransport
     //https://github.com/jrburke/r.js/issues/366
     doh.register("iife",

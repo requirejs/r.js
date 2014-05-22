@@ -5,7 +5,7 @@
  */
 
 /*jslint plusplus: true, nomen: true, regexp: true  */
-/*global define, requirejs */
+/*global define, requirejs, java, process, console */
 
 
 define(function (require) {
@@ -1161,7 +1161,7 @@ define(function (require) {
                 } else {
                     console.log(content);
                 }
-            }
+            };
         }
 
         //Check for errors in config
@@ -1301,10 +1301,11 @@ define(function (require) {
             config.cssPrefix = '';
         }
 
-        //Cycle through modules and combine any local stubModules with
-        //global values.
+        //Cycle through modules and normalize
         if (config.modules && config.modules.length) {
             config.modules.forEach(function (mod) {
+
+                //Combine any local stubModules with global values.
                 if (config.stubModules) {
                     mod.stubModules = config.stubModules.concat(mod.stubModules || []);
                 }
@@ -1316,6 +1317,17 @@ define(function (require) {
                     mod.stubModules.forEach(function (id) {
                         mod.stubModules._byName[id] = true;
                     });
+                }
+
+                // Legacy command support, which allowed a single string ID
+                // for include.
+                if (typeof mod.include === 'string') {
+                    mod.include = [mod.include];
+                }
+
+                //Add deps to each modules entry.
+                if (config.deps) {
+                    mod.include = config.deps.concat(mod.include || []);
                 }
 
                 //Allow wrap config in overrides, but normalize it.
@@ -1359,6 +1371,8 @@ define(function (require) {
         }
 
         //Remove things that may cause problems in the build.
+        //deps already merged above
+        delete config.deps;
         delete config.jQuery;
         delete config.enforceDefine;
         delete config.urlArgs;
