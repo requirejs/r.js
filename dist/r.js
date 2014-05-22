@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Thu, 22 May 2014 20:57:57 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Thu, 22 May 2014 21:11:49 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Thu, 22 May 2014 20:57:57 GMT',
+        version = '2.1.11+ Thu, 22 May 2014 21:11:49 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24576,6 +24576,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/ig,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
         cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
+        protocolRegExp = /^\w+:/,
         SourceMapGenerator = sourceMap.SourceMapGenerator,
         SourceMapConsumer =sourceMap.SourceMapConsumer;
 
@@ -24600,7 +24601,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     function fixCssUrlPaths(fileName, path, contents, cssPrefix) {
         return contents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
-            var colonIndex, firstChar, parts, i,
+            var firstChar, hasProtocol, parts, i,
                 fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
 
             fixedUrlMatch = fixedUrlMatch.replace(lang.backSlashRegExp, "/");
@@ -24608,11 +24609,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
             //Only do the work for relative URLs. Skip things that start with / or #, or have
             //a protocol.
             firstChar = fixedUrlMatch.charAt(0);
-            colonIndex = fixedUrlMatch.indexOf(":");
-            if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
+            hasProtocol = protocolRegExp.test(fixedUrlMatch);
+            if (firstChar !== "/" && firstChar !== "#" && !hasProtocol) {
                 //It is a relative URL, tack on the cssPrefix and path prefix
                 urlMatch = cssPrefix + path + fixedUrlMatch;
-            } else if (fixedUrlMatch.indexOf('data:') !== 0) {
+            } else if (!hasProtocol) {
                 logger.trace(fileName + "\n  URL not a relative URL, skipping: " + urlMatch);
             }
 
