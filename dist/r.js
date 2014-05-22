@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Thu, 22 May 2014 21:11:49 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Thu, 22 May 2014 22:11:06 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Thu, 22 May 2014 21:11:49 GMT',
+        version = '2.1.11+ Thu, 22 May 2014 22:11:06 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -25670,7 +25670,7 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
  */
 
 /*jslint plusplus: true, nomen: true, regexp: true  */
-/*global define, requirejs */
+/*global define, requirejs, java, process, console */
 
 
 define('build', function (require) {
@@ -26826,7 +26826,7 @@ define('build', function (require) {
                 } else {
                     console.log(content);
                 }
-            }
+            };
         }
 
         //Check for errors in config
@@ -26966,10 +26966,11 @@ define('build', function (require) {
             config.cssPrefix = '';
         }
 
-        //Cycle through modules and combine any local stubModules with
-        //global values.
+        //Cycle through modules and normalize
         if (config.modules && config.modules.length) {
             config.modules.forEach(function (mod) {
+
+                //Combine any local stubModules with global values.
                 if (config.stubModules) {
                     mod.stubModules = config.stubModules.concat(mod.stubModules || []);
                 }
@@ -26981,6 +26982,17 @@ define('build', function (require) {
                     mod.stubModules.forEach(function (id) {
                         mod.stubModules._byName[id] = true;
                     });
+                }
+
+                // Legacy command support, which allowed a single string ID
+                // for include.
+                if (typeof mod.include === 'string') {
+                    mod.include = [mod.include];
+                }
+
+                //Add deps to each modules entry.
+                if (config.deps) {
+                    mod.include = config.deps.concat(mod.include || []);
                 }
 
                 //Allow wrap config in overrides, but normalize it.
@@ -27024,6 +27036,8 @@ define('build', function (require) {
         }
 
         //Remove things that may cause problems in the build.
+        //deps already merged above
+        delete config.deps;
         delete config.jQuery;
         delete config.enforceDefine;
         delete config.urlArgs;
