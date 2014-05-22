@@ -48,6 +48,10 @@
         "baz": "../another/path/baz"
     },
 
+    //Sets up a map of module IDs to other module IDs. For more details, see
+    //the http://requirejs.org/docs/api.html#config-map docs.
+    map: {},
+
     //Configure CommonJS packages. See http://requirejs.org/docs/api.html#packages
     //for more information.
     packages: [],
