@@ -24609,7 +24609,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             //a protocol.
             firstChar = fixedUrlMatch.charAt(0);
             colonIndex = fixedUrlMatch.indexOf(":");
-            if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
+            if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/")) && !~fixedUrlMatch.search(/^\w*?:/)) {
                 //It is a relative URL, tack on the cssPrefix and path prefix
                 urlMatch = cssPrefix + path + fixedUrlMatch;
             } else if (fixedUrlMatch.indexOf('data:') !== 0) {
