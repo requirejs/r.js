@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Wed, 21 May 2014 04:35:07 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Thu, 22 May 2014 20:57:57 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Wed, 21 May 2014 04:35:07 GMT',
+        version = '2.1.11+ Thu, 22 May 2014 20:57:57 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24612,8 +24612,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
                 //It is a relative URL, tack on the cssPrefix and path prefix
                 urlMatch = cssPrefix + path + fixedUrlMatch;
-
-            } else {
+            } else if (fixedUrlMatch.indexOf('data:') !== 0) {
                 logger.trace(fileName + "\n  URL not a relative URL, skipping: " + urlMatch);
             }
 
