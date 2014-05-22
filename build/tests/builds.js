@@ -1008,6 +1008,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    doh.register("cssRelativeUrl",
+        [
+            function cssRelativeUrl(t) {
+                file.deleteFile("lib/cssRelativeUrl/main-built.css");
+
+                build(["lib/cssRelativeUrl/build.js"]);
+
+                t.is(nol(c("lib/cssRelativeUrl/output/expected.css")),
+                     nol(c("lib/cssRelativeUrl/output/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     doh.register("cssDuplicates",
         [
             function cssDuplicates(t) {

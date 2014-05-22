@@ -19,6 +19,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
         cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/ig,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
         cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
+        protocolRegExp = /^\w+:/,
         SourceMapGenerator = sourceMap.SourceMapGenerator,
         SourceMapConsumer =sourceMap.SourceMapConsumer;
 
@@ -43,7 +44,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     function fixCssUrlPaths(fileName, path, contents, cssPrefix) {
         return contents.replace(cssUrlRegExp, function (fullMatch, urlMatch) {
-            var colonIndex, firstChar, parts, i,
+            var firstChar, hasProtocol, parts, i,
                 fixedUrlMatch = cleanCssUrlQuotes(urlMatch);
 
             fixedUrlMatch = fixedUrlMatch.replace(lang.backSlashRegExp, "/");
@@ -51,11 +52,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
             //Only do the work for relative URLs. Skip things that start with / or #, or have
             //a protocol.
             firstChar = fixedUrlMatch.charAt(0);
-            colonIndex = fixedUrlMatch.indexOf(":");
-            if (firstChar !== "/" && firstChar !== "#" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
+            hasProtocol = protocolRegExp.test(fixedUrlMatch);
+            if (firstChar !== "/" && firstChar !== "#" && !hasProtocol) {
                 //It is a relative URL, tack on the cssPrefix and path prefix
                 urlMatch = cssPrefix + path + fixedUrlMatch;
-            } else if (fixedUrlMatch.indexOf('data:') !== 0) {
+            } else if (!hasProtocol) {
                 logger.trace(fileName + "\n  URL not a relative URL, skipping: " + urlMatch);
             }
 
