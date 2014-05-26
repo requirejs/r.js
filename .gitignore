@@ -35,6 +35,7 @@ build/tests/lib/mainConfigFile/basic/main-built.js
 build/tests/lib/mainConfigFile/first/main-built.js
 build/tests/lib/mainConfigFile/mergeConfig/main-built.js
 build/tests/lib/mainConfigBaseUrl/www-built
+build/tests/lib/mapConfigMix/a-built.js
 build/tests/lib/moduleThenPlugin/built.js
 build/tests/lib/modulesExclude/built
 build/tests/lib/nameInsertion/built.js

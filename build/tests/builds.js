@@ -1416,6 +1416,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+
+    doh.register("mapConfigMix",
+        [
+            function mapConfigMix(t) {
+                file.deleteFile("lib/mapConfigMix/a-built.js");
+
+                build(["lib/mapConfigMix/build.js"]);
+
+                t.is(nol(c("lib/mapConfigMix/expected.js")),
+                     nol(c("lib/mapConfigMix/a-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Tests https://github.com/jrburke/r.js/issues/165 insertRequire
     doh.register("insertRequire",
         [

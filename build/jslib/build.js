@@ -936,7 +936,20 @@ define(function (require) {
                 if (typeof value === 'object' && value &&
                         !isArray && !lang.isFunction(value) &&
                         !lang.isRegExp(value)) {
-                    target[prop] = lang.mixin({}, target[prop], value, true);
+
+                    // TODO: need to generalize this work, maybe also reuse
+                    // the work done in requirejs configure, perhaps move to
+                    // just a deep copy/merge overall. However, given the
+                    // amount of observable change, wait for a dot release.
+                    // This change is in relation to #645
+                    if (prop === 'map') {
+                        if (!target.map) {
+                            target.map = {};
+                        }
+                        lang.deepMix(target.map, source.map);
+                    } else {
+                        target[prop] = lang.mixin({}, target[prop], value, true);
+                    }
                 } else if (isArray) {
                     if (!skipArrays) {
                         // Some config, like packages, are arrays. For those,
