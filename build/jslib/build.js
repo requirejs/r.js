@@ -1325,11 +1325,6 @@ define(function (require) {
                     mod.include = [mod.include];
                 }
 
-                //Add deps to each modules entry.
-                if (config.deps) {
-                    mod.include = config.deps.concat(mod.include || []);
-                }
-
                 //Allow wrap config in overrides, but normalize it.
                 if (mod.override) {
                     normalizeWrapConfig(mod.override, absFilePath);
@@ -1369,6 +1364,16 @@ define(function (require) {
             //compatibility
             file.exclusionRegExp = config.dirExclusionRegExp;
         }
+
+        //Track the deps, but in a different key, so that they are not loaded
+        //as part of config seeding before all config is in play (#648). Was
+        //going to merge this in with "include", but include is added after
+        //the "name" target. To preserve what r.js has done previously, make
+        //sure "deps" comes before the "name".
+        if (config.deps) {
+            config._depsInclude = config.deps;
+        }
+
 
         //Remove things that may cause problems in the build.
         //deps already merged above
@@ -1449,7 +1454,8 @@ define(function (require) {
 
         logger.trace("\nTracing dependencies for: " + (module.name ||
                      (typeof module.out === 'function' ? 'FUNCTION' : module.out)));
-        include = module.name && !module.create ? [module.name] : [];
+        include = config._depsInclude ||  [];
+        include = include.concat(module.name && !module.create ? [module.name] : []);
         if (module.include) {
             include = include.concat(module.include);
         }
