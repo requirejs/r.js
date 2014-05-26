@@ -2332,6 +2332,25 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Do not not find nested deps in a UMD wrapper
+    //https://github.com/jrburke/requirejs/issues/651
+    doh.register("umdNested",
+        [
+            function umdNested(t) {
+                file.deleteFile("lib/umdNested/main-built.js");
+
+                build(["lib/umdNested/build.js"]);
+
+                t.is(nol(c("lib/umdNested/expected.js")),
+                     nol(c("lib/umdNested/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //out function should get source map if available.
     //https://github.com/jrburke/r.js/issues/590
     doh.register("sourcemapOutFunction",

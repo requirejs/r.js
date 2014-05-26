@@ -126,7 +126,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             needsDefine = true,
             astRoot = esprima.parse(fileContents);
 
-        parse.recurse(astRoot, function (callName, config, name, deps) {
+        parse.recurse(astRoot, function (callName, config, name, deps, node, factoryIdentifier) {
             if (!deps) {
                 deps = [];
             }
@@ -144,6 +144,10 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                     name: name,
                     deps: deps
                 });
+            }
+
+            if (factoryIdentifier) {
+                return factoryIdentifier;
             }
 
             //If define was found, no need to dive deeper, unless
@@ -200,7 +204,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         //Like traverse, but skips if branches that would not be processed
         //after has application that results in tests of true or false boolean
         //literal values.
-        var key, child,
+        var key, child, result,
             hasHas = options && options.has;
 
         if (!object) {
@@ -219,16 +223,49 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 this.recurse(object.alternate, onMatch, options);
             }
         } else {
-            if (this.parseNode(object, onMatch) === false) {
+            result = this.parseNode(object, onMatch);
+            if (result === false) {
                 return;
+            } else if (typeof result === 'string') {
+                return result;
             }
+
             for (key in object) {
                 if (object.hasOwnProperty(key)) {
                     child = object[key];
                     if (typeof child === 'object' && child !== null) {
-                        this.recurse(child, onMatch, options);
+                        result = this.recurse(child, onMatch, options);
+                        if (typeof result === 'string') {
+                            break;
+                        }
                     }
                 }
+            }
+
+            //Check for an identifier for a factory function identifier being
+            //passed in as a function expression, indicating a UMD-type of
+            //wrapping.
+            if (typeof result === 'string') {
+                if (object.type === 'ExpressionStatement' && object.expression &&
+                    object.expression.type === 'CallExpression' && object.expression.callee &&
+                    object.expression.callee.type === 'FunctionExpression') {
+                    object = object.expression.callee;
+
+                    if (object.params && object.params.length) {
+                        if (object.params.some(function(param) {
+                            //Found an identifier match, so stop parsing from this
+                            //level down.
+                            return param.type === 'Identifier' &&
+                                   param.name === result;
+                        })) {
+                            //Just a plain return, parsing can continue past this
+                            //point.
+                            return;
+                        }
+                    }
+                }
+
+                return result;
             }
         }
     };
@@ -780,7 +817,8 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 name = name.value;
             }
 
-            return onMatch("define", null, name, deps, node);
+            return onMatch("define", null, name, deps, node,
+                           (factory && factory.type === 'Identifier' ? factory.name : undefined));
         } else if (node.type === 'CallExpression' && node.callee &&
                    node.callee.type === 'FunctionExpression' &&
                    node.callee.body && node.callee.body.body &&
@@ -807,7 +845,8 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                     });
 
                     if (refsDefine) {
-                        return onMatch("define", null, null, null, exp.expression);
+                        return onMatch("define", null, null, null, exp.expression,
+                                       exp.expression.arguments[0].name);
                     }
                 }
             }
