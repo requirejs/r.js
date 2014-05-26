@@ -81,7 +81,7 @@
 
                     //Break any cycles by requiring it normally, but this will
                     //finish synchronously
-                    require([moduleName]);
+                    context.require([moduleName]);
 
                     //The above calls are sync, so can do the next thing safely.
                     ret = context.defined[moduleName];
