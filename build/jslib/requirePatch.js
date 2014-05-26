@@ -174,7 +174,7 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
 
                     if (mod && !mod.defined) {
                         if (parentId && getOwn(needFullExec, parentId)) {
-                            needFullExec[id] = true;
+                            needFullExec[id] = depMap;
                         }
 
                     } else if ((getOwn(needFullExec, id) && falseProp(fullExec, id)) ||
@@ -379,7 +379,7 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                         pluginMod = getOwn(context.registry, pluginId);
 
                     context.plugins[pluginId] = true;
-                    context.needFullExec[pluginId] = true;
+                    context.needFullExec[pluginId] = map;
 
                     //If the module is not waiting to finish being defined,
                     //undef it and start over, to get full execution.
@@ -456,13 +456,26 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
             var id = map.id,
                 url;
 
+            // Fix up any maps that need to be normalized as part of the fullExec
+            // plumbing for plugins to participate in the build.
+            if (context.plugins && lang.hasProp(context.plugins, id)) {
+                lang.eachProp(context.needFullExec, function(value, prop) {
+                    // For plugin entries themselves, they do not have a map
+                    // value in needFullExec, just a "true" entry.
+                    if (value !== true && value.prefix === id && value.unnormalized) {
+                        var map = context.makeModuleMap(value.originalName, value.parentMap);
+                        context.needFullExec[map.id] = map;
+                    }
+                });
+            }
+
             //If build needed a full execution, indicate it
             //has been done now. But only do it if the context is tracking
             //that. Only valid for the context used in a build, not for
             //other contexts being run, like for useLib, plain requirejs
             //use in node/rhino.
             if (context.needFullExec && getOwn(context.needFullExec, id)) {
-                context.fullExec[id] = true;
+                context.fullExec[id] = map;
             }
 
             //A plugin.

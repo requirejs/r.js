@@ -1758,6 +1758,26 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Make sure plugin dependencies that need normalization run in a build.
+    //https://github.com/jrburke/r.js/issues/648
+    doh.register("pluginDepExec",
+        [
+            function pluginDepExec(t) {
+                file.deleteFile("lib/pluginDepExec/main-built.js");
+
+                build(["lib/pluginDepExec/build.js"]);
+
+                t.is(nol(c("lib/pluginDepExec/expected.js")),
+                     nol(c("lib/pluginDepExec/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     //Make sure a non-strict plugin does not blow up in the build
     //https://github.com/jrburke/r.js/issues/181
     doh.register("nonStrict",
