@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.11+ Mon, 26 May 2014 17:47:59 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.11+ Mon, 26 May 2014 18:40:49 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.11+ Mon, 26 May 2014 17:47:59 GMT',
+        version = '2.1.11+ Mon, 26 May 2014 18:40:49 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2730,6 +2730,31 @@ define('lang', function () {
             return dest; // Object
         },
 
+        /**
+         * Does a deep mix of source into dest, where source values override
+         * dest values if a winner is needed.
+         * @param  {Object} dest destination object that receives the mixed
+         * values.
+         * @param  {Object} source source object contributing properties to mix
+         * in.
+         * @return {[Object]} returns dest object with the modification.
+         */
+        deepMix: function(dest, source) {
+            lang.eachProp(source, function (value, prop) {
+                if (typeof value === 'object' && value &&
+                    !lang.isArray(value) && !lang.isFunction(value) &&
+                    !(value instanceof RegExp)) {
+
+                    if (!dest[prop]) {
+                        dest[prop] = {};
+                    }
+                    lang.deepMix(dest[prop], value);
+                } else {
+                    dest[prop] = value;
+                }
+            });
+            return dest;
+        },
 
         /**
          * Does a type of deep copy. Do not give it anything fancy, best
@@ -26601,7 +26626,20 @@ define('build', function (require) {
                 if (typeof value === 'object' && value &&
                         !isArray && !lang.isFunction(value) &&
                         !lang.isRegExp(value)) {
-                    target[prop] = lang.mixin({}, target[prop], value, true);
+
+                    // TODO: need to generalize this work, maybe also reuse
+                    // the work done in requirejs configure, perhaps move to
+                    // just a deep copy/merge overall. However, given the
+                    // amount of observable change, wait for a dot release.
+                    // This change is in relation to #645
+                    if (prop === 'map') {
+                        if (!target.map) {
+                            target.map = {};
+                        }
+                        lang.deepMix(target.map, source.map);
+                    } else {
+                        target[prop] = lang.mixin({}, target[prop], value, true);
+                    }
                 } else if (isArray) {
                     if (!skipArrays) {
                         // Some config, like packages, are arrays. For those,
