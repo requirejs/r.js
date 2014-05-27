@@ -18,7 +18,11 @@ define('spell',['./sub/ext'], function(ext) {
   };
 });
 
-require(["spell"], function(spell) {
+define('b',{
+  name: 'b'
+});
+
+require(["require", "spell", "a/../b"], function(require, spell, b) {
     doh.register(
         "dotTrim",
         [
@@ -26,6 +30,8 @@ require(["spell"], function(spell) {
                 t.is('spell', spell.name);
                 t.is('ext', spell.ext.name);
                 t.is('./util/helper', spell.ext.helperPath);
+                t.is('b', b.name);
+                t.is('./b.html', require.toUrl('a/../b.html'));
                 t.is('helper', spell.ext.helper.name);
             }
         ]
