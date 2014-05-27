@@ -2435,4 +2435,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Confirm dot trimming still works as usual.
+    //https://github.com/jrburke/requirejs/issues/1129
+    doh.register("dotTrim",
+        [
+            function dotTrim(t) {
+                file.deleteFile("lib/dotTrim/built.js");
+
+                build(["lib/dotTrim/build.js"]);
+
+                t.is(nol(c("lib/dotTrim/expected.js")),
+                     nol(c("lib/dotTrim/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
 });

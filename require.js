@@ -1,5 +1,5 @@
 /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.12 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.13 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -12,7 +12,7 @@ var requirejs, require, define;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.12',
+        version = '2.1.13',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -244,12 +244,7 @@ var requirejs, require, define;
                     // still work when converted to a path, even though
                     // as an ID it is less than ideal. In larger point
                     // releases, may be better to just kick out an error.
-                    // Also, want to keep IDs that start with 'a/../', so
-                    // that the 'a' part can be used for ID-to-path mapping
-                    // configs like paths/packages config. This is done
-                    // for legacy code expectations, since previous approach
-                    // in this method used that logic.
-                    if (i < 2 || ary[i - 1] === '..') {
+                    if (i === 0 || (i == 1 && ary[2] === '..') || ary[i - 1] === '..') {
                         continue;
                     } else if (i > 0) {
                         ary.splice(i - 1, 2);
