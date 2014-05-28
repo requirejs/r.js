@@ -30,6 +30,11 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
         falseProp = lang.falseProp,
         getOwn = lang.getOwn;
 
+    //Turn off throwing on resolution conflict, that was just an older prim
+    //idea about finding errors early, but does not comply with how promises
+    //should operate.
+    prim.hideResolutionConflict = true;
+
     //This method should be called when the patches to require should take hold.
     return function () {
         if (!allowRun) {
