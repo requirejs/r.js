@@ -2351,6 +2351,26 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Keep parsing if a define uses an identifier, but is not part of
+    //a function wrapper for UMD
+    //https://github.com/jrburke/requirejs/issues/1133
+    doh.register("nonUmdIdentifiers",
+        [
+            function nonUmdIdentifiers(t) {
+                file.deleteFile("lib/nonUmdIdentifiers/main-built.js");
+
+                build(["lib/nonUmdIdentifiers/build.js"]);
+
+                t.is(nol(c("lib/nonUmdIdentifiers/expected.js")),
+                     nol(c("lib/nonUmdIdentifiers/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //out function should get source map if available.
     //https://github.com/jrburke/r.js/issues/590
     doh.register("sourcemapOutFunction",
