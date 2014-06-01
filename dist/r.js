@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.13+ Wed, 28 May 2014 22:10:41 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.13+ Sun, 01 Jun 2014 23:04:13 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.13+ Wed, 28 May 2014 22:10:41 GMT',
+        version = '2.1.13+ Sun, 01 Jun 2014 23:04:13 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22763,7 +22763,11 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
     //This string is saved off because JSLint complains
     //about obj.arguments use, as 'reserved word'
-    var argPropName = 'arguments';
+    var argPropName = 'arguments',
+        //Default object to use for "scope" checking for UMD identifiers.
+        emptyScope = {},
+        mixin = lang.mixin,
+        hasProp = lang.hasProp;
 
     //From an esprima example for traversing its ast.
     function traverse(object, visitor) {
@@ -22865,7 +22869,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             needsDefine = true,
             astRoot = esprima.parse(fileContents);
 
-        parse.recurse(astRoot, function (callName, config, name, deps, node, factoryIdentifier) {
+        parse.recurse(astRoot, function (callName, config, name, deps, node, factoryIdentifier, fnExpScope) {
             if (!deps) {
                 deps = [];
             }
@@ -22885,7 +22889,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 });
             }
 
-            if (factoryIdentifier) {
+            if (callName === 'define' && factoryIdentifier && hasProp(fnExpScope, factoryIdentifier)) {
                 return factoryIdentifier;
             }
 
@@ -22938,13 +22942,17 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * @param {Function} onMatch function to call on a parse match.
      * @param {Object} [options] This is normally the build config options if
      * it is passed.
+     * @param {Object} [fnExpScope] holds list of function expresssion
+     * argument identifiers, set up internally, not passed in
      */
-    parse.recurse = function (object, onMatch, options) {
+    parse.recurse = function (object, onMatch, options, fnExpScope) {
         //Like traverse, but skips if branches that would not be processed
         //after has application that results in tests of true or false boolean
         //literal values.
-        var key, child, result,
+        var key, child, result, i, params, param,
             hasHas = options && options.has;
+
+        fnExpScope = fnExpScope || emptyScope;
 
         if (!object) {
             return;
@@ -22956,24 +22964,44 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 object.test.type === 'Literal') {
             if (object.test.value) {
                 //Take the if branch
-                this.recurse(object.consequent, onMatch, options);
+                this.recurse(object.consequent, onMatch, options, fnExpScope);
             } else {
                 //Take the else branch
-                this.recurse(object.alternate, onMatch, options);
+                this.recurse(object.alternate, onMatch, options, fnExpScope);
             }
         } else {
-            result = this.parseNode(object, onMatch);
+            result = this.parseNode(object, onMatch, fnExpScope);
             if (result === false) {
                 return;
             } else if (typeof result === 'string') {
                 return result;
             }
 
+            //Build up a "scope" object that informs nested recurse calls if
+            //the define call references an identifier that is likely a UMD
+            //wrapped function expresion argument.
+            if (object.type === 'ExpressionStatement' && object.expression &&
+                    object.expression.type === 'CallExpression' && object.expression.callee &&
+                    object.expression.callee.type === 'FunctionExpression') {
+                    object = object.expression.callee;
+
+                    if (object.params && object.params.length) {
+                        params = object.params;
+                        fnExpScope = mixin({}, fnExpScope, true);
+                        for (i = 0; i < params.length; i++) {
+                            param = params[i];
+                            if (param.type === 'Identifier') {
+                                fnExpScope[param.name] = true;
+                            }
+                        }
+                    }
+                }
+
             for (key in object) {
                 if (object.hasOwnProperty(key)) {
                     child = object[key];
                     if (typeof child === 'object' && child !== null) {
-                        result = this.recurse(child, onMatch, options);
+                        result = this.recurse(child, onMatch, options, fnExpScope);
                         if (typeof result === 'string') {
                             break;
                         }
@@ -22985,23 +23013,10 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             //passed in as a function expression, indicating a UMD-type of
             //wrapping.
             if (typeof result === 'string') {
-                if (object.type === 'ExpressionStatement' && object.expression &&
-                    object.expression.type === 'CallExpression' && object.expression.callee &&
-                    object.expression.callee.type === 'FunctionExpression') {
-                    object = object.expression.callee;
-
-                    if (object.params && object.params.length) {
-                        if (object.params.some(function(param) {
-                            //Found an identifier match, so stop parsing from this
-                            //level down.
-                            return param.type === 'Identifier' &&
-                                   param.name === result;
-                        })) {
-                            //Just a plain return, parsing can continue past this
-                            //point.
-                            return;
-                        }
-                    }
+                if (hasProp(fnExpScope, result)) {
+                    //Just a plain return, parsing can continue past this
+                    //point.
+                    return;
                 }
 
                 return result;
@@ -23479,11 +23494,14 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * @param {Function} onMatch a function to call when a match is found.
      * It is passed the match name, and the config, name, deps possible args.
      * The config, name and deps args are not normalized.
+     * @param {Object} fnExpScope an object whose keys are all function
+     * expression identifiers that should be in scope. Useful for UMD wrapper
+     * detection to avoid parsing more into the wrapped UMD code.
      *
      * @returns {String} a JS source string with the valid require/define call.
      * Otherwise null.
      */
-    parse.parseNode = function (node, onMatch) {
+    parse.parseNode = function (node, onMatch, fnExpScope) {
         var name, deps, cjsDeps, arg, factory, exp, refsDefine, bodyNode,
             args = node && node[argPropName],
             callName = parse.hasRequire(node);
@@ -23557,7 +23575,8 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             }
 
             return onMatch("define", null, name, deps, node,
-                           (factory && factory.type === 'Identifier' ? factory.name : undefined));
+                           (factory && factory.type === 'Identifier' ? factory.name : undefined),
+                           fnExpScope);
         } else if (node.type === 'CallExpression' && node.callee &&
                    node.callee.type === 'FunctionExpression' &&
                    node.callee.body && node.callee.body.body &&
@@ -23585,7 +23604,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
                     if (refsDefine) {
                         return onMatch("define", null, null, null, exp.expression,
-                                       exp.expression.arguments[0].name);
+                                       exp.expression.arguments[0].name, fnExpScope);
                     }
                 }
             }
