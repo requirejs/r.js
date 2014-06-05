@@ -171,11 +171,12 @@
         no_mangle: true
     },
 
-    //If using UglifyJS for script optimization, these config options can be
-    //used to pass configuration values to UglifyJS.
-    //For possible values see:
-    //http://lisperator.net/uglifyjs/codegen
-    //http://lisperator.net/uglifyjs/compress
+    //If using UglifyJS2 for script optimization, these config options can be
+    //used to pass configuration values to UglifyJS2.
+    //For possible `output` values see:
+    //https://github.com/mishoo/UglifyJS2#beautifier-options
+    //For possible `compress` values see:
+    //https://github.com/mishoo/UglifyJS2#compressor-options
     uglify2: {
         //Example of a specialized config. If you are fine
         //with the default options, no need to specify
