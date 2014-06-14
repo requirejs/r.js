@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.14 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.14 Sat, 14 Jun 2014 06:59:17 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.14',
+        version = '2.1.14 Sat, 14 Jun 2014 06:59:17 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -15033,6 +15033,84 @@ exports.SourceNode = require('./source-map/source-node').SourceNode;
 
 });
 
+// Copyright 2014 Simon Lydell
+
+void (function(root, factory) {
+  if (typeof define === "function" && define.amd) {
+    define('source-map-url', factory)
+  } else if (typeof exports === "object") {
+    module.exports = factory()
+  } else {
+    root.sourceMappingURL = factory()
+  }
+}(this, function(undefined) {
+
+  var innerRegex = /[#@] sourceMappingURL=([^\s'"]*)/
+  var newlineRegex = /\r\n?|\n/
+
+  var regex = RegExp(
+    "(^|(?:" + newlineRegex.source + "))" +
+    "(?:" +
+      "/\\*" +
+      "(?:\\s*(?:" + newlineRegex.source + ")(?://)?)?" +
+      "(?:" + innerRegex.source + ")" +
+      "\\s*" +
+      "\\*/" +
+      "|" +
+      "//(?:" + innerRegex.source + ")" +
+    ")" +
+    "\\s*(?:$|(?:" + newlineRegex.source + "))"
+  )
+
+  function SourceMappingURL(commentSyntax) {
+    this._commentSyntax = commentSyntax
+  }
+
+  SourceMappingURL.prototype.regex = regex
+  SourceMappingURL.prototype._innerRegex = innerRegex
+  SourceMappingURL.prototype._newlineRegex = newlineRegex
+
+  SourceMappingURL.prototype.get = function(code) {
+    var match = code.match(this.regex)
+    if (!match) {
+      return null
+    }
+    return match[2] || match[3] || ""
+  }
+
+  SourceMappingURL.prototype.set = function(code, url, commentSyntax) {
+    if (!commentSyntax) {
+      commentSyntax = this._commentSyntax
+    }
+    // Use a newline present in the code, or fall back to '\n'.
+    var newline = String(code.match(this._newlineRegex) || "\n")
+    var open = commentSyntax[0], close = commentSyntax[1] || ""
+    code = this.remove(code)
+    return code + newline + open + "# sourceMappingURL=" + url + close
+  }
+
+  SourceMappingURL.prototype.remove = function(code) {
+    return code.replace(this.regex, "")
+  }
+
+  SourceMappingURL.prototype.insertBefore = function(code, string) {
+    var match = code.match(this.regex)
+    if (match) {
+      var hasNewline = Boolean(match[1])
+      return code.slice(0, match.index) +
+        string +
+        (hasNewline ? "" : "\n") +
+        code.slice(match.index)
+    } else {
+      return code + string
+    }
+  }
+
+  SourceMappingURL.prototype.SourceMappingURL = SourceMappingURL
+
+  return new SourceMappingURL(["/*", " */"])
+
+}));
 //Distributed under the BSD license:
 //Copyright 2012 (c) Mihai Bazon <mihai.bazon@gmail.com>
 define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], function (exports, MOZ_SourceMap, logger, rjsFile) {
@@ -25794,6 +25872,8 @@ define('build', function (require) {
         env = require('env'),
         commonJs = require('commonJs'),
         SourceMapGenerator = require('source-map/source-map-generator'),
+        SourceMapConsumer = require('source-map/source-map-consumer'),
+        sourceMappingURL = require('source-map-url'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
@@ -27680,27 +27760,67 @@ define('build', function (require) {
                                 }
                             }
 
+                            //See if the file already has a source map
+                            var sourceMapConsumer = null;
+                            try {
+                                var existingSourceMapURL = sourceMappingURL.get(singleContents);
+                                if (existingSourceMapURL) {
+                                    //Load referenced source map
+                                    var sourceMapContents = file.readFile(build.makeAbsPath(existingSourceMapURL, file.parent(path)));
+                                    var existingSourceMap = JSON.parse(String(sourceMapContents));
+                                    sourceMapConsumer = existingSourceMap ? new SourceMapConsumer.SourceMapConsumer(existingSourceMap) : null;
+                                }
+                            } catch (e) {
+                                sourceMapConsumer = null;
+                            }
+                            //Remove the sourceMappingURL comment, so it doesn't
+                            //interfere with the new one to be generated.
+                            singleContents = sourceMappingURL.remove(singleContents);
+
                             sourceMapLineNumber = fileContents.split('\n').length - 1;
                             lineCount = singleContents.split('\n').length;
-                            for (var i = 1; i <= lineCount; i += 1) {
-                                sourceMapGenerator.addMapping({
-                                    generated: {
-                                        line: sourceMapLineNumber + i,
-                                        column: 0
-                                    },
-                                    original: {
-                                        line: i,
-                                        column: 0
-                                    },
-                                    source: sourceMapPath
+                            if (sourceMapConsumer) {
+                                sourceMapConsumer.eachMapping(function(m) {
+                                    if (m.generatedLine > lineCount)
+                                        return;
+                                    //Translate the line numbers in the existing source map
+                                    sourceMapGenerator.addMapping({
+                                        generated: {
+                                            line: m.generatedLine + sourceMapLineNumber,
+                                            column: m.generatedColumn
+                                        },
+                                        original: {
+                                            line: m.originalLine,
+                                            column: m.originalColumn
+                                        },
+                                        source: m.source,
+                                        name: m.name
+                                    });
                                 });
-                            }
 
-                            //Store the content of the original in the source
-                            //map since other transforms later like minification
-                            //can mess up translating back to the original
-                            //source.
-                            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+                                // TODO Preserve sourcesContent of existing source map
+                                // TODO by calling sourceMapGenerator.setSourceContent() for each non-null item in sourceMapConsumer.sourcesContent
+                            } else {
+                                for (var i = 1; i <= lineCount; i += 1) {
+                                    sourceMapGenerator.addMapping({
+                                        generated: {
+                                            line: sourceMapLineNumber + i,
+                                            column: 0
+                                        },
+                                        original: {
+                                            line: i,
+                                            column: 0
+                                        },
+                                        source: sourceMapPath
+                                    });
+                                }
+
+                                //Store the content of the original in the source
+                                //map since other transforms later like minification
+                                //can mess up translating back to the original
+                                //source.
+                                sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+                            }
                         }
 
                         //Add the file to the final contents
