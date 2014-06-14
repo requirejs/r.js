@@ -24,6 +24,8 @@ define(function (require) {
         env = require('env'),
         commonJs = require('commonJs'),
         SourceMapGenerator = require('source-map/source-map-generator'),
+        SourceMapConsumer = require('source-map/source-map-consumer'),
+        sourceMappingURL = require('source-map-url'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
@@ -1910,27 +1912,67 @@ define(function (require) {
                                 }
                             }
 
+                            //See if the file already has a source map
+                            var sourceMapConsumer = null;
+                            try {
+                                var existingSourceMapURL = sourceMappingURL.get(singleContents);
+                                if (existingSourceMapURL) {
+                                    //Load referenced source map
+                                    var sourceMapContents = file.readFile(build.makeAbsPath(existingSourceMapURL, file.parent(path)));
+                                    var existingSourceMap = JSON.parse(String(sourceMapContents));
+                                    sourceMapConsumer = existingSourceMap ? new SourceMapConsumer.SourceMapConsumer(existingSourceMap) : null;
+                                }
+                            } catch (e) {
+                                sourceMapConsumer = null;
+                            }
+                            //Remove the sourceMappingURL comment, so it doesn't
+                            //interfere with the new one to be generated.
+                            singleContents = sourceMappingURL.remove(singleContents);
+
                             sourceMapLineNumber = fileContents.split('\n').length - 1;
                             lineCount = singleContents.split('\n').length;
-                            for (var i = 1; i <= lineCount; i += 1) {
-                                sourceMapGenerator.addMapping({
-                                    generated: {
-                                        line: sourceMapLineNumber + i,
-                                        column: 0
-                                    },
-                                    original: {
-                                        line: i,
-                                        column: 0
-                                    },
-                                    source: sourceMapPath
+                            if (sourceMapConsumer) {
+                                sourceMapConsumer.eachMapping(function(m) {
+                                    if (m.generatedLine > lineCount)
+                                        return;
+                                    //Translate the line numbers in the existing source map
+                                    sourceMapGenerator.addMapping({
+                                        generated: {
+                                            line: m.generatedLine + sourceMapLineNumber,
+                                            column: m.generatedColumn
+                                        },
+                                        original: {
+                                            line: m.originalLine,
+                                            column: m.originalColumn
+                                        },
+                                        source: m.source,
+                                        name: m.name
+                                    });
                                 });
-                            }
 
-                            //Store the content of the original in the source
-                            //map since other transforms later like minification
-                            //can mess up translating back to the original
-                            //source.
-                            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+                                // TODO Preserve sourcesContent of existing source map
+                                // TODO by calling sourceMapGenerator.setSourceContent() for each non-null item in sourceMapConsumer.sourcesContent
+                            } else {
+                                for (var i = 1; i <= lineCount; i += 1) {
+                                    sourceMapGenerator.addMapping({
+                                        generated: {
+                                            line: sourceMapLineNumber + i,
+                                            column: 0
+                                        },
+                                        original: {
+                                            line: i,
+                                            column: 0
+                                        },
+                                        source: sourceMapPath
+                                    });
+                                }
+
+                                //Store the content of the original in the source
+                                //map since other transforms later like minification
+                                //can mess up translating back to the original
+                                //source.
+                                sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+                            }
                         }
 
                         //Add the file to the final contents
