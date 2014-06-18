@@ -204,7 +204,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
         /**
          * Reads a *text* file.
          */
-        readFile: function (/*String*/path, /*String?*/encoding) {
+        readFile: function (/*String*/path, /*String?*/encoding, /*String?*/moduleName, /*String?*/context) {
             if (encoding === 'utf-8') {
                 encoding = 'utf8';
             }
@@ -212,7 +212,17 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
                 encoding = 'utf8';
             }
 
-            var text = fs.readFileSync(path, encoding);
+            var text;
+
+            try {
+                text = fs.readFileSync(path, encoding);
+            } catch(e) {
+                if(context && context.config && context.config.onReadFileError) {
+                    text = context.config.onReadFileError(moduleName, path);
+                } else {
+                    throw e;
+                }
+            }
 
             //Hmm, would not expect to get A BOM, but it seems to happen,
             //remove it just in case.
@@ -223,10 +233,10 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
             return text;
         },
 
-        readFileAsync: function (path, encoding) {
+        readFileAsync: function (path, encoding, moduleName, context) {
             var d = prim();
             try {
-                d.resolve(file.readFile(path, encoding));
+                d.resolve(file.readFile(path, encoding, moduleName, context));
             } catch (e) {
                 d.reject(e);
             }

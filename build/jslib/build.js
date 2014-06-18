@@ -43,7 +43,7 @@ define(function (require) {
     //Caching function for performance. Attached to
     //require so it can be reused in requirePatch.js. _cachedRawText
     //set up by requirePatch.js
-    require._cacheReadAsync = function (path, encoding) {
+    require._cacheReadAsync = function (path, encoding, moduleName, context) {
         var d;
 
         if (lang.hasProp(require._cachedRawText, path)) {
@@ -51,7 +51,7 @@ define(function (require) {
             d.resolve(require._cachedRawText[path]);
             return d.promise;
         } else {
-            return file.readFileAsync(path, encoding).then(function (text) {
+            return file.readFileAsync(path, encoding, moduleName, context).then(function (text) {
                 require._cachedRawText[path] = text;
                 return text;
             });
