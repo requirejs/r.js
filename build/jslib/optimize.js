@@ -253,6 +253,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         }
                     }
 
+                    if (config.generateSourceMaps && licenseContents) {
+                        optConfig.preamble = licenseContents;
+                        licenseContents = '';
+                    }
+
                     fileContents = licenseContents + optFunc(fileName,
                                                              fileContents,
                                                              outFileName,
@@ -411,6 +416,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
             uglify: function (fileName, fileContents, outFileName, keepLines, config) {
                 var parser = uglify.parser,
                     processor = uglify.uglify,
+                    preamble = config.preamble || "",
                     ast, errMessage, errMatch;
 
                 config = config || {};
@@ -440,7 +446,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     }
                     throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
                 }
-                return fileContents;
+                return preamble + fileContents;
             },
             uglify2: function (fileName, fileContents, outFileName, keepLines, config) {
                 var result, existingMap, resultMap, finalMap, sourceIndex,
@@ -453,6 +459,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 lang.mixin(uconfig, config, true);
 
                 uconfig.fromString = true;
+
+                if (config.preamble) {
+                    uconfig.output = { preamble: config.preamble };
+                }
 
                 if (config.generateSourceMaps && (outFileName || config._buildSourceMap)) {
                     uconfig.outSourceMap = baseName;
