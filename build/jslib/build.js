@@ -1246,7 +1246,8 @@ define(function (require) {
         }
 
         if (config.generateSourceMaps) {
-            if (config.preserveLicenseComments && config.optimize !== 'none') {
+            if (config.preserveLicenseComments &&
+                !(config.optimize === 'none' || config.optimize === 'uglify2')) {
                 throw new Error('Cannot use preserveLicenseComments and ' +
                     'generateSourceMaps together, unless optimize is set ' +
                     'to \'uglify2\'. Either explcitly set preserveLicenseComments ' +
