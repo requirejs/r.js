@@ -1250,7 +1250,7 @@ define(function (require) {
                 !(config.optimize === 'none' || config.optimize === 'uglify2')) {
                 throw new Error('Cannot use preserveLicenseComments and ' +
                     'generateSourceMaps together, unless optimize is set ' +
-                    'to \'uglify2\'. Either explcitly set preserveLicenseComments ' +
+                    'to \'uglify2\'. Either explicitly set preserveLicenseComments ' +
                     'to false (default is true) or turn off generateSourceMaps. ' +
                     'If you want source maps with license comments, see: ' +
                     'http://requirejs.org/docs/errors.html#sourcemapcomments');
