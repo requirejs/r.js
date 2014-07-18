@@ -1730,6 +1730,7 @@ define(function (require) {
                                    module._buildPath.replace(sourceMapBase, '');
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
                     file: fileForSourceMap
+                    sourceRoot: config.sourceRoot
                 });
             }
 
