@@ -31,7 +31,7 @@ define(['parse', 'logger'], function (parse, logger) {
 
     var pragma = {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
-        useStrictRegExp: /['"]use strict['"];/g,
+        useStrictRegExp: /^\s*['"]use strict['"];$/gm,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
         configRegExp: /(^|[^\.])(requirejs|require)(\.config)\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
