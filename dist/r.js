@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.14 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.14+ Sun, 07 Sep 2014 03:51:04 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.14',
+        version = '2.1.14+ Sun, 07 Sep 2014 03:51:04 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22949,7 +22949,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
         //Like traverse, but skips if branches that would not be processed
         //after has application that results in tests of true or false boolean
         //literal values.
-        var key, child, result, i, params, param,
+        var key, child, result, i, params, param, tempObject,
             hasHas = options && options.has;
 
         fnExpScope = fnExpScope || emptyScope;
@@ -22979,23 +22979,23 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
             //Build up a "scope" object that informs nested recurse calls if
             //the define call references an identifier that is likely a UMD
-            //wrapped function expresion argument.
+            //wrapped function expression argument.
             if (object.type === 'ExpressionStatement' && object.expression &&
                     object.expression.type === 'CallExpression' && object.expression.callee &&
                     object.expression.callee.type === 'FunctionExpression') {
-                    object = object.expression.callee;
+                tempObject = object.expression.callee;
 
-                    if (object.params && object.params.length) {
-                        params = object.params;
-                        fnExpScope = mixin({}, fnExpScope, true);
-                        for (i = 0; i < params.length; i++) {
-                            param = params[i];
-                            if (param.type === 'Identifier') {
-                                fnExpScope[param.name] = true;
-                            }
+                if (tempObject.params && tempObject.params.length) {
+                    params = tempObject.params;
+                    fnExpScope = mixin({}, fnExpScope, true);
+                    for (i = 0; i < params.length; i++) {
+                        param = params[i];
+                        if (param.type === 'Identifier') {
+                            fnExpScope[param.name] = true;
                         }
                     }
                 }
+            }
 
             for (key in object) {
                 if (object.hasOwnProperty(key)) {
@@ -23014,12 +23014,12 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             //wrapping.
             if (typeof result === 'string') {
                 if (hasProp(fnExpScope, result)) {
-                    //Just a plain return, parsing can continue past this
-                    //point.
-                    return;
+                    //result still in scope, keep jumping out indicating the
+                    //identifier still in use.
+                    return result;
                 }
 
-                return result;
+                return;
             }
         }
     };
