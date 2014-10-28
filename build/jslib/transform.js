@@ -216,7 +216,7 @@ function (esprima, parse, logger, lang) {
             //further up.
             defineInfos.reverse();
 
-            contentLines = contents.split('\n');
+            contentLines = contents.split(/\r\n|\r|\n/);
 
             modLine = function (loc, contentInsertion) {
                 var startIndex = loc.start.column,
