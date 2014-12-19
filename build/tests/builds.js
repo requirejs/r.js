@@ -2474,5 +2474,23 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Confirm that the UMD skipping still finds jQuery-type inner
+    //defines inside a partial, non-AMD UMD wrapper.
+    //https://github.com/jrburke/r.js/issues/704
+    doh.register("nojQDupeDefine",
+        [
+            function nojQDupeDefine(t) {
+                file.deleteFile("lib/nojQDupeDefine/built.js");
 
+                build(["lib/nojQDupeDefine/build.js"]);
+
+                t.is(nol(c("lib/nojQDupeDefine/expected.js")),
+                     nol(c("lib/nojQDupeDefine/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

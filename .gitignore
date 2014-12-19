@@ -53,6 +53,7 @@ build/tests/lib/nestedHas/main-builtNeedC.js
 build/tests/lib/nestedHas/main-builtNeedD.js
 build/tests/lib/nestedHas/main-builtNested.js
 build/tests/lib/noexports/main-built.js
+build/tests/lib/nojQDupeDefine/main-built.js
 build/tests/lib/nonStrict/main-built.js
 build/tests/lib/nonUmdIdentifiers/main-built.js
 build/tests/lib/onBuildAllDir/js-built
