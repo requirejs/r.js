@@ -575,7 +575,7 @@
 
     //Introduced in 2.1.3: Seed raw text contents for the listed module IDs.
     //These text contents will be used instead of doing a file IO call for
-    //those modules. Useful is some module ID contents are dynamically
+    //those modules. Useful if some module ID contents are dynamically
     //based on user input, which is common in web build tools.
     rawText: {
         'some/id': 'define(["another/id"], function () {});'
