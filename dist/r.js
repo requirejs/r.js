@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.15+ Thu, 25 Dec 2014 07:21:59 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.15+ Thu, 25 Dec 2014 22:51:40 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.15+ Thu, 25 Dec 2014 07:21:59 GMT',
+        version = '2.1.15+ Thu, 25 Dec 2014 22:51:40 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -101,8 +101,11 @@ var requirejs, require, define, xpcUtil;
             fileName = args[1];
         }
 
-        //Set up execution context.
-        //Nashorn has importPackage, so branch on that
+        //Exec/readFile differs between Rhino and Nashorn. Rhino has an
+        //importPackage where Nashorn does not, so branch on that. This is a
+        //coarser check -- detecting readFile existence might also be enough for
+        //this spot. However, sticking with importPackage to keep it the same
+        //as other Rhino/Nashorn detection branches.
         if (typeof importPackage !== 'undefined') {
             rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
 
