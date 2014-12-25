@@ -101,8 +101,11 @@ var requirejs, require, define, xpcUtil;
             fileName = args[1];
         }
 
-        //Set up execution context.
-        //Nashorn has importPackage, so branch on that
+        //Exec/readFile differs between Rhino and Nashorn. Rhino has an
+        //importPackage where Nashorn does not, so branch on that. This is a
+        //coarser check -- detecting readFile existence might also be enough for
+        //this spot. However, sticking with importPackage to keep it the same
+        //as other Rhino/Nashorn detection branches.
         if (typeof importPackage !== 'undefined') {
             rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
 
