@@ -21,7 +21,9 @@ define(function () {
         return false;
     };
 
-    if (typeof java !== 'undefined' && java.lang && java.lang.Object) {
+    //Rhino, but not Nashorn (detected by importPackage not existing)
+    //Can have some strange foreign objects.
+    if (typeof java !== 'undefined' && java.lang && java.lang.Object && typeof importPackage !== 'undefined') {
         isJavaObj = function (obj) {
             return obj instanceof java.lang.Object;
         };

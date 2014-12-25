@@ -64,7 +64,11 @@ define(['transform', 'env!env/file'], function (transform, file) {
                 //comparison file to use for the results. xpconnect
                 //version is also different.
                 if (isRhino) {
-                    overideName = 'indentedArrayFunc-rhino.js';
+                    if (typeof importPackage !== 'undefined') {
+                        overideName = 'indentedArrayFunc-rhino.js';
+                    } else {
+                        overideName = 'indentedArrayFunc-nashorn.js';
+                    }
                 } else if (isXpConnect) {
                     overideName = 'indentedArrayFunc-xpconnect.js';
                 }

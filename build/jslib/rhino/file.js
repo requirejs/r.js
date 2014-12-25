@@ -236,7 +236,13 @@ define(['prim'], function (prim) {
 
             os = new java.io.BufferedWriter(outWriter);
             try {
-                os.write(fileContents);
+                //If in Nashorn, need to coerce the JS string to a Java string so that
+                //writer.write method dispatch correctly detects the type.
+                if (typeof importPackage !== 'undefined') {
+                    os.write(fileContents);
+                } else {
+                    os.write(new java.lang.String(fileContents));
+                }
             } finally {
                 os.close();
             }

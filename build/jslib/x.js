@@ -102,11 +102,19 @@ var requirejs, require, define, xpcUtil;
         }
 
         //Set up execution context.
-        rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
+        //Nashorn has importPackage, so branch on that
+        if (typeof importPackage !== 'undefined') {
+            rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
 
-        exec = function (string, name) {
-            return rhinoContext.evaluateString(this, string, name, 0, null);
-        };
+            exec = function (string, name) {
+                return rhinoContext.evaluateString(this, string, name, 0, null);
+            };
+        } else {
+            exec = function (string, name) {
+                load({ script: string, name: name});
+            };
+            readFile = readFully;
+        }
 
         exists = function (fileName) {
             return (new java.io.File(fileName)).exists();
