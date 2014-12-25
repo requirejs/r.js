@@ -6,9 +6,9 @@
 
 /*
  * This is a bootstrap script to allow running RequireJS in the command line
- * in either a Java/Rhino or Node environment. It is modified by the top-level
- * dist.js file to inject other files to completely enable this file. It is
- * the shell of the r.js file.
+ * in either a Java/Rhino/Nashorn or Node environment. It is modified by the
+ * top-level dist.js file to inject other files to completely enable this file.
+ * It is the shell of the r.js file.
  */
 
 /*jslint evil: true, nomen: true, sloppy: true */
@@ -91,7 +91,7 @@ var requirejs, require, define, xpcUtil;
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
         }
-    } else if (typeof Packages !== 'undefined') {
+    } else if (typeof Packages !== 'undefined' && typeof importPackage !== 'undefined') {
         env = 'rhino';
 
         fileName = args[0];
@@ -106,6 +106,33 @@ var requirejs, require, define, xpcUtil;
 
         exec = function (string, name) {
             return rhinoContext.evaluateString(this, string, name, 0, null);
+        };
+
+        exists = function (fileName) {
+            return (new java.io.File(fileName)).exists();
+        };
+
+        //Define a console.log for easier logging. Don't
+        //get fancy though.
+        if (typeof console === 'undefined') {
+            console = {
+                log: function () {
+                    print.apply(undefined, arguments);
+                }
+            };
+        }
+    } else if (typeof Packages !== 'undefined') {
+        env = 'nashorn';
+
+        fileName = args[0];
+
+        if (fileName && fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = args[1];
+        }
+
+        exec = function (string, name) {
+            load({ script: string, name: name});
         };
 
         exists = function (fileName) {
@@ -2372,6 +2399,28 @@ var requirejs, require, define, xpcUtil;
     };
 
 }());
+    } else if (env === 'nashorn') {
+        /**
+ * @license RequireJS rhino Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint */
+/*global require: false, java: false, load: false */
+
+(function () {
+    'use strict';
+    require.load = function (context, moduleName, url) {
+
+        load(url);
+
+        //Support anonymous modules.
+        context.completeLoad(moduleName);
+    };
+
+}());
+
     } else if (env === 'node') {
         this.requirejsVars.nodeRequire = nodeRequire;
         require.nodeRequire = nodeRequire;
@@ -3106,6 +3155,23 @@ define('rhino/assert', function () {
 
 }
 
+if(env === 'nashorn') {
+/**
+ * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, load: false */
+
+//Just a stub for use with uglify's consolidator.js
+define('nashorn/assert', function () {
+    return {};
+});
+
+}
+
 if(env === 'xpconnect') {
 /**
  * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
@@ -3177,6 +3243,31 @@ if(env === 'rhino') {
 var jsLibRhinoArgs = (typeof rhinoArgs !== 'undefined' && rhinoArgs) || [].concat(Array.prototype.slice.call(arguments, 0));
 
 define('rhino/args', function () {
+    var args = jsLibRhinoArgs;
+
+    //Ignore any command option used for main x.js branching
+    if (args[0] && args[0].indexOf('-') === 0) {
+        args = args.slice(1);
+    }
+
+    return args;
+});
+
+}
+
+if(env === 'nashorn') {
+/**
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, process: false */
+
+var jsLibRhinoArgs = (typeof rhinoArgs !== 'undefined' && rhinoArgs) || [].concat(Array.prototype.slice.call(arguments, 0));
+
+define('nashorn/args', function () {
     var args = jsLibRhinoArgs;
 
     //Ignore any command option used for main x.js branching
@@ -3266,6 +3357,22 @@ if(env === 'rhino') {
 /*global define: false, load: false */
 
 define('rhino/load', function () {
+    return load;
+});
+
+}
+
+if(env === 'nashorn') {
+/**
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, load: false */
+
+define('nashorn/load', function () {
     return load;
 });
 
@@ -4069,6 +4176,300 @@ define('rhino/file', ['prim'], function (prim) {
 
 }
 
+if(env === 'nashorn') {
+/**
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+//Helper functions to deal with file I/O.
+
+/*jslint plusplus: false */
+/*global java: false, define: false */
+
+define('nashorn/file', ['prim'], function (prim) {
+    var file = {
+        backSlashRegExp: /\\/g,
+
+        exclusionRegExp: /^\./,
+
+        getLineSeparator: function () {
+            return file.lineSeparator;
+        },
+
+        lineSeparator: java.lang.System.getProperty("line.separator"), //Java String
+
+        exists: function (fileName) {
+            return (new java.io.File(fileName)).exists();
+        },
+
+        parent: function (fileName) {
+            return file.absPath((new java.io.File(fileName)).getParentFile());
+        },
+
+        normalize: function (fileName) {
+            return file.absPath(fileName);
+        },
+
+        isFile: function (path) {
+            return (new java.io.File(path)).isFile();
+        },
+
+        isDirectory: function (path) {
+            return (new java.io.File(path)).isDirectory();
+        },
+
+        /**
+         * Gets the absolute file path as a string, normalized
+         * to using front slashes for path separators.
+         * @param {java.io.File||String} file
+         */
+        absPath: function (fileObj) {
+            if (typeof fileObj === "string") {
+                fileObj = new java.io.File(fileObj);
+            }
+            return (fileObj.getCanonicalPath() + "").replace(file.backSlashRegExp, "/");
+        },
+
+        getFilteredFileList: function (/*String*/startDir, /*RegExp*/regExpFilters, /*boolean?*/makeUnixPaths, /*boolean?*/startDirIsJavaObject) {
+            //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
+            //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
+            //and it will be treated as the "include" case.
+            //Ignores files/directories that start with a period (.) unless exclusionRegExp
+            //is set to another value.
+            var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
+                i, fileObj, filePath, ok, dirFiles;
+
+            topDir = startDir;
+            if (!startDirIsJavaObject) {
+                topDir = new java.io.File(startDir);
+            }
+
+            regExpInclude = regExpFilters.include || regExpFilters;
+            regExpExclude = regExpFilters.exclude || null;
+
+            if (topDir.exists()) {
+                dirFileArray = topDir.listFiles();
+                for (i = 0; i < dirFileArray.length; i++) {
+                    fileObj = dirFileArray[i];
+                    if (fileObj.isFile()) {
+                        filePath = fileObj.getPath();
+                        if (makeUnixPaths) {
+                            //Make sure we have a JS string.
+                            filePath = String(filePath);
+                            if (filePath.indexOf("/") === -1) {
+                                filePath = filePath.replace(/\\/g, "/");
+                            }
+                        }
+
+                        ok = true;
+                        if (regExpInclude) {
+                            ok = filePath.match(regExpInclude);
+                        }
+                        if (ok && regExpExclude) {
+                            ok = !filePath.match(regExpExclude);
+                        }
+
+                        if (ok && (!file.exclusionRegExp ||
+                            !file.exclusionRegExp.test(fileObj.getName()))) {
+                            files.push(filePath);
+                        }
+                    } else if (fileObj.isDirectory() &&
+                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.getName()))) {
+                        dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
+                        files.push.apply(files, dirFiles);
+                    }
+                }
+            }
+
+            return files; //Array
+        },
+
+        copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
+            //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
+            //file should be copied. Returns a list file name strings of the destinations that were copied.
+            regExpFilter = regExpFilter || /\w/;
+
+            var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
+            copiedFiles = [], i, srcFileName, destFileName;
+
+            for (i = 0; i < fileNames.length; i++) {
+                srcFileName = fileNames[i];
+                destFileName = srcFileName.replace(srcDir, destDir);
+
+                if (file.copyFile(srcFileName, destFileName, onlyCopyNew)) {
+                    copiedFiles.push(destFileName);
+                }
+            }
+
+            return copiedFiles.length ? copiedFiles : null; //Array or null
+        },
+
+        copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
+            //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
+            //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
+            var destFile = new java.io.File(destFileName), srcFile, parentDir,
+            srcChannel, destChannel;
+
+            //logger.trace("Src filename: " + srcFileName);
+            //logger.trace("Dest filename: " + destFileName);
+
+            //If onlyCopyNew is true, then compare dates and only copy if the src is newer
+            //than dest.
+            if (onlyCopyNew) {
+                srcFile = new java.io.File(srcFileName);
+                if (destFile.exists() && destFile.lastModified() >= srcFile.lastModified()) {
+                    return false; //Boolean
+                }
+            }
+
+            //Make sure destination dir exists.
+            parentDir = destFile.getParentFile();
+            if (!parentDir.exists()) {
+                if (!parentDir.mkdirs()) {
+                    throw "Could not create directory: " + parentDir.getCanonicalPath();
+                }
+            }
+
+            //Java's version of copy file.
+            srcChannel = new java.io.FileInputStream(srcFileName).getChannel();
+            destChannel = new java.io.FileOutputStream(destFileName).getChannel();
+            destChannel.transferFrom(srcChannel, 0, srcChannel.size());
+            srcChannel.close();
+            destChannel.close();
+
+            return true; //Boolean
+        },
+
+        /**
+         * Renames a file. May fail if "to" already exists or is on another drive.
+         */
+        renameFile: function (from, to) {
+            return (new java.io.File(from)).renameTo((new java.io.File(to)));
+        },
+
+        readFile: function (/*String*/path, /*String?*/encoding) {
+            //A file read function that can deal with BOMs
+            encoding = encoding || "utf-8";
+            var fileObj = new java.io.File(path),
+                    input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(fileObj), encoding)),
+                    stringBuffer, line;
+            try {
+                stringBuffer = new java.lang.StringBuffer();
+                line = input.readLine();
+
+                // Byte Order Mark (BOM) - The Unicode Standard, version 3.0, page 324
+                // http://www.unicode.org/faq/utf_bom.html
+
+                // Note that when we use utf-8, the BOM should appear as "EF BB BF", but it doesn't due to this bug in the JDK:
+                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4508058
+                if (line && line.length() && line.charAt(0) === 0xfeff) {
+                    // Eat the BOM, since we've already found the encoding on this file,
+                    // and we plan to concatenating this buffer with others; the BOM should
+                    // only appear at the top of a file.
+                    line = line.substring(1);
+                }
+                while (line !== null) {
+                    stringBuffer.append(line);
+                    stringBuffer.append(file.lineSeparator);
+                    line = input.readLine();
+                }
+                //Make sure we return a JavaScript string and not a Java string.
+                return String(stringBuffer.toString()); //String
+            } finally {
+                input.close();
+            }
+        },
+
+        readFileAsync: function (path, encoding) {
+            var d = prim();
+            try {
+                d.resolve(file.readFile(path, encoding));
+            } catch (e) {
+                d.reject(e);
+            }
+            return d.promise;
+        },
+
+        saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
+            //summary: saves a file using UTF-8 encoding.
+            file.saveFile(fileName, fileContents, "utf-8");
+        },
+
+        saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
+            //summary: saves a file.
+            var outFile = new java.io.File(fileName), outWriter, parentDir, os;
+
+            parentDir = outFile.getAbsoluteFile().getParentFile();
+            if (!parentDir.exists()) {
+                if (!parentDir.mkdirs()) {
+                    throw "Could not create directory: " + parentDir.getAbsolutePath();
+                }
+            }
+
+            if (encoding) {
+                outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile), encoding);
+            } else {
+                outWriter = new java.io.OutputStreamWriter(new java.io.FileOutputStream(outFile));
+            }
+
+            os = new java.io.BufferedWriter(outWriter);
+            try {
+                os.write(fileContents);
+            } finally {
+                os.close();
+            }
+        },
+
+        deleteFile: function (/*String*/fileName) {
+            //summary: deletes a file or directory if it exists.
+            var fileObj = new java.io.File(fileName), files, i;
+            if (fileObj.exists()) {
+                if (fileObj.isDirectory()) {
+                    files = fileObj.listFiles();
+                    for (i = 0; i < files.length; i++) {
+                        this.deleteFile(files[i]);
+                    }
+                }
+                fileObj["delete"]();
+            }
+        },
+
+        /**
+         * Deletes any empty directories under the given directory.
+         * The startDirIsJavaObject is private to this implementation's
+         * recursion needs.
+         */
+        deleteEmptyDirs: function (startDir, startDirIsJavaObject) {
+            var topDir = startDir,
+                dirFileArray, i, fileObj;
+
+            if (!startDirIsJavaObject) {
+                topDir = new java.io.File(startDir);
+            }
+
+            if (topDir.exists()) {
+                dirFileArray = topDir.listFiles();
+                for (i = 0; i < dirFileArray.length; i++) {
+                    fileObj = dirFileArray[i];
+                    if (fileObj.isDirectory()) {
+                        file.deleteEmptyDirs(fileObj, true);
+                    }
+                }
+
+                //If the directory is empty now, delete it.
+                if (topDir.listFiles().length === 0) {
+                    file.deleteFile(String(topDir.getPath()));
+                }
+            }
+        }
+    };
+
+    return file;
+});
+
+}
+
 if(env === 'xpconnect') {
 /**
  * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
@@ -4378,6 +4779,17 @@ define('rhino/quit', function () {
 
 }
 
+if(env === 'nashorn') {
+/*global quit */
+define('nashorn/quit', function () {
+    'use strict';
+    return function (code) {
+        return quit(code);
+    };
+});
+
+}
+
 if(env === 'xpconnect') {
 /*global quit */
 define('xpconnect/quit', function () {
@@ -4440,6 +4852,22 @@ if(env === 'rhino') {
 /*global define: false, print: false */
 
 define('rhino/print', function () {
+    return print;
+});
+
+}
+
+if(env === 'nashorn') {
+/**
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false, print: false */
+
+define('nashorn/print', function () {
     return print;
 });
 
@@ -24637,6 +25065,20 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
 
     return optimize;
 });
+}
+
+if(env === 'nashorn') {
+/**
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * Available via the MIT or new BSD license.
+ * see: http://github.com/jrburke/requirejs for details
+ */
+
+/*jslint strict: false */
+/*global define: false */
+
+define('nashorn/optimize', {});
+
 }
 
 if(env === 'xpconnect') {

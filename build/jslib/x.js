@@ -6,9 +6,9 @@
 
 /*
  * This is a bootstrap script to allow running RequireJS in the command line
- * in either a Java/Rhino or Node environment. It is modified by the top-level
- * dist.js file to inject other files to completely enable this file. It is
- * the shell of the r.js file.
+ * in either a Java/Rhino/Nashorn or Node environment. It is modified by the
+ * top-level dist.js file to inject other files to completely enable this file.
+ * It is the shell of the r.js file.
  */
 
 /*jslint evil: true, nomen: true, sloppy: true */
@@ -91,7 +91,7 @@ var requirejs, require, define, xpcUtil;
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
         }
-    } else if (typeof Packages !== 'undefined') {
+    } else if (typeof Packages !== 'undefined' && typeof importPackage !== 'undefined') {
         env = 'rhino';
 
         fileName = args[0];
@@ -115,6 +115,33 @@ var requirejs, require, define, xpcUtil;
             };
             readFile = readFully;
         }
+
+        exists = function (fileName) {
+            return (new java.io.File(fileName)).exists();
+        };
+
+        //Define a console.log for easier logging. Don't
+        //get fancy though.
+        if (typeof console === 'undefined') {
+            console = {
+                log: function () {
+                    print.apply(undefined, arguments);
+                }
+            };
+        }
+    } else if (typeof Packages !== 'undefined') {
+        env = 'nashorn';
+
+        fileName = args[0];
+
+        if (fileName && fileName.indexOf('-') === 0) {
+            commandOption = fileName.substring(1);
+            fileName = args[1];
+        }
+
+        exec = function (string, name) {
+            load({ script: string, name: name});
+        };
 
         exists = function (fileName) {
             return (new java.io.File(fileName)).exists();
@@ -258,6 +285,8 @@ var requirejs, require, define, xpcUtil;
         //INSERT build/jslib/browser.js
     } else if (env === 'rhino') {
         //INSERT build/jslib/rhino.js
+    } else if (env === 'nashorn') {
+        //INSERT build/jslib/nashorn.js
     } else if (env === 'node') {
         this.requirejsVars.nodeRequire = nodeRequire;
         require.nodeRequire = nodeRequire;
