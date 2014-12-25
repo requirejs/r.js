@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.15 Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.15 Thu, 25 Dec 2014 07:17:47 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.15',
+        version = '2.1.15 Thu, 25 Dec 2014 07:17:47 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -102,11 +102,19 @@ var requirejs, require, define, xpcUtil;
         }
 
         //Set up execution context.
-        rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
+        //Nashorn has importPackage, so branch on that
+        if (typeof importPackage !== 'undefined') {
+            rhinoContext = Packages.org.mozilla.javascript.ContextFactory.getGlobal().enterContext();
 
-        exec = function (string, name) {
-            return rhinoContext.evaluateString(this, string, name, 0, null);
-        };
+            exec = function (string, name) {
+                return rhinoContext.evaluateString(this, string, name, 0, null);
+            };
+        } else {
+            exec = function (string, name) {
+                load({ script: string, name: name});
+            };
+            readFile = readFully;
+        }
 
         exists = function (fileName) {
             return (new java.io.File(fileName)).exists();
@@ -2667,7 +2675,9 @@ define('lang', function () {
         return false;
     };
 
-    if (typeof java !== 'undefined' && java.lang && java.lang.Object) {
+    //Rhino, but not Nashorn (detected by importPackage not existing)
+    //Can have some strange foreign objects.
+    if (typeof java !== 'undefined' && java.lang && java.lang.Object && typeof importPackage !== 'undefined') {
         isJavaObj = function (obj) {
             return obj instanceof java.lang.Object;
         };
@@ -4014,7 +4024,13 @@ define('rhino/file', ['prim'], function (prim) {
 
             os = new java.io.BufferedWriter(outWriter);
             try {
-                os.write(fileContents);
+                //If in Nashorn, need to coerce the JS string to a Java string so that
+                //writer.write method dispatch correctly detects the type.
+                if (typeof importPackage !== 'undefined') {
+                    os.write(fileContents);
+                } else {
+                    os.write(new java.lang.String(fileContents));
+                }
             } finally {
                 os.close();
             }
