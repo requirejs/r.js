@@ -228,6 +228,10 @@ function (lang,   logger,   envOptimize,        file,           parse,
             //Apply pragmas/namespace renaming
             fileContents = pragma.process(fileName, fileContents, config, 'OnSave', pluginCollector);
 
+            if (config.onJsProcessComplete) {
+                fileContents = config.onJsProcessComplete(fileContents, fileName);
+            }
+
             //Optimize the JS files if asked.
             if (optimizerName && optimizerName !== 'none') {
                 optFunc = envOptimize[optimizerName] || optimize.optimizers[optimizerName];
