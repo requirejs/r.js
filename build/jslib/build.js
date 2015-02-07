@@ -1735,7 +1735,7 @@ define(function (require) {
             }
 
             //Write the built module to disk, and build up the build output.
-            fileContents = "";
+            fileContents = config.wrap ? config.wrap.start : "";
             return prim.serial(layer.buildFilePaths.map(function (path) {
                 return function () {
                     var lineCount,
@@ -1974,7 +1974,7 @@ define(function (require) {
         }).then(function () {
             return {
                 text: config.wrap ?
-                        config.wrap.start + fileContents + config.wrap.end :
+                        fileContents + config.wrap.end :
                         fileContents,
                 buildText: buildFileContents,
                 sourceMap: sourceMapGenerator ?
