@@ -9,7 +9,7 @@ the RequireJS implementation of AMD.
 
 r.js is a single script that has two major functions:
 
-* Run AMD-based projects [in Node](http://requirejs.org/docs/node.html) and Rhino.
+* Run AMD-based projects [in Node](http://requirejs.org/docs/node.html) and Nashorn, Rhino and xpcshell.
 * Includes the [RequireJS Optimizer](http://requirejs.org/docs/optimization.html)
 that combines scripts for optimal browser delivery.
 
@@ -21,7 +21,7 @@ that combines scripts for optimal browser delivery.
 
 From then on, you can use `r.js` on the command line to run the optimizer.
 
-## Rhino/Browser
+## Nashorn/Rhino/Browser
 
 Download the latest release from the
 [RequireJS download page](http://requirejs.org/docs/download.html#rjs).
@@ -66,7 +66,32 @@ r.js allows using Node modules installed via npm. For more info see the
 
 ## Java
 
-Java requires some JAR files in the CLASSPATH for it to work:
+### Nashorn
+
+As of r.js 2.1.16, r.js can run in [Nashorn](http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html), Java 8+'s JavaScript engine, via the `jjs` command line tool that is installed with Java.
+
+Then general format of the command:
+
+```
+jjs -scripting path/to/r.js -- [r.js command line arguments here]
+```
+
+Examples:
+
+```
+# Calling r.js to optimize a project using the build config in build.js
+jjs -scripting path/to/r.js -- -o build.js
+
+# Calling r.js to run AMD modules, where the main app program is main.js
+jjs -scripting path/to/r.js -- main.js
+
+```
+
+All further examples will use the Node notation, but substitute the **r.js** references below with the command line structure mentioned above (`jjs -scripting path/to/r.js -- `).
+
+### Rhino
+
+Using Rhino requires some JAR files in the CLASSPATH for it to work:
 
 * [rhino.jar](https://github.com/jrburke/r.js/blob/master/lib/rhino/js.jar?raw=true) from the [Rhino project](http://www.mozilla.org/rhino/).
 * [compiler.jar](https://github.com/jrburke/r.js/blob/master/lib/closure/compiler.jar?raw=true) if you are using the optimizer and want to use
@@ -87,7 +112,7 @@ If you want to run it in the debugger, replace
 org.mozilla.javascript.tools.shell.Main with
 **org.mozilla.javascript.tools.debugger.Main**.
 
-All further examples will use the Node notation, but substitute **r.js** in the commands with the appropriate java command.
+All further examples will use the Node notation, but substitute the **r.js** references below with the appropriate java command.
 
 ## xpcshell
 
