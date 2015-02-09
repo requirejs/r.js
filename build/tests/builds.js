@@ -1739,6 +1739,27 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+
+    doh.register("packagesMultiLevel",
+        [
+            function packagesMultiLevel(t) {
+                var startPath = "../../../requirejs/tests/packagesMultiLevel/",
+                    builtPath = startPath + "packagesMultiLevel-tests-built.js";
+                file.deleteFile(builtPath);
+
+                build([startPath + "build.js"]);
+
+                t.is(nol(c(startPath + "expected-built.js")), nol(c(builtPath)));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
     //Make sure pluginBuilder works.
     //https://github.com/jrburke/r.js/issues/175
     doh.register("pluginBuilder",
