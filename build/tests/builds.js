@@ -2353,6 +2353,25 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Detect !function(e) {... UMD wrappers
+    //https://github.com/jrburke/requirejs/issues/733
+    doh.register("umd2",
+        [
+            function umd2(t) {
+                file.deleteFile("lib/umd2/built.js");
+
+                build(["lib/umd2/build.js"]);
+
+                t.is(nol(c("lib/umd2/expected.js")),
+                     nol(c("lib/umd2/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Do not not find nested deps in a UMD wrapper
     //https://github.com/jrburke/requirejs/issues/651
     doh.register("umdNested",

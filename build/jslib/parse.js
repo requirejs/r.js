@@ -241,19 +241,25 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             //Build up a "scope" object that informs nested recurse calls if
             //the define call references an identifier that is likely a UMD
             //wrapped function expression argument.
+            //Catch (function(a) {... wrappers
             if (object.type === 'ExpressionStatement' && object.expression &&
                     object.expression.type === 'CallExpression' && object.expression.callee &&
                     object.expression.callee.type === 'FunctionExpression') {
                 tempObject = object.expression.callee;
-
-                if (tempObject.params && tempObject.params.length) {
-                    params = tempObject.params;
-                    fnExpScope = mixin({}, fnExpScope, true);
-                    for (i = 0; i < params.length; i++) {
-                        param = params[i];
-                        if (param.type === 'Identifier') {
-                            fnExpScope[param.name] = true;
-                        }
+            }
+            // Catch !function(a) {... wrappers
+            if (object.type === 'UnaryExpression' && object.argument &&
+                object.argument.type === 'CallExpression' && object.argument.callee &&
+                object.argument.callee.type === 'FunctionExpression') {
+                tempObject = object.argument.callee;
+            }
+            if (tempObject && tempObject.params && tempObject.params.length) {
+                params = tempObject.params;
+                fnExpScope = mixin({}, fnExpScope, true);
+                for (i = 0; i < params.length; i++) {
+                    param = params[i];
+                    if (param.type === 'Identifier') {
+                        fnExpScope[param.name] = true;
                     }
                 }
             }
