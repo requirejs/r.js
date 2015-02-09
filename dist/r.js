@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.15+ Mon, 09 Feb 2015 01:21:41 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.15+ Mon, 09 Feb 2015 08:22:46 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.15+ Mon, 09 Feb 2015 01:21:41 GMT',
+        version = '2.1.15+ Mon, 09 Feb 2015 08:22:46 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23700,19 +23700,25 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             //Build up a "scope" object that informs nested recurse calls if
             //the define call references an identifier that is likely a UMD
             //wrapped function expression argument.
+            //Catch (function(a) {... wrappers
             if (object.type === 'ExpressionStatement' && object.expression &&
                     object.expression.type === 'CallExpression' && object.expression.callee &&
                     object.expression.callee.type === 'FunctionExpression') {
                 tempObject = object.expression.callee;
-
-                if (tempObject.params && tempObject.params.length) {
-                    params = tempObject.params;
-                    fnExpScope = mixin({}, fnExpScope, true);
-                    for (i = 0; i < params.length; i++) {
-                        param = params[i];
-                        if (param.type === 'Identifier') {
-                            fnExpScope[param.name] = true;
-                        }
+            }
+            // Catch !function(a) {... wrappers
+            if (object.type === 'UnaryExpression' && object.argument &&
+                object.argument.type === 'CallExpression' && object.argument.callee &&
+                object.argument.callee.type === 'FunctionExpression') {
+                tempObject = object.argument.callee;
+            }
+            if (tempObject && tempObject.params && tempObject.params.length) {
+                params = tempObject.params;
+                fnExpScope = mixin({}, fnExpScope, true);
+                for (i = 0; i < params.length; i++) {
+                    param = params[i];
+                    if (param.type === 'Identifier') {
+                        fnExpScope[param.name] = true;
                     }
                 }
             }
