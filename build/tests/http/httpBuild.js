@@ -20,7 +20,7 @@ config = {
         //in use, change this path to that file. One possibility
         //could be the one at:
         //https://github.com/ajaxorg/ace/blob/master/build_support/mini_require.js
-        requireLib: '../../../../../requirejs/require'
+        requireLib: '../../../../require'
     },
     //Uncomment this line if uglify minification is not wanted.
     //optimize: 'none',
