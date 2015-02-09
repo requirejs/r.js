@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.15+ Sun, 08 Feb 2015 21:42:36 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.15+ Mon, 09 Feb 2015 01:21:41 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.15+ Sun, 08 Feb 2015 21:42:36 GMT',
+        version = '2.1.15+ Mon, 09 Feb 2015 01:21:41 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -28177,12 +28177,13 @@ define('build', function (require) {
 
         return prim().start(function () {
             var reqIndex, currContents, fileForSourceMap,
-                moduleName, shim, packageMain, packageName,
+                moduleName, shim, packageName,
                 parts, builder, writeApi,
                 namespace, namespaceWithDot, stubModulesByName,
                 context = layer.context,
                 onLayerEnds = [],
-                onLayerEndAdded = {};
+                onLayerEndAdded = {},
+                pkgsMainMap = {};
 
             //Use override settings, particularly for pragmas
             //Do this before the var readings since it reads config values.
@@ -28224,6 +28225,13 @@ define('build', function (require) {
                 });
             }
 
+            //Create a reverse lookup for packages main module IDs to their package
+            //names, useful for knowing when to write out define() package main ID
+            //adapters.
+            lang.eachProp(layer.context.config.pkgs, function(value, prop) {
+                pkgsMainMap[value] = prop;
+            });
+
             //Write the built module to disk, and build up the build output.
             fileContents = config.wrap ? config.wrap.start : "";
             return prim.serial(layer.buildFilePaths.map(function (path) {
@@ -28232,16 +28240,10 @@ define('build', function (require) {
                         singleContents = '';
 
                     moduleName = layer.buildFileToModule[path];
-                    packageName = moduleName.split('/').shift();
 
-                    //If the moduleName is for a package main, then update it to the
-                    //real main value.
-                    packageMain = layer.context.config.pkgs &&
-                                    getOwn(layer.context.config.pkgs, packageName);
-                    if (packageMain !== moduleName) {
-                        // Not a match, clear packageMain
-                        packageMain = undefined;
-                    }
+                    //If the moduleName is a package main, then hold on to the
+                    //packageName in case an adapter needs to be written.
+                    packageName = getOwn(pkgsMainMap, moduleName);
 
                     return prim().start(function () {
                         //Figure out if the module is a result of a build plugin, and if so,
@@ -28303,7 +28305,7 @@ define('build', function (require) {
                                     currContents = config.onBuildRead(moduleName, path, currContents);
                                 }
 
-                                if (packageMain) {
+                                if (packageName) {
                                     hasPackageName = (packageName === parse.getNamedDefine(currContents));
                                 }
 
@@ -28315,7 +28317,7 @@ define('build', function (require) {
                                     useSourceUrl: config.useSourceUrl
                                 });
 
-                                if (packageMain && !hasPackageName) {
+                                if (packageName && !hasPackageName) {
                                     currContents = addSemiColon(currContents, config) + '\n';
                                     currContents += namespaceWithDot + "define('" +
                                                     packageName + "', ['" + moduleName +
@@ -28344,7 +28346,7 @@ define('build', function (require) {
                         //after the module is processed.
                         //If we have a name, but no defined module, then add in the placeholder.
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
-                            shim = config.shim && (getOwn(config.shim, moduleName) || (packageMain && getOwn(config.shim, moduleName) || getOwn(config.shim, packageName)));
+                            shim = config.shim && (getOwn(config.shim, moduleName) || (packageName && getOwn(config.shim, packageName)));
                             if (shim) {
                                 if (config.wrapShim) {
                                     singleContents = '(function(root) {\n' +
