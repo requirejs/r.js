@@ -776,7 +776,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         if (callName === 'require' || callName === 'requirejs') {
             //A plain require/requirejs call
             arg = node[argPropName] && node[argPropName][0];
-            if (arg.type !== 'ArrayExpression') {
+            if (arg && arg.type !== 'ArrayExpression') {
                 if (arg.type === 'ObjectExpression') {
                     //A config call, try the second arg.
                     arg = node[argPropName][1];
