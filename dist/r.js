@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.15+ Mon, 09 Feb 2015 08:22:46 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.15+ Tue, 10 Feb 2015 02:04:14 GMT Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.15+ Mon, 09 Feb 2015 08:22:46 GMT',
+        version = '2.1.15+ Tue, 10 Feb 2015 02:04:14 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24235,7 +24235,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
         if (callName === 'require' || callName === 'requirejs') {
             //A plain require/requirejs call
             arg = node[argPropName] && node[argPropName][0];
-            if (arg.type !== 'ArrayExpression') {
+            if (arg && arg.type !== 'ArrayExpression') {
                 if (arg.type === 'ObjectExpression') {
                     //A config call, try the second arg.
                     arg = node[argPropName][1];
@@ -27562,6 +27562,14 @@ define('build', function (require) {
             //Load build file options.
             buildFileContents = file.readFile(buildFile);
             try {
+                //Be a bit lenient in the file ending in a ; or ending with
+                //a //# sourceMappingUrl comment, mostly for compiled languages
+                //that create a config, like typescript.
+                buildFileContents = buildFileContents
+                                    .replace(/\/\/\#[^\n\r]+[\n\r]*$/, '')
+                                    .trim()
+                                    .replace(/;$/, '');
+
                 buildFileConfig = eval("(" + buildFileContents + ")");
                 build.makeAbsConfig(buildFileConfig, absFilePath);
 
