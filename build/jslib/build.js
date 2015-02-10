@@ -1066,6 +1066,14 @@ define(function (require) {
             //Load build file options.
             buildFileContents = file.readFile(buildFile);
             try {
+                //Be a bit lenient in the file ending in a ; or ending with
+                //a //# sourceMappingUrl comment, mostly for compiled languages
+                //that create a config, like typescript.
+                buildFileContents = buildFileContents
+                                    .replace(/\/\/\#[^\n\r]+[\n\r]*$/, '')
+                                    .trim()
+                                    .replace(/;$/, '');
+
                 buildFileConfig = eval("(" + buildFileContents + ")");
                 build.makeAbsConfig(buildFileConfig, absFilePath);
 

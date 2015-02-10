@@ -2533,4 +2533,25 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
         ]
     );
     doh.run();
+
+    //Deal with some build config files that could be compile outputs from
+    //other languages, like typescript.
+    //https://github.com/jrburke/r.js/issues/767
+    doh.register("typescriptConfig",
+        [
+            function typescriptConfig(t) {
+                file.deleteFile("lib/typescriptConfig/main-built.js");
+
+                build(["lib/typescriptConfig/build.js"]);
+
+                t.is(nol(c("lib/typescriptConfig/expected.js")),
+                     nol(c("lib/typescriptConfig/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
