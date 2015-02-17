@@ -28,7 +28,11 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
     var allowRun = true,
         hasProp = lang.hasProp,
         falseProp = lang.falseProp,
-        getOwn = lang.getOwn;
+        getOwn = lang.getOwn,
+        // Used to strip out use strict from toString()'d functions for the
+        // shim config since they will explicitly want to not be bound by strict,
+        // but some envs, explicitly xpcshell, adds a use strict.
+        useStrictRegExp = /['"]use strict['"];/g;
 
     //Turn off throwing on resolution conflict, that was just an older prim
     //idea about finding errors early, but does not comply with how promises
@@ -140,7 +144,8 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                             }
 
                             if (value.init) {
-                                str += '(' + value.init.toString() + '.apply(this, arguments))';
+                                str += '(' + value.init.toString()
+                                       .replace(useStrictRegExp, '') + '.apply(this, arguments))';
                             }
                             if (value.init && value.exports) {
                                 str += ' || ';
@@ -157,7 +162,8 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                                 '    return function () {\n' +
                                 '        var ret, fn;\n' +
                                 (value.init ?
-                                        ('       fn = ' + value.init.toString() + ';\n' +
+                                        ('       fn = ' + value.init.toString()
+                                        .replace(useStrictRegExp, '') + ';\n' +
                                         '        ret = fn.apply(global, arguments);\n') : '') +
                                 (value.exports ?
                                         '        return ret || global.' + value.exports + ';\n' :

@@ -1,4 +1,3 @@
-
 /**
  * @license RequireJS text 2.0.6 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
@@ -10,7 +9,7 @@
   java, location, Components, FileUtils */
 
 define('text',['module'], function (module) {
-    
+    'use strict';
 
     var text, fs, Cc, Ci,
         progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],
@@ -365,7 +364,9 @@ define('text',['module'], function (module) {
     return text;
 });
 
+
 define('text!sample.txt',[],function () { return 'sample';});
 
 define('main',['text!sample.txt'], function (sampleText) {});
+
 

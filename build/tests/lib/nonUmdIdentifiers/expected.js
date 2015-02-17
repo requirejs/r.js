@@ -47,7 +47,7 @@ define('states',{ name: 'states' });
    define('modernizr', [], global.Modernizr);
 
    require(['requireConfig', 'gsnConfig'], function (requireConfig, gsnConfig) {
-       
+       'use strict';
 
        var paymentsShim = {}, legacyShim = {}, debugFilter;
 

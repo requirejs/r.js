@@ -20,4 +20,14 @@ define(['pragma', 'env!env/file'], function (pragma, file) {
             }
         ]);
     doh.run();
+
+    doh.register("pragmaUseStrict",
+        [
+            function pragmaUseStrict(t) {
+                var modifiedContents = pragma.removeStrict(c('pragma/goodStrict1.js'), {});
+                t.is(c('pragma/goodStrict1Expected.js'), modifiedContents);
+            }
+        ]);
+    doh.run();
+
 });

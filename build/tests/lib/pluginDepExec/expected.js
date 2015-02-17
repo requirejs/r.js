@@ -5,7 +5,7 @@ define('plugin2!test2.txt', function () { return '!test2!';});
 
 
 define('dep',['plugin2!test2.txt'], function(pluginresult) {
-	
+	'use strict';
 	return {
         wrap: function(v) {
             return pluginresult + v + pluginresult;
@@ -19,7 +19,7 @@ define('plugin1!test1.txt', function () { return '!test2!test1!test2!';});
 
 
 require(['plugin1!test1.txt'], function(pluginresult) {
-	
+	'use strict';
 	alert(pluginresult);
 });
 
