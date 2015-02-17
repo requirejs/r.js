@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.16 Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.16+ Tue, 17 Feb 2015 01:44:30 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.16',
+        version = '2.1.16+ Tue, 17 Feb 2015 01:44:30 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24931,7 +24931,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
 
     var pragma = {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
-        useStrictRegExp: /['"]use strict['"];/g,
+        useStrictRegExp: /(^|[^{]\r?\n)['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
         configRegExp: /(^|[^\.])(requirejs|require)(\.config)\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
@@ -24945,7 +24945,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
-            return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
+            return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '$1');
         },
 
         namespace: function (fileContents, ns, onLifecycleName) {
@@ -25910,7 +25910,11 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
     var allowRun = true,
         hasProp = lang.hasProp,
         falseProp = lang.falseProp,
-        getOwn = lang.getOwn;
+        getOwn = lang.getOwn,
+        // Used to strip out use strict from toString()'d functions for the
+        // shim config since they will explicitly want to not be bound by strict,
+        // but some envs, explicitly xpcshell, adds a use strict.
+        useStrictRegExp = /['"]use strict['"];/g;
 
     //Turn off throwing on resolution conflict, that was just an older prim
     //idea about finding errors early, but does not comply with how promises
@@ -26022,7 +26026,8 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                             }
 
                             if (value.init) {
-                                str += '(' + value.init.toString() + '.apply(this, arguments))';
+                                str += '(' + value.init.toString()
+                                       .replace(useStrictRegExp, '') + '.apply(this, arguments))';
                             }
                             if (value.init && value.exports) {
                                 str += ' || ';
@@ -26039,7 +26044,8 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                                 '    return function () {\n' +
                                 '        var ret, fn;\n' +
                                 (value.init ?
-                                        ('       fn = ' + value.init.toString() + ';\n' +
+                                        ('       fn = ' + value.init.toString()
+                                        .replace(useStrictRegExp, '') + ';\n' +
                                         '        ret = fn.apply(global, arguments);\n') : '') +
                                 (value.exports ?
                                         '        return ret || global.' + value.exports + ';\n' :
