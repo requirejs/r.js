@@ -1898,6 +1898,10 @@ define(function (require) {
                         //for some space separation between files in case ASI issues
                         //for concatenation would cause an error otherwise.
                         singleContents += '\n';
+        
+                        if (config.onBuildWriteJS) {
+                          singleContents = config.onBuildWriteJS(moduleName, path, singleContents);
+                        }
 
                         //Add to the source map
                         if (sourceMapGenerator) {
@@ -1958,7 +1962,11 @@ define(function (require) {
                             path = module._buildPath;
                         }
                         builder.onLayerEnd(function (input) {
-                            fileContents += "\n" + addSemiColon(input, config);
+                          var output = addSemiColon(input, config);
+                          if (config.onBuildWriteJS) {
+                            config.onBuildWriteJS(layer.prefix, layer.name, output);
+                          }
+                            fileContents += "\n" + output;
                         }, {
                             name: module.name,
                             path: path
