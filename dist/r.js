@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.16+ Mon, 30 Mar 2015 22:38:04 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.16+ Mon, 30 Mar 2015 22:49:34 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.16+ Mon, 30 Mar 2015 22:38:04 GMT',
+        version = '2.1.16+ Mon, 30 Mar 2015 22:49:34 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2400,7 +2400,10 @@ var requirejs, require, define, xpcUtil;
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint regexp: false */
+//Explicity not strict since this file contains an eval call, and do not want
+//to enforce strict on code evaluated that way. See
+//https://github.com/jrburke/r.js/issues/774
+/*jslint regexp: false, sloppy: true*/
 /*global require: false, define: false, requirejsVars: false, process: false */
 
 /**
@@ -2411,8 +2414,6 @@ var requirejs, require, define, xpcUtil;
  */
 
 (function () {
-    'use strict';
-
     var nodeReq = requirejsVars.nodeRequire,
         req = requirejsVars.require,
         def = requirejsVars.define,
