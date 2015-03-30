@@ -4,7 +4,10 @@
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint regexp: false */
+//Explicity not strict since this file contains an eval call, and do not want
+//to enforce strict on code evaluated that way. See
+//https://github.com/jrburke/r.js/issues/774
+/*jslint regexp: false, sloppy: true*/
 /*global require: false, define: false, requirejsVars: false, process: false */
 
 /**
@@ -15,8 +18,6 @@
  */
 
 (function () {
-    'use strict';
-
     var nodeReq = requirejsVars.nodeRequire,
         req = requirejsVars.require,
         def = requirejsVars.define,
