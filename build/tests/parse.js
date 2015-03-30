@@ -70,6 +70,8 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                     goodAnon1 = "define(function(require){ var foo = require('foo'); });",
                     goodAnon2 = "define(function (require, exports, module) { if (true) { callback(function () { require(\"bar\"); })}});",
                     goodAnon3 = "define(function(require, exports, module) { exports.name = 'empty'; });",
+                    goodAnon4 = "define((require, exports, module) => { module.exports = { name: 'b', uri: module.uri, c: require('c') }; });",
+
                     good5 = "define(function (require) {\n" +
                         '   return {\n' +
                         '        getA: function () {\n' +
@@ -106,6 +108,7 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                 t.is('define("good11",["plug!role=\\"base something\\""]);', parse("good11", "good11", good11));
                 t.is('define("myLib",[]);define("myLib2",[]);define("myLib3",[]);', nol(parse("good12", "good12", good12)));
                 t.is('define("one",[]);', nol(parse("good13", "good13", good13)));
+                t.is('define("goodAnon4",["require","exports","module","c"]);', nol(parse("goodAnon4", "goodAnon4", goodAnon4)));
 
                 t.is('define("foo",[]);', parse("nested1", "nested1", nested1));
                 t.is('define("one",["me"]);', parse("bad1", "bad1", bad1));
@@ -116,6 +119,8 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                 t.is(['require', 'foo'], parse.getAnonDeps("goodAnon1", goodAnon1));
                 t.is(['require', 'exports', 'module', 'bar'], parse.getAnonDeps("goodAnon2", goodAnon2));
                 t.is(['require', 'exports', 'module'], parse.getAnonDeps("goodAnon3", goodAnon3));
+                t.is(['require', 'exports', 'module', 'c'], parse.getAnonDeps("goodAnon4", goodAnon4));
+
                 t.is(['require', 'plugin!some/value'], parse.getAnonDeps("good9", good9));
                 t.is(0, parse.getAnonDeps("emptyAnon1", emptyAnon1).length);
             }
@@ -172,6 +177,8 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                     good5 = "require.config({ baseUrl: 'scripts' });",
                     good6 = "require(['something']);",
                     good7 = "requirejs(['something'], function (something){});",
+                    good8 = "define((require, exports, module) => { module.exports = { name: 'b', uri: module.uri, c: require('c') }; });",
+                    good9 = "require(['a'], (a) => { console.log(a); })",
 
                     bad1 = "var dep = require('dep');",
                     bad2 = "this.define('some', 'thing');",
@@ -190,6 +197,9 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
 
                 t.is(true, parse.usesAmdOrRequireJs("good6", good6).require);
                 t.is(true, parse.usesAmdOrRequireJs("good7", good7).requirejs);
+                t.is(true, parse.usesAmdOrRequireJs("good8", good8).define);
+                t.is(true, parse.usesAmdOrRequireJs("good9", good9).require);
+
                 t.is(false, !!parse.usesAmdOrRequireJs("bad1", bad1));
                 t.is(false, !!parse.usesAmdOrRequireJs("bad2", bad2));
 

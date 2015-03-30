@@ -231,7 +231,9 @@ and Java/Rhino:
     * java -classpath ../../lib/rhino/js.jar:../../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ../../r.js all.js
 
 For running tests, put xpcshell in env/xpcshell/ as a directory, that contains
-all the files needed for it to run, including the xpcshell binary.
+all the files needed for it to run, including the xpcshell binary. Downloading
+[a xulrunner nightly](http://ftp.mozilla.org/pub/mozilla.org/xulrunner/nightly/latest-mozilla-central/)
+might work.
 
 # Contributing code changes
 

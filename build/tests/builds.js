@@ -2554,4 +2554,23 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Allow arrow functions in require/define APIs
+    //https://github.com/jrburke/r.js/issues/800
+    doh.register("arrowFunctions",
+        [
+            function arrowFunctions(t) {
+                file.deleteFile("lib/arrow/main-built.js");
+
+                build(["lib/arrow/build.js"]);
+
+                t.is(nol(c("lib/arrow/expected.js")),
+                     nol(c("lib/arrow/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });
