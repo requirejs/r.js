@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.16+ Mon, 30 Mar 2015 17:47:09 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.16+ Mon, 30 Mar 2015 22:38:04 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.16+ Mon, 30 Mar 2015 17:47:09 GMT',
+        version = '2.1.16+ Mon, 30 Mar 2015 22:38:04 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23816,6 +23816,13 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
         return deps.length ? deps : undefined;
     }
 
+    // Detects regular or arrow function expressions as the desired expression
+    // type.
+    function isFnExpression(node) {
+        return (node && (node.type === 'FunctionExpression' ||
+                             node.type === 'ArrowFunctionExpression'));
+    }
+
     /**
      * Main parse function. Returns a string of any valid require or
      * define/require.def calls as part of one JavaScript source string.
@@ -23909,6 +23916,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
     parse.traverse = traverse;
     parse.traverseBroad = traverseBroad;
+    parse.isFnExpression = isFnExpression;
 
     /**
      * Handles parsing a file recursively for require calls.
@@ -23957,13 +23965,13 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             //Catch (function(a) {... wrappers
             if (object.type === 'ExpressionStatement' && object.expression &&
                     object.expression.type === 'CallExpression' && object.expression.callee &&
-                    object.expression.callee.type === 'FunctionExpression') {
+                    isFnExpression(object.expression.callee)) {
                 tempObject = object.expression.callee;
             }
             // Catch !function(a) {... wrappers
             if (object.type === 'UnaryExpression' && object.argument &&
                 object.argument.type === 'CallExpression' && object.argument.callee &&
-                object.argument.callee.type === 'FunctionExpression') {
+                isFnExpression(object.argument.callee)) {
                 tempObject = object.argument.callee;
             }
             if (tempObject && tempObject.params && tempObject.params.length) {
@@ -24092,15 +24100,14 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
                 //Just the factory function passed to define
                 arg0 = node[argPropName][0];
-                if (arg0 && arg0.type === 'FunctionExpression') {
+                if (isFnExpression(arg0)) {
                     match = arg0;
                     return false;
                 }
 
                 //A string literal module ID followed by the factory function.
                 arg1 = node[argPropName][1];
-                if (arg0.type === 'Literal' &&
-                        arg1 && arg1.type === 'FunctionExpression') {
+                if (arg0.type === 'Literal' && isFnExpression(arg1)) {
                     match = arg1;
                     return false;
                 }
@@ -24512,7 +24519,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 factory = deps;
                 deps = name;
                 name = null;
-            } else if (name.type === 'FunctionExpression') {
+            } else if (isFnExpression(name)) {
                 //Just the factory, no name or deps
                 factory = name;
                 name = deps = null;
@@ -24522,7 +24529,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             }
 
             if (name && name.type === 'Literal' && deps) {
-                if (deps.type === 'FunctionExpression') {
+                if (isFnExpression(deps)) {
                     //deps is the factory
                     factory = deps;
                     deps = null;
@@ -24537,7 +24544,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
             if (deps && deps.type === 'ArrayExpression') {
                 deps = getValidDeps(deps);
-            } else if (factory && factory.type === 'FunctionExpression') {
+            } else if (isFnExpression(factory)) {
                 //If no deps and a factory function, could be a commonjs sugar
                 //wrapper, scan the function for dependencies.
                 cjsDeps = parse.getAnonDepsFromNode(factory);
@@ -24558,7 +24565,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                            (factory && factory.type === 'Identifier' ? factory.name : undefined),
                            fnExpScope);
         } else if (node.type === 'CallExpression' && node.callee &&
-                   node.callee.type === 'FunctionExpression' &&
+                   isFnExpression(node.callee) &&
                    node.callee.body && node.callee.body.body &&
                    node.callee.body.body.length === 1 &&
                    node.callee.body.body[0].type === 'IfStatement') {
@@ -24810,7 +24817,7 @@ function (esprima, parse, logger, lang) {
                             //to limit impact of false positives.
                             needsId = true;
                             depAction = 'empty';
-                        } else if (firstArg.type === 'FunctionExpression') {
+                        } else if (parse.isFnExpression(firstArg)) {
                             //define(function(){})
                             factoryNode = firstArg;
                             needsId = true;
@@ -24850,7 +24857,7 @@ function (esprima, parse, logger, lang) {
                         //Already has an ID.
                         needsId = false;
                         if (args.length === 2 &&
-                            args[1].type === 'FunctionExpression') {
+                            parse.isFnExpression(args[1])) {
                             //Needs dependency scanning.
                             factoryNode = args[1];
                             depAction = 'scan';
