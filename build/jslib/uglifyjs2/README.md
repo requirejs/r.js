@@ -15,3 +15,12 @@ THINGS TO CHECK:
 
 * Compare node_modules/uglify-js2/tools/node.js and what
   is put in last part of the combined file.
+
+* That the exports.FILES matches the set used in combine.js
+
+* REMOVE these functions from the end:
+readReservedFile
+exports.readReservedFile,
+exports.readDefaultReservedFile,
+exports.readNameCache,
+exports.writeNameCache
