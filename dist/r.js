@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.16+ Mon, 30 Mar 2015 22:49:34 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.16+ Tue, 31 Mar 2015 00:02:05 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.16+ Mon, 30 Mar 2015 22:49:34 GMT',
+        version = '2.1.16+ Tue, 31 Mar 2015 00:02:05 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2353,6 +2353,10 @@ var requirejs, require, define, xpcUtil;
 /*global require, XMLHttpRequest */
 
 (function () {
+    function exec(text) {
+        eval(text);
+    }
+
     require.load = function (context, moduleName, url) {
         var xhr = new XMLHttpRequest();
 
@@ -2361,7 +2365,7 @@ var requirejs, require, define, xpcUtil;
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4) {
-                eval(xhr.responseText);
+                exec(xhr.responseText);
 
                 //Support anonymous modules.
                 context.completeLoad(moduleName);
