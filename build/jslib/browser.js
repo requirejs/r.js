@@ -10,6 +10,10 @@
 /*global require, XMLHttpRequest */
 
 (function () {
+    function exec(text) {
+        eval(text);
+    }
+
     require.load = function (context, moduleName, url) {
         var xhr = new XMLHttpRequest();
 
@@ -18,7 +22,7 @@
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4) {
-                eval(xhr.responseText);
+                exec(xhr.responseText);
 
                 //Support anonymous modules.
                 context.completeLoad(moduleName);
