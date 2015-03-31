@@ -10,8 +10,9 @@
 /*global require, XMLHttpRequest */
 
 (function () {
-    function exec(text) {
-        eval(text);
+    // Separate function to avoid eval pollution, same with arguments use.
+    function exec() {
+        eval(arguments[0]);
     }
 
     require.load = function (context, moduleName, url) {
