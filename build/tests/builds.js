@@ -2573,4 +2573,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //See https://github.com/jrburke/r.js/pull/796
+    doh.register("periodInNameConfig",
+        [
+            function periodInNameConfig(t) {
+                file.deleteFile("lib/periodInNameConfig/out");
+
+                build(["lib/periodInNameConfig/build.js"]);
+
+                t.is(nol(c("lib/periodInNameConfig/scripts/main.js")),
+                     nol(c("lib/periodInNameConfig/out/main.js")));
+
+                t.is(nol(c("lib/periodInNameConfig/components/foo.bar.js")),
+                     nol(c("lib/periodInNameConfig/out/foo.bar.js")));
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

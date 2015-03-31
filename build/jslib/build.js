@@ -263,7 +263,7 @@ define(function (require) {
                             if (paths[prop].indexOf(config.baseUrl) === 0) {
                                 buildPaths[prop] = paths[prop].replace(config.baseUrl, config.dirBaseUrl);
                             } else {
-                                buildPaths[prop] = paths[prop] === 'empty:' ? 'empty:' : prop.replace(/\./g, "/");
+                                buildPaths[prop] = paths[prop] === 'empty:' ? 'empty:' : prop;
 
                                 //Make sure source path is fully formed with baseUrl,
                                 //if it is a relative URL.
