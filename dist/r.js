@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.16+ Tue, 31 Mar 2015 00:43:14 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.17 Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.16+ Tue, 31 Mar 2015 00:43:14 GMT',
+        version = '2.1.17',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -249,7 +249,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.16 Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.17 Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -262,7 +262,7 @@ var requirejs, require, define, xpcUtil;
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.16',
+        version = '2.1.17',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -494,7 +494,7 @@ var requirejs, require, define, xpcUtil;
                     // still work when converted to a path, even though
                     // as an ID it is less than ideal. In larger point
                     // releases, may be better to just kick out an error.
-                    if (i === 0 || (i == 1 && ary[2] === '..') || ary[i - 1] === '..') {
+                    if (i === 0 || (i === 1 && ary[2] === '..') || ary[i - 1] === '..') {
                         continue;
                     } else if (i > 0) {
                         ary.splice(i - 1, 2);
