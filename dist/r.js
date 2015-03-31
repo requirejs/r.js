@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.16+ Tue, 31 Mar 2015 00:02:05 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.16+ Tue, 31 Mar 2015 00:43:14 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.16+ Tue, 31 Mar 2015 00:02:05 GMT',
+        version = '2.1.16+ Tue, 31 Mar 2015 00:43:14 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -2353,8 +2353,9 @@ var requirejs, require, define, xpcUtil;
 /*global require, XMLHttpRequest */
 
 (function () {
-    function exec(text) {
-        eval(text);
+    // Separate function to avoid eval pollution, same with arguments use.
+    function exec() {
+        eval(arguments[0]);
     }
 
     require.load = function (context, moduleName, url) {
@@ -27031,7 +27032,7 @@ define('build', function (require) {
                             if (paths[prop].indexOf(config.baseUrl) === 0) {
                                 buildPaths[prop] = paths[prop].replace(config.baseUrl, config.dirBaseUrl);
                             } else {
-                                buildPaths[prop] = paths[prop] === 'empty:' ? 'empty:' : prop.replace(/\./g, "/");
+                                buildPaths[prop] = paths[prop] === 'empty:' ? 'empty:' : prop;
 
                                 //Make sure source path is fully formed with baseUrl,
                                 //if it is a relative URL.
