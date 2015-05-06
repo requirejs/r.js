@@ -310,6 +310,16 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         var found = false;
 
         traverse(esprima.parse(fileContents), function (node) {
+            // If amdefine, it defines a local define, but it should not count
+            // as a full public AMD API. Ideally this detection would be just
+            // for any define API set up in a function, but right now the
+            // parse APIs do not give enough context for it.
+            if (node.type === 'FunctionDeclaration' &&
+                node.id && node.id.type === 'Identifier' &&
+                node.id.name === 'amdefine') {
+                return false;
+            }
+
             if (parse.hasDefineAmd(node)) {
                 found = true;
 

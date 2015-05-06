@@ -156,12 +156,15 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                 var good1 = "var require, define; (function(){ define = function(){}; define.amd = {};}());",
                     good2 = "var myGlobalRequire = (function () { var define = {}; (function(){ define = function(){}; define.amd = {};}()); }());",
                     bad1 = "var define; function boom(){ var define = function(){}; define.amd(); }",
-                    bad2 = "(function(define) { define(); }(myvar));";
+                    bad2 = "(function(define) { define(); }(myvar));",
+                    bad3 = c("parse/amdefine.js");
 
                 t.is(true, parse.definesRequire("good1", good1));
                 t.is(true, parse.definesRequire("good2", good2));
                 t.is(false, parse.definesRequire("bad1", bad1));
                 t.is(false, parse.definesRequire("bad2", bad2));
+                t.is(false, parse.definesRequire("bad3", bad3));
+
             }
         ]
     );
