@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.17 Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.17+ Wed, 06 May 2015 00:31:15 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.17',
+        version = '2.1.17+ Wed, 06 May 2015 00:31:15 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24029,6 +24029,16 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
         var found = false;
 
         traverse(esprima.parse(fileContents), function (node) {
+            // If amdefine, it defines a local define, but it should not count
+            // as a full public AMD API. Ideally this detection would be just
+            // for any define API set up in a function, but right now the
+            // parse APIs do not give enough context for it.
+            if (node.type === 'FunctionDeclaration' &&
+                node.id && node.id.type === 'Identifier' &&
+                node.id.name === 'amdefine') {
+                return false;
+            }
+
             if (parse.hasDefineAmd(node)) {
                 found = true;
 
