@@ -1739,7 +1739,8 @@ define(function (require) {
                                    (module.name || module.include[0] || 'FUNCTION') + '.build.js' :
                                    module._buildPath.replace(sourceMapBase, '');
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
-                    file: fileForSourceMap
+                    file: fileForSourceMap,
+                    sourceRoot: config.sourceRoot
                 });
             }
 
