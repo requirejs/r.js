@@ -40,7 +40,8 @@ var prim;
     function check(p) {
         if (hasProp(p, 'e') || hasProp(p, 'v')) {
             if (!prim.hideResolutionConflict) {
-                throw new Error('nope');
+                throw new Error('Prim promise already resolved: ' +
+                                JSON.stringify(p));
             }
             return false;
         }
