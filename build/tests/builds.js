@@ -2593,4 +2593,23 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Do not warn about unloaded loader plugin resources if they enter the build
+    //via named define calls.
+    //https://github.com/jrburke/r.js/issues/815
+    doh.register("inlineDefineNoRequire",
+        [
+            function inlineDefineNoRequire(t) {
+                file.deleteFile("lib/inlineDefineNoRequire/testmodule-built.js");
+
+                build(["lib/inlineDefineNoRequire/build.js"]);
+
+                t.is(nol(c("lib/inlineDefineNoRequire/expected.js")),
+                     nol(c("lib/inlineDefineNoRequire/testmodule-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

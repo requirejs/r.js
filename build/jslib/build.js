@@ -1517,7 +1517,7 @@ define(function (require) {
             var hasError = false;
             if (syncChecks[env.get()]) {
                 try {
-                    build.checkForErrors(context);
+                    build.checkForErrors(context, layer);
                 } catch (e) {
                     hasError = true;
                     deferred.reject(e);
@@ -1537,7 +1537,7 @@ define(function (require) {
         // issue, the require never completes, need to check for errors
         // here.
         if (syncChecks[env.get()]) {
-            build.checkForErrors(context);
+            build.checkForErrors(context, layer);
         }
 
         return deferred.promise.then(function () {
@@ -1546,13 +1546,13 @@ define(function (require) {
                 require(lang.deeplikeCopy(baseLoaderConfig));
             }
 
-            build.checkForErrors(context);
+            build.checkForErrors(context, layer);
 
             return layer;
         });
     };
 
-    build.checkForErrors = function (context) {
+    build.checkForErrors = function (context, layer) {
         //Check to see if it all loaded. If not, then throw, and give
         //a message on what is left.
         var id, prop, mod, idParts, pluginId, pluginResources,
@@ -1604,8 +1604,9 @@ define(function (require) {
                 }
 
                 //Look for plugins that did not call load()
-
-                if (idParts.length > 1) {
+                //But skip plugin IDs that were already inlined and called
+                //define() with a name.
+                if (!hasProp(layer.modulesWithNames, id) && idParts.length > 1) {
                     if (falseProp(failedPluginMap, pluginId)) {
                         failedPluginIds.push(pluginId);
                     }
