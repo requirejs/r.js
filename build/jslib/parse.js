@@ -307,28 +307,56 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * @returns {Boolean}
      */
     parse.definesRequire = function (fileName, fileContents) {
-        var found = false;
+        var foundDefine = false,
+            foundDefineAmd = false;
 
         traverse(esprima.parse(fileContents), function (node) {
-            // If amdefine, it defines a local define, but it should not count
-            // as a full public AMD API. Ideally this detection would be just
-            // for any define API set up in a function, but right now the
-            // parse APIs do not give enough context for it.
-            if (node.type === 'FunctionDeclaration' &&
-                node.id && node.id.type === 'Identifier' &&
-                node.id.name === 'amdefine') {
-                return false;
+            // Look for a top level declaration of a define, like
+            // var requirejs, require, define, off Program body.
+            if (node.type === 'Program' && node.body && node.body.length) {
+                foundDefine = node.body.some(function(bodyNode) {
+                    // var define
+                    if (bodyNode.type === 'VariableDeclaration') {
+                        var decls = bodyNode.declarations;
+                        if (decls) {
+                            var hasVarDefine = decls.some(function(declNode) {
+                                return (declNode.type === 'VariableDeclarator' &&
+                                        declNode.id &&
+                                        declNode.id.type === 'Identifier' &&
+                                        declNode.id.name === 'define');
+                            });
+                            if (hasVarDefine) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    // function define() {}
+                    if (bodyNode.type === 'FunctionDeclaration' &&
+                        bodyNode.id &&
+                        bodyNode.id.type === 'Identifier' &&
+                        bodyNode.id.name === 'define') {
+                        return true;
+                    }
+
+
+
+
+
+
+                });
             }
 
-            if (parse.hasDefineAmd(node)) {
-                found = true;
+            // Need define variable found first, before detecting define.amd.
+            if (foundDefine && parse.hasDefineAmd(node)) {
+                foundDefineAmd = true;
 
                 //Stop traversal
                 return false;
             }
         });
 
-        return found;
+        return foundDefine && foundDefineAmd;
     };
 
     /**

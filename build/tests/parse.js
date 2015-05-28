@@ -154,17 +154,22 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
         [
             function parseHasRequire(t) {
                 var good1 = "var require, define; (function(){ define = function(){}; define.amd = {};}());",
-                    good2 = "var myGlobalRequire = (function () { var define = {}; (function(){ define = function(){}; define.amd = {};}()); }());",
+                    good2 = c("parse/functionDefine.js"),
+                    good3 = c("parse/varDefine.js"),
+                    bad0 = "var myGlobalRequire = (function () { var define = {}; (function(){ define = function(){}; define.amd = {};}()); }());",
                     bad1 = "var define; function boom(){ var define = function(){}; define.amd(); }",
                     bad2 = "(function(define) { define(); }(myvar));",
-                    bad3 = c("parse/amdefine.js");
+                    bad3 = c("parse/amdefine.js"),
+                    bad4 = c("parse/select2.full.js");
 
-                t.is(true, parse.definesRequire("good1", good1));
-                t.is(true, parse.definesRequire("good2", good2));
-                t.is(false, parse.definesRequire("bad1", bad1));
-                t.is(false, parse.definesRequire("bad2", bad2));
-                t.is(false, parse.definesRequire("bad3", bad3));
-
+                t.is(true, parse.definesRequire("good1", good1), "good1");
+                t.is(true, parse.definesRequire("good2", good2), "good2");
+                t.is(true, parse.definesRequire("good3", good3), "good3");
+                t.is(false, parse.definesRequire("bad0", bad0), "bad0");
+                t.is(false, parse.definesRequire("bad1", bad1), "bad1");
+                t.is(false, parse.definesRequire("bad2", bad2), "bad2");
+                t.is(false, parse.definesRequire("bad3", bad3), "bad3");
+                t.is(false, parse.definesRequire("bad4", bad4), "bad4");
             }
         ]
     );
