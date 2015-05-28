@@ -352,7 +352,8 @@ define(function (require) {
                             //would result in modifying source. This condition can happen
                             //with some more tricky paths: config and appDir/baseUrl
                             //setting, which is a sign of incorrect config.
-                            if (module._buildPath === module._sourcePath) {
+                            if (module._buildPath === module._sourcePath &&
+                                !config.allowSourceOverwrites) {
                                 throw new Error('Module ID \'' + module.name  +
                                                 '\' has a source path that is same as output path: ' +
                                                 module._sourcePath +
