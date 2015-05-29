@@ -1854,7 +1854,7 @@ define(function (require) {
                             });
                         }
                     }).then(function () {
-                        var refPath, pluginId, resourcePath,
+                        var refPath, pluginId, resourcePath, shimDeps,
                             sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
@@ -1868,11 +1868,13 @@ define(function (require) {
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
                             shim = config.shim && (getOwn(config.shim, moduleName) || (packageName && getOwn(config.shim, packageName)));
                             if (shim) {
+                                shimDeps = lang.isArray(shim) ? shim : shim.deps;
                                 if (config.wrapShim) {
+
                                     singleContents = '(function(root) {\n' +
                                                      namespaceWithDot + 'define("' + moduleName + '", ' +
-                                                     (shim.deps && shim.deps.length ?
-                                                            build.makeJsArrayString(shim.deps) + ', ' : '[], ') +
+                                                     (shimDeps && shimDeps.length ?
+                                                            build.makeJsArrayString(shimDeps) + ', ' : '[], ') +
                                                     'function() {\n' +
                                                     '  return (function() {\n' +
                                                              singleContents +
@@ -1885,8 +1887,8 @@ define(function (require) {
                                                     '}(this));\n';
                                 } else {
                                     singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
-                                                     (shim.deps && shim.deps.length ?
-                                                            build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                                     (shimDeps && shimDeps.length ?
+                                                            build.makeJsArrayString(shimDeps) + ', ' : '') +
                                                      (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
                                                      ');\n';
                                 }

@@ -1337,6 +1337,27 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    doh.register("shimWrapShort",
+        [
+            function shimWrapShort(t) {
+                file.deleteFile("lib/shimWrapShort/main-built.js");
+
+                build(["lib/shimWrapShort/build.js"]);
+
+                t.is(nol(c("lib/shimWrapShort/expected.js")),
+                     nol(c("lib/shimWrapShort/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+
+
+
     doh.register("mapConfig",
         [
             function mapConfig(t) {

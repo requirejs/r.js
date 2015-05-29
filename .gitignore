@@ -86,6 +86,7 @@ build/tests/lib/rhino-186/built
 build/tests/lib/semicolonInsert/a-built.js
 build/tests/lib/shimBasicWrap/basic-tests-built.js
 build/tests/lib/shimFakeDefine/main-built.js
+build/tests/lib/shimWrapShort/main-built.js
 build/tests/lib/sourcemap/www-built
 build/tests/lib/sourcemap/onejs/www/js/built.js
 build/tests/lib/sourcemap/onejs/www/js/built.js.map
