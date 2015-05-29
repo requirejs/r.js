@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.17+ Thu, 28 May 2015 23:29:26 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.17+ Fri, 29 May 2015 00:06:39 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.17+ Thu, 28 May 2015 23:29:26 GMT',
+        version = '2.1.17+ Fri, 29 May 2015 00:06:39 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -29580,7 +29580,7 @@ define('build', function (require) {
                             });
                         }
                     }).then(function () {
-                        var refPath, pluginId, resourcePath,
+                        var refPath, pluginId, resourcePath, shimDeps,
                             sourceMapPath, sourceMapLineNumber,
                             shortPath = path.replace(config.dir, "");
 
@@ -29594,11 +29594,13 @@ define('build', function (require) {
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
                             shim = config.shim && (getOwn(config.shim, moduleName) || (packageName && getOwn(config.shim, packageName)));
                             if (shim) {
+                                shimDeps = lang.isArray(shim) ? shim : shim.deps;
                                 if (config.wrapShim) {
+
                                     singleContents = '(function(root) {\n' +
                                                      namespaceWithDot + 'define("' + moduleName + '", ' +
-                                                     (shim.deps && shim.deps.length ?
-                                                            build.makeJsArrayString(shim.deps) + ', ' : '[], ') +
+                                                     (shimDeps && shimDeps.length ?
+                                                            build.makeJsArrayString(shimDeps) + ', ' : '[], ') +
                                                     'function() {\n' +
                                                     '  return (function() {\n' +
                                                              singleContents +
@@ -29611,8 +29613,8 @@ define('build', function (require) {
                                                     '}(this));\n';
                                 } else {
                                     singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
-                                                     (shim.deps && shim.deps.length ?
-                                                            build.makeJsArrayString(shim.deps) + ', ' : '') +
+                                                     (shimDeps && shimDeps.length ?
+                                                            build.makeJsArrayString(shimDeps) + ', ' : '') +
                                                      (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
                                                      ');\n';
                                 }
