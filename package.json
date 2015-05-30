@@ -1,5 +1,6 @@
 {
     "volo": {
         "url": "https://raw.github.com/jrburke/r.js/{version}/dist/r.js"
-    }
+    },
+    license: "(BSD-3-Clause OR MIT)"
 }
