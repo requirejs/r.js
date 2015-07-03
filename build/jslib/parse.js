@@ -177,6 +177,13 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                     result += '\n';
                 }
 
+                //If we don't have an array for moduleCall.deps, discard
+                //whatever we do have and use an empty array. This can happen
+                //if the module generates its dependencies with code.
+                if (typeof moduleCall.deps !== 'object' || typeof moduleCall.deps.length === 'undefined') {
+                    moduleCall.deps = [];
+                }
+
                 //If this is the main module for this file, combine any
                 //"anonymous" dependencies (could come from a nested require
                 //call) with this module.
