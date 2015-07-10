@@ -1,14 +1,5 @@
 /*
-  Copyright (C) 2013 Ariya Hidayat <ariya.hidayat@gmail.com>
-  Copyright (C) 2013 Thaddee Tyl <thaddee.tyl@gmail.com>
-  Copyright (C) 2013 Mathias Bynens <mathias@qiwi.be>
-  Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
-  Copyright (C) 2012 Mathias Bynens <mathias@qiwi.be>
-  Copyright (C) 2012 Joost-Wim Boekesteijn <joost-wim@boekesteijn.nl>
-  Copyright (C) 2012 Kris Kowal <kris.kowal@cixar.com>
-  Copyright (C) 2012 Yusuke Suzuki <utatane.tea@gmail.com>
-  Copyright (C) 2012 Arpad Borsos <arpad.borsos@googlemail.com>
-  Copyright (C) 2011 Ariya Hidayat <ariya.hidayat@gmail.com>
+  Copyright (c) jQuery Foundation, Inc. and Contributors, All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
@@ -138,6 +129,7 @@
         ExportSpecifier: 'ExportSpecifier',
         ExpressionStatement: 'ExpressionStatement',
         ForStatement: 'ForStatement',
+        ForOfStatement: 'ForOfStatement',
         ForInStatement: 'ForInStatement',
         FunctionDeclaration: 'FunctionDeclaration',
         FunctionExpression: 'FunctionExpression',
@@ -175,7 +167,8 @@
         VariableDeclaration: 'VariableDeclaration',
         VariableDeclarator: 'VariableDeclarator',
         WhileStatement: 'WhileStatement',
-        WithStatement: 'WithStatement'
+        WithStatement: 'WithStatement',
+        YieldExpression: 'YieldExpression'
     };
 
     PlaceHolders = {
@@ -196,6 +189,7 @@
         UnterminatedRegExp: 'Invalid regular expression: missing /',
         InvalidLHSInAssignment: 'Invalid left-hand side in assignment',
         InvalidLHSInForIn: 'Invalid left-hand side in for-in',
+        InvalidLHSInForLoop: 'Invalid left-hand side in for-loop',
         MultipleDefaultsInSwitch: 'More than one default clause in switch statement',
         NoCatchOrFinally: 'Missing catch or finally after try',
         UnknownLabel: 'Undefined label \'%0\'',
@@ -203,6 +197,7 @@
         IllegalContinue: 'Illegal continue statement',
         IllegalBreak: 'Illegal break statement',
         IllegalReturn: 'Illegal return statement',
+        IllegalYield: 'Unexpected token yield',
         StrictModeWith: 'Strict mode code may not include a with statement',
         StrictCatchVariable: 'Catch variable may not be eval or arguments in strict mode',
         StrictVarName: 'Variable name may not be eval or arguments in strict mode',
@@ -227,7 +222,8 @@
         NoAsAfterImportNamespace: 'Unexpected token',
         InvalidModuleSpecifier: 'Unexpected token',
         IllegalImportDeclaration: 'Unexpected token',
-        IllegalExportDeclaration: 'Unexpected token'
+        IllegalExportDeclaration: 'Unexpected token',
+        DuplicateBinding: 'Duplicate binding %0'
     };
 
     // See also tools/generate-unicode-regex.py.
@@ -1240,28 +1236,37 @@
     }
 
     function testRegExp(pattern, flags) {
-        var tmp = pattern;
+        // The BMP character to use as a replacement for astral symbols when
+        // translating an ES6 "u"-flagged pattern to an ES5-compatible
+        // approximation.
+        // Note: replacing with '\uFFFF' enables false positives in unlikely
+        // scenarios. For example, `[\u{1044f}-\u{10440}]` is an invalid
+        // pattern that would not be detected by this substitution.
+        var astralSubstitute = '\uFFFF',
+            tmp = pattern;
 
         if (flags.indexOf('u') >= 0) {
-            // Replace each astral symbol and every Unicode escape sequence
-            // that possibly represents an astral symbol or a paired surrogate
-            // with a single ASCII symbol to avoid throwing on regular
-            // expressions that are only valid in combination with the `/u`
-            // flag.
-            // Note: replacing with the ASCII symbol `x` might cause false
-            // negatives in unlikely scenarios. For example, `[\u{61}-b]` is a
-            // perfectly valid pattern that is equivalent to `[a-b]`, but it
-            // would be replaced by `[x-b]` which throws an error.
             tmp = tmp
-                .replace(/\\u\{([0-9a-fA-F]+)\}/g, function ($0, $1) {
-                    if (parseInt($1, 16) <= 0x10FFFF) {
-                        return 'x';
+                // Replace every Unicode escape sequence with the equivalent
+                // BMP character or a constant ASCII code point in the case of
+                // astral symbols. (See the above note on `astralSubstitute`
+                // for more information.)
+                .replace(/\\u\{([0-9a-fA-F]+)\}|\\u([a-fA-F0-9]{4})/g, function ($0, $1, $2) {
+                    var codePoint = parseInt($1 || $2, 16);
+                    if (codePoint > 0x10FFFF) {
+                        throwUnexpectedToken(null, Messages.InvalidRegExp);
                     }
-                    throwUnexpectedToken(null, Messages.InvalidRegExp);
+                    if (codePoint <= 0xFFFF) {
+                        return String.fromCharCode(codePoint);
+                    }
+                    return astralSubstitute;
                 })
+                // Replace each paired surrogate with a single ASCII symbol to
+                // avoid throwing on regular expressions that are only valid in
+                // combination with the "u" flag.
                 .replace(
-                    /\\u([a-fA-F0-9]{4})|[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
-                    'x'
+                    /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+                    astralSubstitute
                 );
         }
 
@@ -1732,17 +1737,25 @@
             }
 
             // Eating the stack.
-            if (last) {
-                while (last && last.range[0] >= this.range[0]) {
-                    lastChild = last;
-                    last = bottomRight.pop();
-                }
+            while (last && last.range[0] >= this.range[0]) {
+                lastChild = bottomRight.pop();
+                last = bottomRight[bottomRight.length - 1];
             }
 
             if (lastChild) {
-                if (lastChild.leadingComments && lastChild.leadingComments[lastChild.leadingComments.length - 1].range[1] <= this.range[0]) {
-                    this.leadingComments = lastChild.leadingComments;
-                    lastChild.leadingComments = undefined;
+                if (lastChild.leadingComments) {
+                    leadingComments = [];
+                    for (i = lastChild.leadingComments.length - 1; i >= 0; --i) {
+                        comment = lastChild.leadingComments[i];
+                        if (comment.range[1] <= this.range[0]) {
+                            leadingComments.unshift(comment);
+                            lastChild.leadingComments.splice(i, 1);
+                        }
+                    }
+
+                    if (!lastChild.leadingComments.length) {
+                        lastChild.leadingComments = undefined;
+                    }
                 }
             } else if (extra.leadingComments.length > 0) {
                 leadingComments = [];
@@ -1945,6 +1958,15 @@
             return this;
         },
 
+        finishForOfStatement: function (left, right, body) {
+            this.type = Syntax.ForOfStatement;
+            this.left = left;
+            this.right = right;
+            this.body = body;
+            this.finish();
+            return this;
+        },
+
         finishForInStatement: function (left, right, body) {
             this.type = Syntax.ForInStatement;
             this.left = left;
@@ -1955,25 +1977,25 @@
             return this;
         },
 
-        finishFunctionDeclaration: function (id, params, defaults, body) {
+        finishFunctionDeclaration: function (id, params, defaults, body, generator) {
             this.type = Syntax.FunctionDeclaration;
             this.id = id;
             this.params = params;
             this.defaults = defaults;
             this.body = body;
-            this.generator = false;
+            this.generator = generator;
             this.expression = false;
             this.finish();
             return this;
         },
 
-        finishFunctionExpression: function (id, params, defaults, body) {
+        finishFunctionExpression: function (id, params, defaults, body, generator) {
             this.type = Syntax.FunctionExpression;
             this.id = id;
             this.params = params;
             this.defaults = defaults;
             this.body = body;
-            this.generator = false;
+            this.generator = generator;
             this.expression = false;
             this.finish();
             return this;
@@ -2283,6 +2305,14 @@
             this.source = src;
             this.finish();
             return this;
+        },
+
+        finishYieldExpression: function (argument, delegate) {
+            this.type = Syntax.YieldExpression;
+            this.argument = argument;
+            this.delegate = delegate;
+            this.finish();
+            return this;
         }
     };
 
@@ -2566,7 +2596,7 @@
         return result;
     }
 
-    function parseArrayPattern() {
+    function parseArrayPattern(params) {
         var node = new Node(), elements = [], rest, restNode;
         expect('[');
 
@@ -2578,11 +2608,12 @@
                 if (match('...')) {
                     restNode = new Node();
                     lex();
-                    rest = parseVariableIdentifier();
+                    params.push(lookahead);
+                    rest = parseVariableIdentifier(params);
                     elements.push(restNode.finishRestElement(rest));
                     break;
                 } else {
-                    elements.push(parsePatternWithDefault());
+                    elements.push(parsePatternWithDefault(params));
                 }
                 if (!match(']')) {
                     expect(',');
@@ -2596,34 +2627,38 @@
         return node.finishArrayPattern(elements);
     }
 
-    function parsePropertyPattern() {
-        var node = new Node(), key, computed = match('['), init;
+    function parsePropertyPattern(params) {
+        var node = new Node(), key, keyToken, computed = match('['), init;
         if (lookahead.type === Token.Identifier) {
+            keyToken = lookahead;
             key = parseVariableIdentifier();
             if (match('=')) {
+                params.push(keyToken);
                 lex();
                 init = parseAssignmentExpression();
+
                 return node.finishProperty(
                     'init', key, false,
-                    new WrappingNode(key).finishAssignmentPattern(key, init), false, false);
+                    new WrappingNode(keyToken).finishAssignmentPattern(key, init), false, false);
             } else if (!match(':')) {
+                params.push(keyToken);
                 return node.finishProperty('init', key, false, key, false, true);
             }
         } else {
-            key = parseObjectPropertyKey();
+            key = parseObjectPropertyKey(params);
         }
         expect(':');
-        init = parsePatternWithDefault();
+        init = parsePatternWithDefault(params);
         return node.finishProperty('init', key, computed, init, false, false);
     }
 
-    function parseObjectPattern() {
+    function parseObjectPattern(params) {
         var node = new Node(), properties = [];
 
         expect('{');
 
         while (!match('}')) {
-            properties.push(parsePropertyPattern());
+            properties.push(parsePropertyPattern(params));
             if (!match('}')) {
                 expect(',');
             }
@@ -2634,20 +2669,23 @@
         return node.finishObjectPattern(properties);
     }
 
-    function parsePattern() {
+    function parsePattern(params) {
+        var identifier;
         if (lookahead.type === Token.Identifier) {
-            return parseVariableIdentifier();
+            params.push(lookahead);
+            identifier = parseVariableIdentifier();
+            return identifier;
         } else if (match('[')) {
-            return parseArrayPattern();
+            return parseArrayPattern(params);
         } else if (match('{')) {
-            return parseObjectPattern();
+            return parseObjectPattern(params);
         }
         throwUnexpectedToken(lookahead);
     }
 
-    function parsePatternWithDefault() {
+    function parsePatternWithDefault(params) {
         var startToken = lookahead, pattern, right;
-        pattern = parsePattern();
+        pattern = parsePattern(params);
         if (match('=')) {
             lex();
             right = isolateCoverGrammar(parseAssignmentExpression);
@@ -2693,7 +2731,7 @@
 
     // 11.1.5 Object Initialiser
 
-    function parsePropertyFunction(node, paramInfo) {
+    function parsePropertyFunction(node, paramInfo, isGenerator) {
         var previousStrict, body;
 
         isAssignmentTarget = isBindingElement = false;
@@ -2709,14 +2747,20 @@
         }
 
         strict = previousStrict;
-        return node.finishFunctionExpression(null, paramInfo.params, paramInfo.defaults, body);
+        return node.finishFunctionExpression(null, paramInfo.params, paramInfo.defaults, body, isGenerator);
     }
 
     function parsePropertyMethodFunction() {
-        var params, method, node = new Node();
+        var params, method, node = new Node(),
+            previousAllowYield = state.allowYield;
 
+        state.allowYield = false;
         params = parseParams();
-        method = parsePropertyFunction(node, params);
+        state.allowYield = previousAllowYield;
+
+        state.allowYield = false;
+        method = parsePropertyFunction(node, params, false);
+        state.allowYield = previousAllowYield;
 
         return method;
     }
@@ -2774,7 +2818,8 @@
     // In order to avoid back tracking, it returns `null` if the position is not a MethodDefinition and the caller
     // is responsible to visit other options.
     function tryParseMethodDefinition(token, key, computed, node) {
-        var value, options, methodNode;
+        var value, options, methodNode, params,
+            previousAllowYield = state.allowYield;
 
         if (token.type === Token.Identifier) {
             // check for `get` and `set`;
@@ -2785,13 +2830,17 @@
                 methodNode = new Node();
                 expect('(');
                 expect(')');
+
+                state.allowYield = false;
                 value = parsePropertyFunction(methodNode, {
                     params: [],
                     defaults: [],
                     stricted: null,
                     firstRestricted: null,
                     message: null
-                });
+                }, false);
+                state.allowYield = previousAllowYield;
+
                 return node.finishProperty('get', key, computed, value, false, false);
             } else if (token.value === 'set' && lookaheadPropertyName()) {
                 computed = match('[');
@@ -2809,19 +2858,38 @@
                 if (match(')')) {
                     tolerateUnexpectedToken(lookahead);
                 } else {
+                    state.allowYield = false;
                     parseParam(options);
+                    state.allowYield = previousAllowYield;
                     if (options.defaultCount === 0) {
                         options.defaults = [];
                     }
                 }
                 expect(')');
 
-                value = parsePropertyFunction(methodNode, options);
+                state.allowYield = false;
+                value = parsePropertyFunction(methodNode, options, false);
+                state.allowYield = previousAllowYield;
+
                 return node.finishProperty('set', key, computed, value, false, false);
             }
+        } else if (token.type === Token.Punctuator && token.value === '*' && lookaheadPropertyName()) {
+            computed = match('[');
+            key = parseObjectPropertyKey();
+            methodNode = new Node();
+
+            state.allowYield = false;
+            params = parseParams();
+            state.allowYield = previousAllowYield;
+
+            state.allowYield = true;
+            value = parsePropertyFunction(methodNode, params, true);
+            state.allowYield = previousAllowYield;
+
+            return node.finishProperty('init', key, computed, value, true, false);
         }
 
-        if (match('(')) {
+        if (key && match('(')) {
             value = parsePropertyMethodFunction();
             return node.finishProperty('init', key, computed, value, true, false);
         }
@@ -2845,13 +2913,21 @@
         var token = lookahead, node = new Node(), computed, key, maybeMethod, value;
 
         computed = match('[');
-        key = parseObjectPropertyKey();
+        if (match('*')) {
+            lex();
+        } else {
+            key = parseObjectPropertyKey();
+        }
         maybeMethod = tryParseMethodDefinition(token, key, computed, node);
 
         if (maybeMethod) {
             checkProto(maybeMethod.key, maybeMethod.computed, hasProto);
             // finished
             return maybeMethod;
+        }
+
+        if (!key) {
+            throwUnexpectedToken(lookahead);
         }
 
         // init property or short hand property.
@@ -2963,7 +3039,7 @@
     // 11.1.6 The Grouping Operator
 
     function parseGroupExpression() {
-        var expr, expressions, startToken, i;
+        var expr, expressions, startToken, i, params = [];
 
         expect('(');
 
@@ -2974,13 +3050,14 @@
             }
             return {
                 type: PlaceHolders.ArrowParameterPlaceHolder,
-                params: []
+                params: [],
+                rawParams: []
             };
         }
 
         startToken = lookahead;
         if (match('...')) {
-            expr = parseRestElement();
+            expr = parseRestElement(params);
             expect(')');
             if (!match('=>')) {
                 expect('=>');
@@ -3008,7 +3085,7 @@
                     if (!isBindingElement) {
                         throwUnexpectedToken(lookahead);
                     }
-                    expressions.push(parseRestElement());
+                    expressions.push(parseRestElement(params));
                     expect(')');
                     if (!match('=>')) {
                         expect('=>');
@@ -3130,13 +3207,20 @@
     // 11.2 Left-Hand-Side Expressions
 
     function parseArguments() {
-        var args = [];
+        var args = [], expr;
 
         expect('(');
 
         if (!match(')')) {
             while (startIndex < length) {
-                args.push(isolateCoverGrammar(parseAssignmentExpression));
+                if (match('...')) {
+                    expr = new Node();
+                    lex();
+                    expr.finishSpreadElement(isolateCoverGrammar(parseAssignmentExpression));
+                } else {
+                    expr = isolateCoverGrammar(parseAssignmentExpression);
+                }
+                args.push(expr);
                 if (match(')')) {
                     break;
                 }
@@ -3617,6 +3701,34 @@
         return node.finishArrowFunctionExpression(options.params, options.defaults, body, body.type !== Syntax.BlockStatement);
     }
 
+    // [ES6] 14.4 Yield expression
+
+    function parseYieldExpression() {
+        var argument, expr, delegate;
+
+        expr = new Node();
+
+        if (!state.allowYield) {
+            tolerateUnexpectedToken(lookahead, Messages.IllegalYield);
+        }
+
+        expectKeyword('yield');
+
+        if (!hasLineTerminator) {
+            delegate = match('*');
+            if (delegate) {
+                lex();
+                argument = parseExpression();
+            } else {
+                if (!match(';') && !match('}') && lookahead.type !== Token.EOF) {
+                    argument = parseExpression();
+                }
+            }
+        }
+
+        return expr.finishYieldExpression(argument, delegate);
+    }
+
     // 11.13 Assignment Operators
 
     function parseAssignmentExpression() {
@@ -3624,6 +3736,10 @@
 
         startToken = lookahead;
         token = lookahead;
+
+        if (matchKeyword('yield')) {
+            return parseYieldExpression();
+        }
 
         expr = parseConditionalExpression();
 
@@ -3759,9 +3875,9 @@
     }
 
     function parseVariableDeclaration() {
-        var init = null, id, node = new Node();
+        var init = null, id, node = new Node(), params = [];
 
-        id = parsePattern();
+        id = parsePattern(params);
 
         // 12.2.1
         if (strict && isRestrictedWord(id.name)) {
@@ -3805,9 +3921,9 @@
     }
 
     function parseLexicalBinding(kind, options) {
-        var init = null, id, node = new Node();
+        var init = null, id, node = new Node(), params = [];
 
-        id = parsePattern();
+        id = parsePattern(params);
 
         // 12.2.1
         if (strict && id.type === Syntax.Identifier && isRestrictedWord(id.name)) {
@@ -3815,7 +3931,7 @@
         }
 
         if (kind === 'const') {
-            if (!matchKeyword('in')) {
+            if (!matchKeyword('in') && !matchContextualKeyword('of')) {
                 expect('=');
                 init = isolateCoverGrammar(parseAssignmentExpression);
             }
@@ -3854,7 +3970,7 @@
         return node.finishLexicalDeclaration(declarations, kind);
     }
 
-    function parseRestElement() {
+    function parseRestElement(params) {
         var param, node = new Node();
 
         lex();
@@ -3862,6 +3978,8 @@
         if (match('{')) {
             throwError(Messages.ObjectPatternAsRestParameter);
         }
+
+        params.push(lookahead);
 
         param = parseVariableIdentifier();
 
@@ -3967,10 +4085,11 @@
     }
 
     function parseForStatement(node) {
-        var init, initSeq, initStartToken, test, update, left, right, kind, declarations,
+        var init, forIn, initSeq, initStartToken, test, update, left, right, kind, declarations,
             body, oldInIteration, previousAllowIn = state.allowIn;
 
         init = test = update = null;
+        forIn = true;
 
         expectKeyword('for');
 
@@ -3992,6 +4111,12 @@
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else if (init.declarations.length === 1 && init.declarations[0].init === null && matchContextualKeyword('of')) {
+                    lex();
+                    left = init;
+                    right = parseAssignmentExpression();
+                    init = null;
+                    forIn = false;
                 } else {
                     expect(';');
                 }
@@ -4009,6 +4134,13 @@
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else if (declarations.length === 1 && declarations[0].init === null && matchContextualKeyword('of')) {
+                    init = init.finishLexicalDeclaration(declarations, kind);
+                    lex();
+                    left = init;
+                    right = parseAssignmentExpression();
+                    init = null;
+                    forIn = false;
                 } else {
                     consumeSemicolon();
                     init = init.finishLexicalDeclaration(declarations, kind);
@@ -4029,6 +4161,17 @@
                     left = init;
                     right = parseExpression();
                     init = null;
+                } else if (matchContextualKeyword('of')) {
+                    if (!isAssignmentTarget) {
+                        tolerateError(Messages.InvalidLHSInForLoop);
+                    }
+
+                    lex();
+                    reinterpretExpressionAsPattern(init);
+                    left = init;
+                    right = parseAssignmentExpression();
+                    init = null;
+                    forIn = false;
                 } else {
                     if (match(',')) {
                         initSeq = [init];
@@ -4066,7 +4209,8 @@
 
         return (typeof left === 'undefined') ?
                 node.finishForStatement(init, test, update, body) :
-                node.finishForInStatement(left, right, body);
+                forIn ? node.finishForInStatement(left, right, body) :
+                    node.finishForOfStatement(left, right, body);
     }
 
     // 12.7 The continue statement
@@ -4306,7 +4450,7 @@
     // 12.14 The try statement
 
     function parseCatchClause() {
-        var param, body, node = new Node();
+        var param, params = [], paramMap = {}, key, i, body, node = new Node();
 
         expectKeyword('catch');
 
@@ -4315,7 +4459,14 @@
             throwUnexpectedToken(lookahead);
         }
 
-        param = parsePattern();
+        param = parsePattern(params);
+        for (i = 0; i < params.length; i++) {
+            key = '$' + params[i].value;
+            if (Object.prototype.hasOwnProperty.call(paramMap, key)) {
+                tolerateError(Messages.DuplicateBinding, params[i].value);
+            }
+            paramMap[key] = true;
+        }
 
         // 12.14.1
         if (strict && isRestrictedWord(param.name)) {
@@ -4528,7 +4679,7 @@
                 options.firstRestricted = param;
                 options.message = Messages.StrictReservedWord;
             } else if (Object.prototype.hasOwnProperty.call(options.paramSet, key)) {
-                options.firstRestricted = param;
+                options.stricted = param;
                 options.message = Messages.StrictParamDupe;
             }
         }
@@ -4536,19 +4687,21 @@
     }
 
     function parseParam(options) {
-        var token, param, def;
+        var token, param, params = [], i, def;
 
         token = lookahead;
         if (token.value === '...') {
-            param = parseRestElement();
+            param = parseRestElement(params);
             validateParam(options, param.argument, param.argument.name);
             options.params.push(param);
             options.defaults.push(null);
             return false;
         }
 
-        param = parsePatternWithDefault();
-        validateParam(options, token, token.value);
+        param = parsePatternWithDefault(params);
+        for (i = 0; i < params.length; i++) {
+            validateParam(options, params[i], params[i].value);
+        }
 
         if (param.type === Syntax.AssignmentPattern) {
             def = param.right;
@@ -4600,9 +4753,16 @@
     }
 
     function parseFunctionDeclaration(node, identifierIsOptional) {
-        var id = null, params = [], defaults = [], body, token, stricted, tmp, firstRestricted, message, previousStrict;
+        var id = null, params = [], defaults = [], body, token, stricted, tmp, firstRestricted, message, previousStrict,
+            isGenerator, previousAllowYield;
 
         expectKeyword('function');
+
+        isGenerator = match('*');
+        if (isGenerator) {
+            lex();
+        }
+
         if (!identifierIsOptional || !match('(')) {
             token = lookahead;
             id = parseVariableIdentifier();
@@ -4621,7 +4781,11 @@
             }
         }
 
+        previousAllowYield = state.allowYield;
+        state.allowYield = false;
         tmp = parseParams(firstRestricted);
+        state.allowYield = previousAllowYield;
+
         params = tmp.params;
         defaults = tmp.defaults;
         stricted = tmp.stricted;
@@ -4630,7 +4794,9 @@
             message = tmp.message;
         }
 
+        previousAllowYield = state.allowYield;
         previousStrict = strict;
+        state.allowYield = isGenerator;
         body = parseFunctionSourceElements();
         if (strict && firstRestricted) {
             throwUnexpectedToken(firstRestricted, message);
@@ -4639,15 +4805,22 @@
             tolerateUnexpectedToken(stricted, message);
         }
         strict = previousStrict;
+        state.allowYield = previousAllowYield;
 
-        return node.finishFunctionDeclaration(id, params, defaults, body);
+        return node.finishFunctionDeclaration(id, params, defaults, body, isGenerator);
     }
 
     function parseFunctionExpression() {
         var token, id = null, stricted, firstRestricted, message, tmp,
-            params = [], defaults = [], body, previousStrict, node = new Node();
+            params = [], defaults = [], body, previousStrict, node = new Node(),
+            isGenerator, previousAllowYield;
 
         expectKeyword('function');
+
+        isGenerator = match('*');
+        if (isGenerator) {
+            lex();
+        }
 
         if (!match('(')) {
             token = lookahead;
@@ -4667,7 +4840,11 @@
             }
         }
 
+        previousAllowYield = state.allowYield;
+        state.allowYield = false;
         tmp = parseParams(firstRestricted);
+        state.allowYield = previousAllowYield;
+
         params = tmp.params;
         defaults = tmp.defaults;
         stricted = tmp.stricted;
@@ -4677,7 +4854,10 @@
         }
 
         previousStrict = strict;
+        previousAllowYield = state.allowYield;
+        state.allowYield = isGenerator;
         body = parseFunctionSourceElements();
+
         if (strict && firstRestricted) {
             throwUnexpectedToken(firstRestricted, message);
         }
@@ -4685,8 +4865,9 @@
             tolerateUnexpectedToken(stricted, message);
         }
         strict = previousStrict;
+        state.allowYield = previousAllowYield;
 
-        return node.finishFunctionExpression(id, params, defaults, body);
+        return node.finishFunctionExpression(id, params, defaults, body, isGenerator);
     }
 
 
@@ -4705,12 +4886,20 @@
                 token = lookahead;
                 isStatic = false;
                 computed = match('[');
-                key = parseObjectPropertyKey();
-                if (key.name === 'static' && lookaheadPropertyName()) {
-                    token = lookahead;
-                    isStatic = true;
-                    computed = match('[');
+                if (match('*')) {
+                    lex();
+                } else {
                     key = parseObjectPropertyKey();
+                    if (key.name === 'static' && (lookaheadPropertyName() || match('*'))) {
+                        token = lookahead;
+                        isStatic = true;
+                        computed = match('[');
+                        if (match('*')) {
+                            lex();
+                        } else {
+                            key = parseObjectPropertyKey();
+                        }
+                    }
                 }
                 method = tryParseMethodDefinition(token, key, computed, method);
                 if (method) {
@@ -5136,6 +5325,7 @@
         lookahead = null;
         state = {
             allowIn: true,
+            allowYield: false,
             labelSet: {},
             inFunctionBody: false,
             inIteration: false,
@@ -5224,6 +5414,7 @@
         lookahead = null;
         state = {
             allowIn: true,
+            allowYield: false,
             labelSet: {},
             inFunctionBody: false,
             inIteration: false,
@@ -5289,7 +5480,7 @@
     }
 
     // Sync with *.json manifests.
-    exports.version = '2.2.0';
+    exports.version = '2.4.1';
 
     exports.tokenize = tokenize;
 
