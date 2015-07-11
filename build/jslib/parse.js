@@ -861,9 +861,17 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 } else if (deps.type === 'ObjectExpression') {
                     //deps is object literal, null out
                     deps = factory = null;
-                } else if (deps.type === 'Identifier' && args.length === 2) {
-                    // define('id', factory)
-                    deps = factory = null;
+                } else if (deps.type === 'Identifier') {
+                    if (args.length === 2) {
+                        //define('id', factory)
+                        deps = factory = null;
+                    } else if (args.length === 3 && isFnExpression(factory)) {
+                        //define('id', depsIdentifier, factory)
+                        //Since identifier, cannot know the deps, but do not
+                        //error out, assume they are taken care of outside of
+                        //static parsing.
+                        deps = null;
+                    }
                 }
             }
 
