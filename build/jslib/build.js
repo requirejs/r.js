@@ -1737,9 +1737,13 @@ define(function (require) {
 
             if (config.generateSourceMaps) {
                 sourceMapBase = config.dir || config.baseUrl;
-                fileForSourceMap = module._buildPath === 'FUNCTION' ?
-                                   (module.name || module.include[0] || 'FUNCTION') + '.build.js' :
-                                   module._buildPath.replace(sourceMapBase, '');
+                if (module._buildPath === 'FUNCTION') {
+                    fileForSourceMap = (module.name || module.include[0] || 'FUNCTION') + '.build.js';
+                } else if (config.out) {
+                    fileForSourceMap = module._buildPath.split('/').pop();
+                } else {
+                    fileForSourceMap = module._buildPath.replace(sourceMapBase, '');
+                }
                 sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
                     file: fileForSourceMap
                 });

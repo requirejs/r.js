@@ -13,7 +13,8 @@ var exportContents,
         "output.js",
         "compress.js",
         "sourcemap.js",
-        "mozilla-ast.js"
+        "mozilla-ast.js",
+        "propmangle.js"
     ].map(function (filePath) {
         return fs.readFileSync(path.join(pkgDir, 'lib', filePath), 'utf8');
     }).join('\n'),
