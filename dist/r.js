@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.18+ Fri, 10 Jul 2015 23:21:08 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.18+ Sat, 11 Jul 2015 01:12:24 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.18+ Fri, 10 Jul 2015 23:21:08 GMT',
+        version = '2.1.18+ Sat, 11 Jul 2015 01:12:24 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -25694,9 +25694,17 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 } else if (deps.type === 'ObjectExpression') {
                     //deps is object literal, null out
                     deps = factory = null;
-                } else if (deps.type === 'Identifier' && args.length === 2) {
-                    // define('id', factory)
-                    deps = factory = null;
+                } else if (deps.type === 'Identifier') {
+                    if (args.length === 2) {
+                        //define('id', factory)
+                        deps = factory = null;
+                    } else if (args.length === 3 && isFnExpression(factory)) {
+                        //define('id', depsIdentifier, factory)
+                        //Since identifier, cannot know the deps, but do not
+                        //error out, assume they are taken care of outside of
+                        //static parsing.
+                        deps = null;
+                    }
                 }
             }
 
