@@ -2636,15 +2636,15 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
 
     //Allow define('id', depsAsIdentifier, function(){}) in files
     //https://github.com/jrburke/r.js/issues/825
-    doh.register("arrowFunctions",
+    doh.register("dynamicDefine",
         [
-            function arrowFunctions(t) {
-                file.deleteFile("lib/arrow/main-built.js");
+            function dynamicDefine(t) {
+                file.deleteFile("lib/dynamicDefine/main-built.js");
 
-                build(["lib/arrow/build.js"]);
+                build(["lib/dynamicDefine/build.js"]);
 
-                t.is(nol(c("lib/arrow/expected.js")),
-                     nol(c("lib/arrow/main-built.js")));
+                t.is(nol(c("lib/dynamicDefine/expected.js")),
+                     nol(c("lib/dynamicDefine/main-built.js")));
 
                 require._buildReset();
             }
