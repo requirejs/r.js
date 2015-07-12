@@ -473,12 +473,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     result = uglify2.minify(fileContents, uconfig, baseName + '.src.js');
                     if (uconfig.outSourceMap && result.map) {
                         resultMap = result.map;
-                        if (existingMap) {
-                            resultMap = JSON.parse(resultMap);
-                            finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
-                            finalMap.applySourceMap(new SourceMapConsumer(existingMap));
-                            resultMap = finalMap.toString();
-                        } else if (!config._buildSourceMap) {
+                        if (!existingMap && !config._buildSourceMap) {
                             file.saveFile(outFileName + '.src.js', fileContents);
                         }
 

@@ -2229,7 +2229,27 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
             ]
         );
         doh.run();
+
+
+        //Confirm target file is also in the source map.
+        //https://github.com/jrburke/r.js/issues/829
+        doh.register("sourcemapTwoJs",
+            [
+                function sourcemapTwoJs(t) {
+                    file.deleteFile("lib/sourcemap/twojs/www-built");
+
+                    build(["lib/sourcemap/twojs/build.js"]);
+
+                    t.is(nol(c("lib/sourcemap/twojs/expected.map")),
+                         nol(c("lib/sourcemap/twojs/www-built/core.js.map")));
+
+                    require._buildReset();
+                }
+            ]
+        );
+        doh.run();
     }
+
 
     //Allow the target of an optimization to be a module that is only
     //provided in the rawText config.
