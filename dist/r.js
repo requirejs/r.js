@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.18+ Sun, 12 Jul 2015 06:51:12 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.18+ Sun, 12 Jul 2015 19:14:14 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.18+ Sun, 12 Jul 2015 06:51:12 GMT',
+        version = '2.1.18+ Sun, 12 Jul 2015 19:14:14 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -27683,12 +27683,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     result = uglify2.minify(fileContents, uconfig, baseName + '.src.js');
                     if (uconfig.outSourceMap && result.map) {
                         resultMap = result.map;
-                        if (existingMap) {
-                            resultMap = JSON.parse(resultMap);
-                            finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
-                            finalMap.applySourceMap(new SourceMapConsumer(existingMap));
-                            resultMap = finalMap.toString();
-                        } else if (!config._buildSourceMap) {
+                        if (!existingMap && !config._buildSourceMap) {
                             file.saveFile(outFileName + '.src.js', fileContents);
                         }
 
