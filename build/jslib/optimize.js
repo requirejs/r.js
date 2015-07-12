@@ -455,7 +455,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 uconfig.fromString = true;
 
                 if (config.generateSourceMaps && (outFileName || config._buildSourceMap)) {
-                    uconfig.outSourceMap = baseName;
+                    uconfig.outSourceMap = baseName + '.map';
 
                     if (config._buildSourceMap) {
                         existingMap = JSON.parse(config._buildSourceMap);
@@ -488,7 +488,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
                             config._buildSourceMap = resultMap;
                         } else {
                             file.saveFile(outFileName + '.map', resultMap);
-                            fileContents += "\n//# sourceMappingURL=" + baseName + ".map";
                         }
                     } else {
                         fileContents = result.code;
