@@ -17,6 +17,7 @@ define(['pragma', 'env!env/file'], function (pragma, file) {
             function pragmaNamespace(t) {
                 t.is(c('pragma/good1Expected.js'), pragma.namespace(c('pragma/good1.js'), 'foo'));
                 t.is(c('pragma/good2Expected.js'), pragma.namespace(c('pragma/good2.js'), 'foo'));
+                t.is(c('pragma/good3Expected.js'), pragma.namespace(c('pragma/good3.js'), 'foo'));
             }
         ]);
     doh.run();
