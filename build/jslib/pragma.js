@@ -42,6 +42,8 @@ define(['parse', 'logger'], function (parse, logger) {
         defineJQueryRegExp: /typeof\s+define\s*===?\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
         defineTernaryRegExp: /typeof\s+define\s*===?\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
+        defineExistsRegExp: /\s+typeof\s+define\s*!==?\s*['"]undefined["']\s*/,
+        defineExistsAndAmdRegExp: /typeof\s+define\s*!==?\s*['"]undefined["']\s*&&\s*define\s*\.\s*amd\s*/,
         amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
@@ -68,6 +70,10 @@ define(['parse', 'logger'], function (parse, logger) {
                 fileContents = fileContents.replace(pragma.defineHasRegExp,
                                                     "typeof " + ns + ".define === 'function' && typeof " + ns + ".define.amd === 'object' && " + ns + ".define.amd");
 
+                //Namespace async.js define use:
+                fileContents = fileContents.replace(pragma.defineExistsAndAmdRegExp,
+                                                    "typeof " + ns + ".define !== 'undefined' && " + ns + ".define.amd");
+
                 //Namespace define checks.
                 //Do these ones last, since they are a subset of the more specific
                 //checks above.
@@ -77,6 +83,8 @@ define(['parse', 'logger'], function (parse, logger) {
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define['amd']");
                 fileContents = fileContents.replace(pragma.defineTypeFirstCheckRegExp,
                                                     "'function' === typeof " + ns + ".define && " + ns + ".define.amd");
+                fileContents = fileContents.replace(pragma.defineExistsRegExp,
+                                                    "typeof " + ns + ".define !== 'undefined'");
 
                 //Check for require.js with the require/define definitions
                 if (pragma.apiDefRegExp.test(fileContents) &&
