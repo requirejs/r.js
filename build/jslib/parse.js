@@ -816,7 +816,8 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
     parse.parseNode = function (node, onMatch, fnExpScope) {
         var name, deps, cjsDeps, arg, factory, exp, refsDefine, bodyNode,
             args = node && node[argPropName],
-            callName = parse.hasRequire(node);
+            callName = parse.hasRequire(node),
+            isUmd = false;
 
         if (callName === 'require' || callName === 'requirejs') {
             //A plain require/requirejs call
@@ -848,6 +849,13 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 //Just the factory, no name or deps
                 factory = name;
                 name = deps = null;
+            } else if (name.type === 'Identifier' && args.length === 1 &&
+                       hasProp(fnExpScope, name.name)) {
+                //define(e) where e is a UMD identifier for the factory
+                //function.
+                isUmd = true;
+                factory = name;
+                name = null;
             } else if (name.type !== 'Literal') {
                  //An object literal, just null out
                 name = deps = factory = null;
@@ -884,7 +892,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 if (cjsDeps.length) {
                     deps = cjsDeps;
                 }
-            } else if (deps || factory) {
+            } else if (deps || (factory && !isUmd)) {
                 //Does not match the shape of an AMD call.
                 return;
             }

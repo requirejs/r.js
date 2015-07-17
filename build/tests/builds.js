@@ -2394,7 +2394,7 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
-    //Detect !function(e) {... UMD wrappers
+    //Detect !function(e) {... define([], e) UMD wrappers
     //https://github.com/jrburke/requirejs/issues/733
     doh.register("umd2",
         [
@@ -2405,6 +2405,25 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
 
                 t.is(nol(c("lib/umd2/expected.js")),
                      nol(c("lib/umd2/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Detect !function(e) {... define(e) UMD wrappers
+    //https://github.com/jrburke/requirejs/issues/833
+    doh.register("umd3",
+        [
+            function umd2(t) {
+                file.deleteFile("lib/umd3/app-built.js");
+
+                build(["lib/umd3/build.js"]);
+
+                t.is(nol(c("lib/umd3/expected.js")),
+                     nol(c("lib/umd3/app-built.js")));
 
                 require._buildReset();
             }
