@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.19 Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.19+ Fri, 17 Jul 2015 17:04:57 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.19',
+        version = '2.1.19+ Fri, 17 Jul 2015 17:04:57 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -26059,7 +26059,8 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
     parse.parseNode = function (node, onMatch, fnExpScope) {
         var name, deps, cjsDeps, arg, factory, exp, refsDefine, bodyNode,
             args = node && node[argPropName],
-            callName = parse.hasRequire(node);
+            callName = parse.hasRequire(node),
+            isUmd = false;
 
         if (callName === 'require' || callName === 'requirejs') {
             //A plain require/requirejs call
@@ -26091,6 +26092,13 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 //Just the factory, no name or deps
                 factory = name;
                 name = deps = null;
+            } else if (name.type === 'Identifier' && args.length === 1 &&
+                       hasProp(fnExpScope, name.name)) {
+                //define(e) where e is a UMD identifier for the factory
+                //function.
+                isUmd = true;
+                factory = name;
+                name = null;
             } else if (name.type !== 'Literal') {
                  //An object literal, just null out
                 name = deps = factory = null;
@@ -26127,7 +26135,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 if (cjsDeps.length) {
                     deps = cjsDeps;
                 }
-            } else if (deps || factory) {
+            } else if (deps || (factory && !isUmd)) {
                 //Does not match the shape of an AMD call.
                 return;
             }
