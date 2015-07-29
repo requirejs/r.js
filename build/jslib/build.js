@@ -1834,7 +1834,7 @@ define(function (require) {
                                 }
 
                                 if (namespace) {
-                                    currContents = pragma.namespace(currContents, namespace);
+                                    currContents = pragma.namespace(currContents, config);
                                 }
 
                                 currContents = build.toTransport(namespace, moduleName, path, currContents, layer, {

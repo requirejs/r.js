@@ -301,6 +301,9 @@
     //complete example.
     namespace: 'foo',
 
+    // Allows to pass extra code to the namespace wrapper function.
+    namespaceWrapLocals: 'var require = { skipDataMain: true } ;'
+
     //Skip processing for pragmas.
     skipPragmas: false,
 
