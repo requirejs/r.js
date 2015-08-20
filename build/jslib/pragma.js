@@ -44,7 +44,7 @@ define(['parse', 'logger'], function (parse, logger) {
         defineTernaryRegExp: /typeof\s+define\s*===?\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
         defineExistsRegExp: /\s+typeof\s+define\s*!==?\s*['"]undefined["']\s*/,
         defineExistsAndAmdRegExp: /typeof\s+define\s*!==?\s*['"]undefined["']\s*&&\s*define\s*\.\s*amd\s*/,
-        amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
+        amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*['"]function['"]\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '$1');

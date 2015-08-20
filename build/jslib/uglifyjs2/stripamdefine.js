@@ -4,7 +4,7 @@ var fs = require('fs'),
     path = require('path'),
     dir = process.argv[2],
     dirs = fs.readdirSync(dir),
-    amdefineRegExp = /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g;
+    amdefineRegExp = /if\s*\(\s*typeof define\s*\!==\s*['"]function['"]\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g;
 
 dirs.forEach(function (d) {
     'use strict';
