@@ -86,6 +86,7 @@
     //ready. By wrapping those shimmed dependencies, this can be avoided, but
     //it could introduce other errors if those shimmed dependencies use the
     //global scope in weird ways, so it is not the default behavior to wrap.
+    //To use shim wrapping skipModuleInsertion needs to be false.
     //More notes in http://requirejs.org/docs/api.html#config-shim
     wrapShim: false,
 
