@@ -429,6 +429,51 @@ define(function (require) {
                 return prim.serial(actions);
             }
         }).then(function () {
+            // If wanting the modules result in a bundles config, do that now.
+            var bundlesOutFile = config.bundlesConfigOutFile;
+            if (!modules || !bundlesOutFile) {
+                return;
+            }
+
+            var bundlesConfig = {};
+
+            modules.forEach(function (module) {
+                var layer = module.layer;
+                var entryConfig = bundlesConfig[module.name] = [];
+
+//todo: figure out if modulesWithNames and buildPathMap have different entries.
+//possibly shim config. modules with more than one module ID already in them.
+
+                lang.eachProp(layer.buildPathMap, function(value, key) {
+                    entryConfig.push(key);
+                });
+
+                // Multiple named modules in a file will not show up in
+                // buildPathMap, but there can be some overlap, so be sure to
+                // dedupe.
+                lang.eachProp(modulesWithNames, function(value, key) {
+                    if (!hasProp(layer.buildPathMap, key)) {
+                        entryConfig.push(key);
+                    }
+                });
+            });
+
+            var text = file.readFile(bundlesOutFile);
+            text = transform.modifyConfig(text, function (config) {
+                if (!config.bundles) {
+                    config.bundles = {};
+                }
+
+                lang.eachProp(bundlesConfig, function (value, prop) {
+                    config.bundles[prop] = value;
+                });
+
+                return config;
+            });
+
+            file.saveUtf8File(bundlesOutFile, text);
+
+        }).then(function () {
             if (modules) {
                 return prim.serial(modules.map(function (module) {
                     return function () {
@@ -1170,6 +1215,13 @@ define(function (require) {
             config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
         }
 
+        if (config.bundlesConfigOutFile) {
+            if (!config.dir) {
+                throw new Error('bundlesConfigOutFile can only be used with optimizations ' +
+                                'that use "dir".');
+            }
+            config.bundlesConfigOutFile = build.makeAbsPath(config.bundlesConfigOutFile, config.dir);
+        }
 
         //If out=stdout, write output to STDOUT instead of a file.
         if (config.out && config.out === 'stdout') {
