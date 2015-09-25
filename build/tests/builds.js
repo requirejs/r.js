@@ -2432,6 +2432,25 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Possible style of UMD wrapper used in TypeScript
+    //https://github.com/jrburke/requirejs/issues/857
+    doh.register("umd4",
+        [
+            function umd4(t) {
+                file.deleteFile("lib/umd4/app-built.js");
+
+                build(["lib/umd4/build.js"]);
+
+                t.is(nol(c("lib/umd4/expected.js")),
+                     nol(c("lib/umd4/app-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Do not not find nested deps in a UMD wrapper
     //https://github.com/jrburke/requirejs/issues/651
     doh.register("umdNested",
