@@ -429,12 +429,14 @@ define(function (require) {
                 return prim.serial(actions);
             }
         }).then(function () {
-            // If wanting the modules result in a bundles config, do that now.
-            var bundlesOutFile = config.bundlesConfigOutFile;
-            if (!modules || !bundlesOutFile) {
-                return;
-            }
+//todo: Major issue: this whole then block should be done after the exclusion
+//block below. HOWEVER: need to really track per file what module IDs are in
+//the files for this to work. So really need changes in likely requirePatch
+//to capture it on a per-file loaded level.
 
+            //Track the total set of module IDs found in all the layers.
+            //Useful for writing out bundles config and reporting in data APIs
+            //like onModuleBundleComplete.
             var bundlesConfig = {};
 
             modules.forEach(function (module) {
@@ -448,31 +450,36 @@ define(function (require) {
                     entryConfig.push(key);
                 });
 
-                // Multiple named modules in a file will not show up in
-                // buildPathMap, but there can be some overlap, so be sure to
-                // dedupe.
+                //Multiple named modules in a file will not show up in
+                //buildPathMap, but there can be some overlap, so be sure to
+                //dedupe.
                 lang.eachProp(modulesWithNames, function(value, key) {
                     if (!hasProp(layer.buildPathMap, key)) {
                         entryConfig.push(key);
                     }
                 });
+
+//todo: place this on onCompleteData for the layer.
+                layer.bundledIds = entryConfig;
             });
 
-            var text = file.readFile(bundlesOutFile);
-            text = transform.modifyConfig(text, function (config) {
-                if (!config.bundles) {
-                    config.bundles = {};
-                }
+            var bundlesOutFile = config.bundlesConfigOutFile;
+            if (bundlesOutFile) {
+                var text = file.readFile(bundlesOutFile);
+                text = transform.modifyConfig(text, function (config) {
+                    if (!config.bundles) {
+                        config.bundles = {};
+                    }
 
-                lang.eachProp(bundlesConfig, function (value, prop) {
-                    config.bundles[prop] = value;
+                    lang.eachProp(bundlesConfig, function (value, prop) {
+                        config.bundles[prop] = value;
+                    });
+
+                    return config;
                 });
 
-                return config;
-            });
-
-            file.saveUtf8File(bundlesOutFile, text);
-
+                file.saveUtf8File(bundlesOutFile, text);
+            }
         }).then(function () {
             if (modules) {
                 return prim.serial(modules.map(function (module) {
