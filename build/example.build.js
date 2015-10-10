@@ -200,7 +200,8 @@
     closure: {
         CompilerOptions: {},
         CompilationLevel: 'SIMPLE_OPTIMIZATIONS',
-        loggingLevel: 'WARNING'
+        loggingLevel: 'WARNING',
+        externExportsPath: './extern.js'
     },
 
     //Allow CSS optimizations. Allowed values:
