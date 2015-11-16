@@ -1327,6 +1327,10 @@ define(function (require) {
         //Cycle through modules and normalize
         if (config.modules && config.modules.length) {
             config.modules.forEach(function (mod) {
+                if (lang.isArray(mod) || typeof mod === 'string' || !mod) {
+                    throw new Error('modules config item is malformed: it should' +
+                                    ' be an object with a \'name\' property.');
+                }
 
                 //Combine any local stubModules with global values.
                 if (config.stubModules) {
