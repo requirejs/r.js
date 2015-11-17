@@ -868,6 +868,7 @@ define(function (require) {
         build.makeAbsObject((config.out === "stdout" ? ["cssIn"] : ["out", "cssIn"]),
                             config, absFilePath);
         build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
+        build.makeAbsObject(["externExportsPath"], config.closure, absFilePath);
     };
 
     /**

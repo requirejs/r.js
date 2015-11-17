@@ -2711,4 +2711,27 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //When running in Rhino and using Closure for optimization,
+    //it should be possible to declare externs for Closure's
+    //ADVANCED_OPTIMIZATION mode.
+    //https://github.com/jrburke/r.js/issues/860
+    if (env.get() === 'rhino') {
+        doh.register("closureExterns",
+            [
+                function closureExterns(t) {
+                    file.deleteFile("lib/closureExterns/built");
+
+                    build(["lib/closureExterns/build.js"]);
+                    var contents = c("lib/closureExterns/built/built.js");
+                    //Without a working externs definition, these property
+                    //names are typically replaced with one-character aliases.
+                    t.is(true, /define\.amd/.test(contents));
+                    t.is(true, /module\.exports/.test(contents));
+
+                    require._buildReset();
+                }
+            ]
+        );
+        doh.run();
+    }
 });

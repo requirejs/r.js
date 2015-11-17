@@ -95,7 +95,8 @@ define(['logger', 'env!env/file'], function (logger, file) {
                 //Set up source input
                 jsSourceFile = closurefromCode(String(fileName), String(fileContents)),
                 sourceListArray = new java.util.ArrayList(),
-                options, option, FLAG_compilation_level, compiler,
+                externList = new java.util.ArrayList(),
+                options, option, FLAG_compilation_level, compiler, externExportsPath,
                 Compiler = Packages.com.google.javascript.jscomp.Compiler,
                 CommandLineRunner = Packages.com.google.javascript.jscomp.CommandLineRunner;
 
@@ -125,6 +126,14 @@ define(['logger', 'env!env/file'], function (logger, file) {
                 options.setSourceMapOutputPath(fileName + ".map");
             }
 
+            //If we need to pass an externs file to Closure so that it does not create aliases
+            //for certain symbols, do so here.
+            externList.addAll(CommandLineRunner.getDefaultExterns());
+            if (config.externExportsPath) {
+                externExportsPath = config.externExportsPath;
+                externList.add(jscomp.SourceFile.fromFile(externExportsPath));
+            }
+
             //Trigger the compiler
             Compiler.setLoggingLevel(Packages.java.util.logging.Level[config.loggingLevel || 'WARNING']);
             compiler = new Compiler();
@@ -133,7 +142,7 @@ define(['logger', 'env!env/file'], function (logger, file) {
             //accepting the getDefaultExterns return value (a List) also wants the sources as a List
             sourceListArray.add(jsSourceFile);
 
-            result = compiler.compile(CommandLineRunner.getDefaultExterns(), sourceListArray, options);
+            result = compiler.compile(externList, sourceListArray, options);
             if (result.success) {
                 optimized = String(compiler.toSource());
 
