@@ -1,3 +1,3 @@
 set -e
 
-jjs -scripting ../../r.js -- all.js
+jjs -cp ../../lib/closure/compiler.jar -scripting ../../r.js -- all.js
