@@ -122,16 +122,17 @@ define(function () {
          * JSON-serialized things, or has properties pointing to functions.
          * For non-array/object values, just returns the same object.
          * @param  {Object} obj      copy properties from this object
-         * @param  {Object} [result] optional result object to use
+         * @param  {Object} [ignoredProps] optional object whose own properties
+         * are keys that should be ignored.
          * @return {Object}
          */
-        deeplikeCopy: function (obj) {
+        deeplikeCopy: function (obj, ignoredProps) {
             var type, result;
 
             if (lang.isArray(obj)) {
                 result = [];
                 obj.forEach(function(value) {
-                    result.push(lang.deeplikeCopy(value));
+                    result.push(lang.deeplikeCopy(value, ignoredProps));
                 });
                 return result;
             }
@@ -146,7 +147,9 @@ define(function () {
             //Anything else is an object, hopefully.
             result = {};
             lang.eachProp(obj, function(value, key) {
-                result[key] = lang.deeplikeCopy(value);
+                if (!ignoredProps || !hasProp(ignoredProps, key)) {
+                    result[key] = lang.deeplikeCopy(value, ignoredProps);
+                }
             });
             return result;
         },

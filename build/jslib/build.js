@@ -29,7 +29,16 @@ define(function (require) {
         falseProp = lang.falseProp,
         endsWithSemiColonRegExp = /;\s*$/,
         endsWithSlashRegExp = /[\/\\]$/,
-        resourceIsModuleIdRegExp = /^[\w\/\\\.]+$/;
+        resourceIsModuleIdRegExp = /^[\w\/\\\.]+$/,
+        deepCopyProps = {
+            layer: true
+        };
+
+    //Deep copy a config object, but do not copy over the "layer" property,
+    //as it can be a deeply nested structure with a full requirejs context.
+    function copyConfig(obj) {
+        return lang.deeplikeCopy(obj, deepCopyProps);
+    }
 
     prim.nextTick = function (fn) {
         fn();
@@ -375,7 +384,7 @@ define(function (require) {
                 buildFileContents += optimize.css(config.dir, config);
             }
         }).then(function() {
-            baseConfig = lang.deeplikeCopy(require.s.contexts._.config);
+            baseConfig = copyConfig(require.s.contexts._.config);
         }).then(function () {
             var actions = [];
 
@@ -1230,6 +1239,7 @@ define(function (require) {
                             ' or baseUrl directories optimized.');
         }
 
+
         if (config.dir) {
             // Make sure the output dir is not set to a parent of the
             // source dir or the same dir, as it will result in source
@@ -1477,7 +1487,7 @@ define(function (require) {
 
         //Put back basic config, use a fresh object for it.
         if (baseLoaderConfig) {
-            require(lang.deeplikeCopy(baseLoaderConfig));
+            require(copyConfig(baseLoaderConfig));
         }
 
         logger.trace("\nTracing dependencies for: " + (module.name ||
@@ -1493,7 +1503,7 @@ define(function (require) {
             if (baseLoaderConfig) {
                 override = build.createOverrideConfig(baseLoaderConfig, module.override);
             } else {
-                override = lang.deeplikeCopy(module.override);
+                override = copyConfig(module.override);
             }
             require(override);
         }
@@ -1548,7 +1558,7 @@ define(function (require) {
         return deferred.promise.then(function () {
             //Reset config
             if (module.override && baseLoaderConfig) {
-                require(lang.deeplikeCopy(baseLoaderConfig));
+                require(copyConfig(baseLoaderConfig));
             }
 
             build.checkForErrors(context, layer);
@@ -1663,8 +1673,8 @@ define(function (require) {
     };
 
     build.createOverrideConfig = function (config, override) {
-        var cfg = lang.deeplikeCopy(config),
-            oride = lang.deeplikeCopy(override);
+        var cfg = copyConfig(config),
+            oride = copyConfig(override);
 
         lang.eachProp(oride, function (value, prop) {
             if (hasProp(build.objProps, prop)) {
