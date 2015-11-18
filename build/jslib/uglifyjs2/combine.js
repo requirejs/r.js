@@ -29,7 +29,7 @@ exportContents = toolContents.substring(exportIndex).replace(/fs\.readFileSync/g
 exportContents = exportContents.replace(/UglifyJS\./g, '');
 
 exportContents = exportContents.replace('exports.minify = function(files, options) {', 'exports.minify = function(files, options, name) {');
-exportContents = exportContents.replace('filename: options.fromString ? "?" : file,', 'filename: options.fromString ? name : file,');
+exportContents = exportContents.replace('filename: options.fromString ? i : file,', 'filename: options.fromString ? name : file,');
 
 fs.writeFileSync(__dirname + '/../uglifyjs2.js', [
     pre,

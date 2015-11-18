@@ -23,7 +23,7 @@ define(function (require) {
         requirePatch = require('requirePatch'),
         env = require('env'),
         commonJs = require('commonJs'),
-        SourceMapGenerator = require('source-map/source-map-generator'),
+        SourceMapGenerator = require('source-map').SourceMapGenerator,
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
@@ -1759,7 +1759,7 @@ define(function (require) {
                 } else {
                     fileForSourceMap = module._buildPath.replace(sourceMapBase, '');
                 }
-                sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
+                sourceMapGenerator = new SourceMapGenerator({
                     file: fileForSourceMap
                 });
             }

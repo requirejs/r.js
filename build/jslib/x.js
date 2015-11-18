@@ -420,7 +420,7 @@ var requirejs, require, define, xpcUtil;
     } else if (commandOption === 'v') {
         console.log('r.js: ' + version +
                     ', RequireJS: ' + this.requirejsVars.require.version +
-                    ', UglifyJS2: 2.4.23, UglifyJS: 1.3.4');
+                    ', UglifyJS2: 2.6.1, UglifyJS: 1.3.4');
     } else if (commandOption === 'convert') {
         loadLib();
 
