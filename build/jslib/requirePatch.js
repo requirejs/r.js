@@ -32,7 +32,9 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
         // Used to strip out use strict from toString()'d functions for the
         // shim config since they will explicitly want to not be bound by strict,
         // but some envs, explicitly xpcshell, adds a use strict.
-        useStrictRegExp = /['"]use strict['"];/g;
+        useStrictRegExp = /['"]use strict['"];/g,
+        //Absolute path if starts with /, \, or x:
+        absoluteUrlRegExp = /^[\/\\]|^\w:/;
 
     //Turn off throwing on resolution conflict, that was just an older prim
     //idea about finding errors early, but does not comply with how promises
@@ -99,8 +101,10 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
         };
 
         function normalizeUrlWithBase(context, moduleName, url) {
-            //Adjust the URL if it was not transformed to use baseUrl.
-            if (require.jsExtRegExp.test(moduleName)) {
+            //Adjust the URL if it was not transformed to use baseUrl, but only
+            //if the URL is not already an absolute path.
+            if (require.jsExtRegExp.test(moduleName) &&
+                !absoluteUrlRegExp.test(url)) {
                 url = (context.config.dir || context.config.dirBaseUrl) + url;
             }
             return url;
