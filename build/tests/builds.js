@@ -1,7 +1,7 @@
 /*jslint plusplus: true, nomen: true */
 /*global define: false, require: false, doh: false */
 
-define(['build', 'env!env/file'], function (build, file) {
+define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lang) {
     'use strict';
 
     //Remove any old builds
@@ -139,6 +139,93 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("buildWrapBothArray",
+        [
+            function buildWrapBothArray(t) {
+
+                file.deleteFile("lib/wrap/outBothArray.js");
+
+                build(["lib/wrap/buildBothArray.js"]);
+
+                t.is(nol(c("lib/wrap/expectedBothArray.js")),
+                     nol(c("lib/wrap/outBothArray.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+    doh.register("buildWrapOnlyEnd",
+        [
+            function buildWrapOnlyEnd(t) {
+
+                file.deleteFile("lib/wrap/outOnlyEnd.js");
+
+                build(["lib/wrap/buildOnlyEnd.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyEnd.js")),
+                     nol(c("lib/wrap/outOnlyEnd.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+    doh.register("buildWrapOnlyEndArray",
+        [
+            function buildWrapOnlyEndArray(t) {
+
+                file.deleteFile("lib/wrap/outOnlyEndArray.js");
+
+                build(["lib/wrap/buildOnlyEndArray.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyEndArray.js")),
+                     nol(c("lib/wrap/outOnlyEndArray.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+    doh.register("buildWrapOnlyStart",
+        [
+            function buildWrapOnlyStart(t) {
+
+                file.deleteFile("lib/wrap/outOnlyStart.js");
+
+                build(["lib/wrap/buildOnlyStart.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyStart.js")),
+                     nol(c("lib/wrap/outOnlyStart.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
+    doh.register("buildWrapOnlyStartArray",
+        [
+            function buildWrapOnlyStartArray(t) {
+
+                file.deleteFile("lib/wrap/outOnlyStartArray.js");
+
+                build(["lib/wrap/buildOnlyStartArray.js"]);
+
+                t.is(nol(c("lib/wrap/expectedOnlyStartArray.js")),
+                     nol(c("lib/wrap/outOnlyStartArray.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
     doh.register("buildSimple",
         [
             function buildSimple(t) {
@@ -246,7 +333,7 @@ define(['build', 'env!env/file'], function (build, file) {
                        "paths.text=../../../../text/text", "optimize=none"]);
 
                 t.is(nol(nol((c("../../../requirejs/tests/plugins/fromText/a.refine"))
-                             .replace(/refine/g, 'define')))
+                             .replace(/refine\(/g, 'define(')))
                              .replace(/define\(\{/, "define('refine!a',{"),
                          nol(c("builds/refineATest.js")));
 
@@ -276,7 +363,6 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-
     doh.register("buildNamespace",
         [
             function buildNamespace(t) {
@@ -285,6 +371,36 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/namespace/expected.js")),
                      nol(c("lib/namespace/foo.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("buildNamespaceConfig",
+        [
+            function buildNamespaceConfig(t) {
+                build(["lib/namespaceConfig/build.js"]);
+
+                t.is(nol(c("lib/namespaceConfig/expected.js")),
+                     nol(c("lib/namespaceConfig/foo.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("buildNamespaceMinified",
+        [
+            function buildNamespaceMinified(t) {
+                build(["lib/namespaceMinified/build.js"]);
+
+                t.is(nol(c("lib/namespaceMinified/expected.js")),
+                     nol(c("lib/namespaceMinified/foo.js")));
 
                 require._buildReset();
             }
@@ -341,22 +457,66 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
-    doh.register("preserveLicense",
-        [
-            function preserveLicense(t) {
-                file.deleteFile("lib/comments/built.js");
+    //Skip in xpconnect's since Reflect's parser cannot maintain comments.
+    if (env.get() !== 'xpconnect') {
+        doh.register("preserveLicense",
+            [
+                function preserveLicense(t) {
+                    file.deleteFile("lib/comments/built.js");
 
-                build(["lib/comments/build.js"]);
+                    build(["lib/comments/build.js"]);
 
-                t.is(nol(c("lib/comments/expected.js")),
-                     nol(c("lib/comments/built.js")));
+                    t.is(nol(c("lib/comments/expected.js")),
+                         nol(c("lib/comments/built.js")));
 
-                require._buildReset();
-            }
+                    require._buildReset();
+                }
 
-        ]
-    );
-    doh.run();
+            ]
+        );
+        doh.run();
+
+        //Only keep unique comments
+        //https://github.com/jrburke/r.js/issues/251
+        doh.register("preserveLicenseUnique",
+            [
+                function preserveLicenseUnique(t) {
+                    file.deleteFile("lib/comments/unique/built.js");
+
+                    build(["lib/comments/unique/build.js"]);
+
+                    t.is(nol(c("lib/comments/unique/expected.js")),
+                         nol(c("lib/comments/unique/built.js")));
+
+                    require._buildReset();
+                }
+
+            ]
+        );
+        doh.run();
+
+        //Do not dupe parts of comments when at the end of the file.
+        //https://github.com/jrburke/r.js/issues/264
+        doh.register("preserveLicenseNoPartialDupe",
+            [
+                function preserveLicenseNoPartialDupe(t) {
+                    file.deleteFile("lib/comments/noPartialDupe/built");
+
+                    //Run two builds, this profile has keepBuildDir set to true.
+                    build(["lib/comments/noPartialDupe/build.js"]);
+                    build(["lib/comments/noPartialDupe/build.js"]);
+
+                    t.is(nol(c("lib/comments/noPartialDupe/expected.js")),
+                         nol(c("lib/comments/noPartialDupe/built/underscore.js")));
+
+                    require._buildReset();
+                }
+
+            ]
+        );
+        doh.run();
+    }
+
 
     doh.register("nestedFind",
         [
@@ -551,6 +711,24 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //https://github.com/jrburke/r.js/issues/574
+    doh.register("keepAmdefine",
+        [
+            function amdefineStrip(t) {
+                file.deleteFile("lib/keepAmdefine/built.js");
+
+                build(["lib/keepAmdefine/build.js"]);
+
+                t.is(nol(c("lib/keepAmdefine/expected.js")),
+                     nol(c("lib/keepAmdefine/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("nameInsertion",
         [
             function nameInsertion(t) {
@@ -560,6 +738,25 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/nameInsertion/expected.js")),
                      nol(c("lib/nameInsertion/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Make sure a nested function declaration for a define function is not
+    //renamed: https://github.com/jrburke/r.js/issues/388
+    doh.register("nameInsertionNested",
+        [
+            function nameInsertionNested(t) {
+                file.deleteFile("lib/nameInsertion/nested/built.js");
+
+                build(["lib/nameInsertion/nested/build.js"]);
+
+                t.is(nol(c("lib/nameInsertion/nested/expected.js")),
+                     nol(c("lib/nameInsertion/nested/built.js")));
 
                 require._buildReset();
             }
@@ -636,6 +833,26 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Confirms that only the first requirejs.config() is found
+    //https://github.com/jrburke/r.js/issues/257
+    //https://github.com/jrburke/r.js/issues/258
+    doh.register("mainConfigFileFirst",
+        [
+            function mainConfigFileFirst(t) {
+                file.deleteFile("lib/mainConfigFile/first/main-built.js");
+
+                build(["lib/mainConfigFile/first/tools/build.js"]);
+
+                t.is(nol(c("lib/mainConfigFile/first/expected.js")),
+                     nol(c("lib/mainConfigFile/first/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     doh.register("mainConfigFileBasicCommand",
         [
             function mainConfigFileBasic(t) {
@@ -667,6 +884,49 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/mainConfigFile/mergeConfig/expected.js")),
                      nol(c("lib/mainConfigFile/mergeConfig/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Multiple mainConfigFile entries
+    //https://github.com/jrburke/r.js/pull/572
+    doh.register("mainConfigFileMulti",
+        [
+            function mainConfigFileMulti(t) {
+                file.deleteFile("lib/mainConfigFile/multi/main-built.js");
+
+                build(["lib/mainConfigFile/multi/tools/build.js"]);
+
+                t.is(nol(c("lib/mainConfigFile/multi/expected.js")),
+                     nol(c("lib/mainConfigFile/multi/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    doh.register("onBuildAllDir",
+        [
+            function onBuildAllDir(t) {
+                file.deleteFile("lib/onBuildAllDir/js-built");
+
+                build(["lib/onBuildAllDir/build.js"]);
+
+                t.is(nol(c("lib/onBuildAllDir/expected-main.js")),
+                     nol(c("lib/onBuildAllDir/js-built/main.js")));
+
+                t.is(nol(c("lib/onBuildAllDir/expected-a.js")),
+                     nol(c("lib/onBuildAllDir/js-built/a.js")));
+
+                t.is(nol(c("lib/onBuildAllDir/expected-b.js")),
+                     nol(c("lib/onBuildAllDir/js-built/b.js")));
 
                 require._buildReset();
             }
@@ -748,6 +1008,24 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    doh.register("cssRelativeUrl",
+        [
+            function cssRelativeUrl(t) {
+                file.deleteFile("lib/cssRelativeUrl/main-built.css");
+
+                build(["lib/cssRelativeUrl/build.js"]);
+
+                t.is(nol(c("lib/cssRelativeUrl/output/expected.css")),
+                     nol(c("lib/cssRelativeUrl/output/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
     doh.register("cssDuplicates",
         [
             function cssDuplicates(t) {
@@ -774,6 +1052,23 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/cssKeepComments/expected.css")),
                      nol(c("lib/cssKeepComments/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("cssKeepWhitespace",
+        [
+            function cssKeepComments(t) {
+                file.deleteFile("lib/cssKeepWhitespace/main-built.css");
+
+                build(["lib/cssKeepWhitespace/build.js"]);
+
+                t.is(nol(c("lib/cssKeepWhitespace/expected.css")),
+                     nol(c("lib/cssKeepWhitespace/main-built.css")));
 
                 require._buildReset();
             }
@@ -826,6 +1121,70 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/cssMediaQuery/expected.css")),
                      nol(c("lib/cssMediaQuery/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/350 CSS optimizer makes
+    //url() relative to cssIn option
+    doh.register("cssPrefix",
+        [
+            function cssPrefix(t) {
+                file.deleteFile("lib/cssPrefix/output/main-built.css");
+
+                build(["lib/cssPrefix/build.js"]);
+
+                t.is(nol(c("lib/cssPrefix/output/expected.css")),
+                     nol(c("lib/cssPrefix/output/main-built.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/356 cssPrefix normalization
+    //done even in directory builds
+    doh.register("cssPrefixDirNormalization",
+        [
+            function cssPrefixDirNormalization(t) {
+                file.deleteFile("lib/cssPrefix/356/www-built");
+
+                build(["lib/cssPrefix/356/build.js"]);
+
+                t.is(nol(c("lib/cssPrefix/356/expected/main.css")),
+                     nol(c("lib/cssPrefix/356/www-built/main.css")));
+
+                t.is(nol(c("lib/cssPrefix/356/expected/sub.css")),
+                     nol(c("lib/cssPrefix/356/www-built/sub.css")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Tests https://github.com/jrburke/r.js/issues/296 removeCombined should
+    //remove files that have been inlined.
+    doh.register("cssRemoveCombined",
+        [
+            function cssRemoveCombined(t) {
+                file.deleteFile("lib/cssRemoveCombined/main-built.css");
+
+                build(["lib/cssRemoveCombined/build.js"]);
+
+                t.is(false, file.exists("lib/cssRemoveCombined/www-built/css/two.css"));
+                t.is(false, file.exists("lib/cssRemoveCombined/www-built/css/sub/one.css"));
+                t.is(false, file.exists("lib/cssRemoveCombined/www-built/css/sub/misc.css"));
+
+                t.is(nol(c("lib/cssRemoveCombined/expected.css")),
+                     nol(c("lib/cssRemoveCombined/www-built/css/main.css")));
 
                 require._buildReset();
             }
@@ -924,9 +1283,10 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 //Also remove spaces, since rhino and node differ on their
                 //Function.prototype.toString() output by whitespace, and
-                //the semicolon on end of A.name
+                //the semicolon on end of A.name, and string quotes.
                 t.is(nol(c("lib/shimBasic/expected.js")).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'),
-                     nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'));
+                     nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name')
+                     .replace(/['"]Modified["']/, "'Modified'"));
 
                 require._buildReset();
             }
@@ -934,6 +1294,69 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    // test wrapShim: true config
+    //
+    doh.register("shimBasicWrap",
+        [
+            function shimBasicWrap(t) {
+                var outFile = "lib/shimBasicWrap/basic-tests-built.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/shimBasicWrap/build.js"]);
+
+                //Also remove spaces, since rhino and node differ on their
+                //Function.prototype.toString() output by whitespace, and
+                //the semicolon on end of A.name, and string quotes.
+                t.is(nol(c("lib/shimBasicWrap/expected.js")).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name'),
+                     nol(c(outFile)).replace(/\s+/g, '').replace(/A\.name\;/g, 'A.name')
+                     .replace(/['"]Modified["']/, "'Modified'"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("shimFakeDefine",
+        [
+            function shimFakeDefine(t) {
+                file.deleteFile("lib/shimFakeDefine/main-built.js");
+
+                build(["lib/shimFakeDefine/build.js"]);
+
+                t.is(nol(c("lib/shimFakeDefine/expected.js")),
+                     nol(c("lib/shimFakeDefine/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("shimWrapShort",
+        [
+            function shimWrapShort(t) {
+                file.deleteFile("lib/shimWrapShort/main-built.js");
+
+                build(["lib/shimWrapShort/build.js"]);
+
+                t.is(nol(c("lib/shimWrapShort/expected.js")),
+                     nol(c("lib/shimWrapShort/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+
+
 
     doh.register("mapConfig",
         [
@@ -985,6 +1408,45 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(nol(c("lib/mapConfig/expectedStarAdapter.js")),
                      nol(c(outFile)));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    //https://github.com/jrburke/requirejs/issues/466
+    doh.register("mapConfigPlugin",
+        [
+            function mapConfigPlugin(t) {
+                var outFile = "../../../requirejs/tests/mapConfig/built/mapConfigPlugin-tests.js";
+
+                file.deleteFile(outFile);
+
+                build(["lib/mapConfig/buildPlugin.js"]);
+
+                t.is(nol(c("lib/mapConfig/expectedPlugin.js")),
+                     nol(c(outFile)));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    doh.register("mapConfigMix",
+        [
+            function mapConfigMix(t) {
+                file.deleteFile("lib/mapConfigMix/a-built.js");
+
+                build(["lib/mapConfigMix/build.js"]);
+
+                t.is(nol(c("lib/mapConfigMix/expected.js")),
+                     nol(c("lib/mapConfigMix/a-built.js")));
 
                 require._buildReset();
             }
@@ -1082,6 +1544,28 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    // Tests https://github.com/jrburke/r.js/pull/322 multiple modules with shared excludes
+    doh.register("modulesExclude",
+        [
+            function modulesExclude(t) {
+                file.deleteFile("lib/modulesExclude/built");
+
+                build(["lib/modulesExclude/build.js"]);
+
+                t.is(nol(c("lib/modulesExclude/expected/a.js")),
+                     nol(c("lib/modulesExclude/built/a.js")));
+                t.is(nol(c("lib/modulesExclude/expected/b.js")),
+                     nol(c("lib/modulesExclude/built/b.js")));
+                t.is(nol(c("lib/modulesExclude/expected/z.js")),
+                     nol(c("lib/modulesExclude/built/z.js")));
+
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
     //Tests https://github.com/jrburke/r.js/issues/116 stub modules
     doh.register("stubModules",
         [
@@ -1092,6 +1576,47 @@ define(['build', 'env!env/file'], function (build, file) {
 
                 t.is(noSlashRn(nol(c("lib/stubModules/expected.js"))),
                      noSlashRn(nol(c("lib/stubModules/main-built.js"))));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    //Tests https://github.com/jrburke/r.js/issues/291 per layer stub modules
+    doh.register("stubModulesPerModule",
+        [
+            function stubModulesPerModule(t) {
+                file.deleteFile("lib/stubModules/perModule/built");
+
+                build(["lib/stubModules/perModule/build.js"]);
+
+                t.is(noSlashRn(nol(c("lib/stubModules/perModule/expected-first.js"))),
+                     noSlashRn(nol(c("lib/stubModules/perModule/built/first.js"))));
+                t.is(noSlashRn(nol(c("lib/stubModules/perModule/expected-second.js"))),
+                     noSlashRn(nol(c("lib/stubModules/perModule/built/second.js"))));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    //Tests https://github.com/jrburke/r.js/issues/432 insert stub module
+    //for module.create layers.
+    doh.register("stubModulesCreate",
+        [
+            function stubModulesCreate(t) {
+                file.deleteFile("lib/stubModules/create/foobar-built.js");
+
+                build(["lib/stubModules/create/build.js"]);
+
+                t.is(noSlashRn(nol(c("lib/stubModules/create/expected.js"))),
+                     noSlashRn(nol(c("lib/stubModules/create/foobar-built.js"))));
 
                 require._buildReset();
             }
@@ -1176,6 +1701,86 @@ define(['build', 'env!env/file'], function (build, file) {
     );
     doh.run();
 
+    //Confirm node-style package module IDs, which may end in '.js', work in
+    //optimizer.
+    //https://github.com/jrburke/r.js/pull/591
+    doh.register("packagesNode",
+        [
+            function packagesNode(t) {
+                file.deleteFile("lib/packagesNode/main-built.js");
+
+                build(["lib/packagesNode/build.js"]);
+
+                t.is(nol(c("lib/packagesNode/expected.js")),
+                     nol(c("lib/packagesNode/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Confirm package adapter module is skipped if the main package
+    //module names itself.
+    //https://github.com/jrburke/r.js/issues/328
+    doh.register("packagesNamed",
+        [
+            function packagesNamed(t) {
+                file.deleteFile("lib/packages/named/main-built.js");
+
+                build(["lib/packages/named/build.js"]);
+
+                t.is(nol(c("lib/packages/named/expected.js")),
+                     nol(c("lib/packages/named/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Peaceful coexistence of package config with shim in a built context.
+    //https://github.com/jrburke/r.js/issues/331
+    doh.register("configPackageShim",
+        [
+            function configPackageShim(t) {
+                file.deleteFile("lib/configPackageShim/built");
+
+                build(["lib/configPackageShim/build.js"]);
+
+                t.is(nol(c("lib/configPackageShim/expected.js")),
+                     nol(c("lib/configPackageShim/built/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    doh.register("packagesMultiLevel",
+        [
+            function packagesMultiLevel(t) {
+                var startPath = "../../../requirejs/tests/packagesMultiLevel/",
+                    builtPath = startPath + "packagesMultiLevel-tests-built.js";
+                file.deleteFile(builtPath);
+
+                build([startPath + "build.js"]);
+
+                t.is(nol(c(startPath + "expected-built.js")), nol(c(builtPath)));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
+
     //Make sure pluginBuilder works.
     //https://github.com/jrburke/r.js/issues/175
     doh.register("pluginBuilder",
@@ -1194,6 +1799,26 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Make sure plugin dependencies that need normalization run in a build.
+    //https://github.com/jrburke/r.js/issues/648
+    doh.register("pluginDepExec",
+        [
+            function pluginDepExec(t) {
+                file.deleteFile("lib/pluginDepExec/main-built.js");
+
+                build(["lib/pluginDepExec/build.js"]);
+
+                t.is(nol(c("lib/pluginDepExec/expected.js")),
+                     nol(c("lib/pluginDepExec/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 
     //Make sure a non-strict plugin does not blow up in the build
     //https://github.com/jrburke/r.js/issues/181
@@ -1329,4 +1954,784 @@ define(['build', 'env!env/file'], function (build, file) {
         ]
     );
     doh.run();
+
+    //Allow some basic shimmed deps to work for plugins
+    //https://github.com/jrburke/r.js/issues/203
+    doh.register("pluginShimDep",
+        [
+            function pluginShimDep(t) {
+                file.deleteFile("lib/pluginShimDep/main-built.js");
+
+                build(["lib/pluginShimDep/build.js"]);
+
+                t.is(nol(c("lib/pluginShimDep/expected.js")),
+                     nol(c("lib/pluginShimDep/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Hoist require definition for multiple layer builds
+    //https://github.com/jrburke/r.js/issues/263
+    doh.register("requireHoistPerLayer",
+        [
+            function requireHoistPerLayer(t) {
+                file.deleteFile("lib/requireHoist/perLayer/built");
+
+                build(["lib/requireHoist/perLayer/build.js"]);
+
+                t.is(nol(c("lib/requireHoist/perLayer/expectedMain1.js")),
+                     nol(c("lib/requireHoist/perLayer/built/main1.js")));
+                t.is(nol(c("lib/requireHoist/perLayer/expectedMain2.js")),
+                     nol(c("lib/requireHoist/perLayer/built/main2.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Apply module overrides for final optimization/pragma work.
+    //https://github.com/jrburke/r.js/issues/275
+    doh.register("pragmasOverride",
+        [
+            function pragmasOverride(t) {
+                file.deleteFile("lib/pragmas/override/built");
+
+                build(["lib/pragmas/override/build.js"]);
+
+                t.is(nol(c("lib/pragmas/override/expectedMain1.js")),
+                     nol(c("lib/pragmas/override/built/main1.js")));
+                t.is(nol(c("lib/pragmas/override/expectedMain2.js")),
+                     nol(c("lib/pragmas/override/built/main2.js")));
+                t.is(nol(c("lib/pragmas/override/expectedHelper.js")),
+                     nol(c("lib/pragmas/override/built/helper.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Test onLayerEnd for loader plugins
+    //https://github.com/jrburke/r.js/pull/241
+    doh.register("pluginsOnLayerEnd",
+        [
+            function pluginsOnLayerEnd(t) {
+                file.deleteFile("lib/plugins/onLayerEnd/main-built.js");
+
+                build(["lib/plugins/onLayerEnd/build.js"]);
+
+                t.is(nol(c("lib/plugins/onLayerEnd/expected.js")),
+                     nol(c("lib/plugins/onLayerEnd/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("pluginsOnLayerEndMulti",
+        [
+            function pluginsOnLayerEndMulti(t) {
+                file.deleteFile("lib/plugins/onLayerEnd/built");
+
+                build(["lib/plugins/onLayerEnd/buildMulti.js"]);
+
+                t.is(nol(c("lib/plugins/onLayerEnd/expectedMultiMain.js")),
+                     nol(c("lib/plugins/onLayerEnd/built/main.js")));
+                t.is(nol(c("lib/plugins/onLayerEnd/expectedMultiSecondary.js")),
+                     nol(c("lib/plugins/onLayerEnd/built/secondary.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("hasOwnPropertyTest",
+        [
+            function hasOwnPropertyTest(t) {
+                file.deleteFile("lib/hasOwnProperty/built.js");
+
+                build(["lib/hasOwnProperty/build.js"]);
+
+                t.is(nol(c("lib/hasOwnProperty/expected.js")),
+                     nol(c("lib/hasOwnProperty/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("rawText",
+        [
+            function rawText(t) {
+                file.deleteFile("lib/rawText/built.js");
+
+                build(["lib/rawText/build.js"]);
+
+                t.is(nol(c("lib/rawText/expected.js")),
+                     nol(c("lib/rawText/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    doh.register("rawTextLongId",
+        [
+            function rawTextLongId(t) {
+                file.deleteFile("lib/rawTextLongId/built.js");
+
+                build(["lib/rawTextLongId/build.js"]);
+
+                t.is(nol(c("lib/rawTextLongId/expected.js")),
+                     nol(c("lib/rawTextLongId/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    // deps should be integrated into the build and not trigger
+    // loads before traceDependencies, where rawText comes into play.
+    // https://github.com/jrburke/r.js/issues/658
+    doh.register("rawTextDeps",
+        [
+            function rawTextDeps(t) {
+                file.deleteFile("lib/rawTextDeps/built.js");
+
+                build(["lib/rawTextDeps/build.js"]);
+
+                t.is(nol(c("lib/rawTextDeps/expected.js")),
+                     nol(c("lib/rawTextDeps/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Make sure multiple named modules do not mess up toTransport
+    //https://github.com/jrburke/r.js/issues/366
+    doh.register("iife",
+        [
+            function iife(t) {
+                file.deleteFile("lib/iife/main-built.js");
+
+                build(["lib/iife/build.js"]);
+
+                t.is(nol(c("lib/iife/expected.js")),
+                     nol(c("lib/iife/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //For UMD-wrapped code that is made up of interior modules, treat
+    //the UMD define as the entry point for the module, and do not
+    //parse the interior modules.
+    //https://github.com/jrburke/r.js/issues/460
+    doh.register("anonUmdInteriorModules",
+        [
+            function anonUmdInteriorModules(t) {
+                file.deleteFile("lib/anonUmdInteriorModules/main-built.js");
+
+                build(["lib/anonUmdInteriorModules/build.js"]);
+
+                t.is(nol(c("lib/anonUmdInteriorModules/expected.js")),
+                     nol(c("lib/anonUmdInteriorModules/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Test source map generation for a bundled file,
+    //see https://github.com/jrburke/r.js/issues/397
+    doh.register("sourcemap",
+        [
+            function sourcemap(t) {
+                file.deleteFile("lib/sourcemap/www-built");
+
+                build(["lib/sourcemap/build.js"]);
+
+                t.is(nol(c("lib/sourcemap/expected-main.js.map")),
+                     nol(c("lib/sourcemap/www-built/js/main.js.map")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Test single file JS optimization with source map generation
+    doh.register("sourcemapSingle",
+        [
+            function sourcemapSingle(t) {
+                file.deleteFile("lib/sourcemapSingle/main-built.js");
+                file.deleteFile("lib/sourcemapSingle/main-built.js.map");
+
+                build(["lib/sourcemapSingle/build.js"]);
+
+                t.is(nol(c("lib/sourcemapSingle/expected-main-built.js.map")),
+                     nol(c("lib/sourcemapSingle/main-built.js.map")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    // The output in rhino is slightly different, but enough to cause the
+    // text compare to fail. So just disabling it for now. Long term,
+    // a fancier sourcemap diff checking would be nice.
+    if (env.get() !== 'rhino') {
+        //Make sure "onejs" builds generate source map files relative to baseUrl,
+        //and not the output file:
+        //https://github.com/jrburke/r.js/issues/477
+        doh.register("sourcemapOneJs",
+            [
+                function sourcemapOneJs(t) {
+                    file.deleteFile("lib/sourcemap/onejs/www/js/built.js");
+                    file.deleteFile("lib/sourcemap/onejs/www/js/built.js.map");
+
+                    build(["lib/sourcemap/onejs/build.js"]);
+
+                    t.is(nol(c("lib/sourcemap/onejs/expected.map")),
+                         nol(c("lib/sourcemap/onejs/www/js/built.js.map")));
+
+                    require._buildReset();
+                }
+            ]
+        );
+        doh.run();
+
+
+        //Confirm target file is also in the source map.
+        //https://github.com/jrburke/r.js/issues/829
+        doh.register("sourcemapTwoJs",
+            [
+                function sourcemapTwoJs(t) {
+                    file.deleteFile("lib/sourcemap/twojs/www-built");
+
+                    build(["lib/sourcemap/twojs/build.js"]);
+
+                    t.is(nol(c("lib/sourcemap/twojs/expected.map")),
+                         nol(c("lib/sourcemap/twojs/www-built/core.js.map")));
+
+                    require._buildReset();
+                }
+            ]
+        );
+        doh.run();
+    }
+
+
+    //Allow the target of an optimization to be a module that is only
+    //provided in the rawText config.
+    //Test single file JS optimization with source map generation
+    doh.register("rawTextNameTarget",
+        [
+            function rawTextNameTarget(t) {
+                file.deleteFile("lib/rawTextNameTarget/a-built.js");
+
+                build(["lib/rawTextNameTarget/build.js"]);
+
+                t.is(nol(c("lib/rawTextNameTarget/expected.js")),
+                     nol(c("lib/rawTextNameTarget/a-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Allow skipping semicolon insertion
+    //https://github.com/jrburke/r.js/issues/506
+    doh.register("semicolonInsert",
+        [
+            function semicolonInsert(t) {
+                file.deleteFile("lib/semicolonInsert/a-built.js");
+
+                build(["lib/semicolonInsert/build.js"]);
+
+                t.is(nol(c("lib/semicolonInsert/expected.js")),
+                     nol(c("lib/semicolonInsert/a-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    //Make sure overrides for each build layer are pristine
+    //https://github.com/jrburke/r.js/issues/500
+    doh.register("dualLayerOverride",
+        [
+            function dualLayerOverride(t) {
+                file.deleteFile("lib/dualLayerOverride/built");
+
+                build(["lib/dualLayerOverride/build.js"]);
+
+                t.is(nol(c("lib/dualLayerOverride/expectedMessage.js")),
+                     nol(c("lib/dualLayerOverride/built/message.js")));
+                t.is(nol(c("lib/dualLayerOverride/expectedWho.js")),
+                     nol(c("lib/dualLayerOverride/built/who.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Allow wrap config in overrides
+    //https://github.com/jrburke/r.js/issues/503
+    doh.register("overrideWrap",
+        [
+            function overrideWrap(t) {
+                file.deleteFile("lib/override/wrap/built");
+
+                build(["lib/override/wrap/build.js"]);
+
+                t.is(nol(c("lib/override/wrap/expected/a.js")),
+                     nol(c("lib/override/wrap/built/a.js")));
+                t.is(nol(c("lib/override/wrap/expected/b.js")),
+                     nol(c("lib/override/wrap/built/b.js")));
+                t.is(nol(c("lib/override/wrap/expected/c.js")),
+                     nol(c("lib/override/wrap/built/c.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    //Do not removeCombined files that are outside the build dir.
+    //https://github.com/jrburke/requirejs/issues/755
+    doh.register("removeCombinedPaths",
+        [
+            function removeCombinedPaths(t) {
+                file.deleteFile("lib/removeCombinedPaths/testcase/project/build/build_output");
+
+                build(["lib/removeCombinedPaths/testcase/project/build/build.js"]);
+
+
+                t.is(true, file.exists("lib/removeCombinedPaths/testcase/lib/main.js"));
+                t.is(true, file.exists("lib/removeCombinedPaths/testcase/project/build/build_output/main.js"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+
+    //Test single file JS optimization with source map generation
+    doh.register("unicode",
+        [
+            function unicode(t) {
+                file.deleteFile("lib/unicode/main-built.js");
+
+                build(["lib/unicode/build.js"]);
+
+                t.is(nol(c("lib/unicode/expected.js")),
+                     nol(c("lib/unicode/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Do not go into already concatenated files with an internal define
+    //https://github.com/jrburke/requirejs/issues/883
+    doh.register("umd",
+        [
+            function umd(t) {
+                file.deleteFile("lib/umd/main-built.js");
+
+                build(["lib/umd/build.js"]);
+
+                t.is(nol(c("lib/umd/expected.js")),
+                     nol(c("lib/umd/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Detect !function(e) {... define([], e) UMD wrappers
+    //https://github.com/jrburke/requirejs/issues/733
+    doh.register("umd2",
+        [
+            function umd2(t) {
+                file.deleteFile("lib/umd2/built.js");
+
+                build(["lib/umd2/build.js"]);
+
+                t.is(nol(c("lib/umd2/expected.js")),
+                     nol(c("lib/umd2/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Detect !function(e) {... define(e) UMD wrappers
+    //https://github.com/jrburke/requirejs/issues/833
+    doh.register("umd3",
+        [
+            function umd2(t) {
+                file.deleteFile("lib/umd3/app-built.js");
+
+                build(["lib/umd3/build.js"]);
+
+                t.is(nol(c("lib/umd3/expected.js")),
+                     nol(c("lib/umd3/app-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Possible style of UMD wrapper used in TypeScript
+    //https://github.com/jrburke/requirejs/issues/857
+    doh.register("umd4",
+        [
+            function umd4(t) {
+                file.deleteFile("lib/umd4/app-built.js");
+
+                build(["lib/umd4/build.js"]);
+
+                t.is(nol(c("lib/umd4/expected.js")),
+                     nol(c("lib/umd4/app-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Do not not find nested deps in a UMD wrapper
+    //https://github.com/jrburke/requirejs/issues/651
+    doh.register("umdNested",
+        [
+            function umdNested(t) {
+                file.deleteFile("lib/umdNested/main-built.js");
+
+                build(["lib/umdNested/build.js"]);
+
+                t.is(nol(c("lib/umdNested/expected.js")),
+                     nol(c("lib/umdNested/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Keep parsing if a define uses an identifier, but is not part of
+    //a function wrapper for UMD
+    //https://github.com/jrburke/requirejs/issues/1133
+    doh.register("nonUmdIdentifiers",
+        [
+            function nonUmdIdentifiers(t) {
+                file.deleteFile("lib/nonUmdIdentifiers/main-built.js");
+
+                build(["lib/nonUmdIdentifiers/build.js"]);
+
+                t.is(nol(c("lib/nonUmdIdentifiers/expected.js")),
+                     nol(c("lib/nonUmdIdentifiers/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //out function should get source map if available.
+    //https://github.com/jrburke/r.js/issues/590
+    doh.register("sourcemapOutFunction",
+        [
+            function sourcemapOutFunction(t) {
+
+                var ugly, plain,
+                    config = {
+                        baseUrl: 'lib/sourcemapOutFunction/js',
+                        generateSourceMaps: true,
+                        preserveLicenseComments: false,
+                        name: 'main'
+                    };
+
+                build(lang.mixin({
+                    optimize: 'uglify2',
+                    out: function (text, sourceMap) {
+                        ugly = {
+                            text: text,
+                            sourceMap: sourceMap
+                        };
+                    }
+                }, config));
+
+                require._buildReset();
+
+                build(lang.mixin({
+                    optimize: 'none',
+                    out: function (text, sourceMap) {
+                        plain = {
+                            text: text,
+                            sourceMap: sourceMap
+                        };
+                    }
+                }, config));
+
+                /*
+                console.log(ugly.text);
+                console.log('=======');
+                console.log(ugly.sourceMap);
+                console.log('== NONE ==');
+                console.log(plain.text);
+                console.log('=======');
+                console.log(plain.sourceMap);
+                */
+
+                t.is(true, !!plain.text, 'has plain text');
+                t.is(true, !!ugly.text, 'has uglified text');
+                t.is(true, plain.text !== ugly.text, 'texts are not equal');
+                t.is(true, plain.sourceMap !== ugly.sourceMap, 'source maps are not equal');
+
+                ugly.sourceMap = JSON.parse(ugly.sourceMap);
+                plain.sourceMap = JSON.parse(plain.sourceMap);
+
+                t.is(true, !!ugly.sourceMap.sourcesContent, 'has uglified sourcesContent');
+                t.is(true, !!plain.sourceMap.sourcesContent, 'has plain sourcesContent');
+                t.is(true, plain.sourceMap.mappings !== ugly.sourceMap.mappings, 'mappings are not equal');
+
+                require._buildReset();
+
+            }
+
+        ]
+    );
+    doh.run();
+
+    //https://github.com/jrburke/r.js/issues/479
+    doh.register("allowSourceOverwrites",
+        [
+            function allowSourceOverwrites(t) {
+                file.deleteFile("lib/allowSourceOverwrites/output/main.js");
+
+                build(["lib/allowSourceOverwrites/build.js"]);
+
+                t.is(nol(c("lib/allowSourceOverwrites/expected.js")),
+                     nol(c("lib/allowSourceOverwrites/output/main.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Confirm dot trimming still works as usual.
+    //https://github.com/jrburke/requirejs/issues/1129
+    doh.register("dotTrim",
+        [
+            function dotTrim(t) {
+                file.deleteFile("lib/dotTrim/built.js");
+
+                build(["lib/dotTrim/build.js"]);
+
+                t.is(nol(c("lib/dotTrim/expected.js")),
+                     nol(c("lib/dotTrim/built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Confirm that the UMD skipping still finds jQuery-type inner
+    //defines inside a partial, non-AMD UMD wrapper.
+    //https://github.com/jrburke/r.js/issues/704
+    doh.register("nojQDupeDefine",
+        [
+            function nojQDupeDefine(t) {
+                file.deleteFile("lib/nojQDupeDefine/built.js");
+
+                build(["lib/nojQDupeDefine/build.js"]);
+
+                t.is(nol(c("lib/nojQDupeDefine/expected.js")),
+                     nol(c("lib/nojQDupeDefine/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Deal with some build config files that could be compile outputs from
+    //other languages, like typescript.
+    //https://github.com/jrburke/r.js/issues/767
+    doh.register("typescriptConfig",
+        [
+            function typescriptConfig(t) {
+                file.deleteFile("lib/typescriptConfig/main-built.js");
+
+                build(["lib/typescriptConfig/build.js"]);
+
+                t.is(nol(c("lib/typescriptConfig/expected.js")),
+                     nol(c("lib/typescriptConfig/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Allow arrow functions in require/define APIs
+    //https://github.com/jrburke/r.js/issues/800
+    doh.register("arrowFunctions",
+        [
+            function arrowFunctions(t) {
+                file.deleteFile("lib/arrow/main-built.js");
+
+                build(["lib/arrow/build.js"]);
+
+                t.is(nol(c("lib/arrow/expected.js")),
+                     nol(c("lib/arrow/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //See https://github.com/jrburke/r.js/pull/796
+    doh.register("periodInNameConfig",
+        [
+            function periodInNameConfig(t) {
+                file.deleteFile("lib/periodInNameConfig/out");
+
+                build(["lib/periodInNameConfig/build.js"]);
+
+                t.is(nol(c("lib/periodInNameConfig/scripts/main.js")),
+                     nol(c("lib/periodInNameConfig/out/main.js")));
+
+                t.is(nol(c("lib/periodInNameConfig/components/foo.bar.js")),
+                     nol(c("lib/periodInNameConfig/out/foo.bar.js")));
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Do not warn about unloaded loader plugin resources if they enter the build
+    //via named define calls.
+    //https://github.com/jrburke/r.js/issues/815
+    doh.register("inlineDefineNoRequire",
+        [
+            function inlineDefineNoRequire(t) {
+                file.deleteFile("lib/inlineDefineNoRequire/testmodule-built.js");
+
+                build(["lib/inlineDefineNoRequire/build.js"]);
+
+                t.is(nol(c("lib/inlineDefineNoRequire/expected.js")),
+                     nol(c("lib/inlineDefineNoRequire/testmodule-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //Allow define('id', depsAsIdentifier, function(){}) in files
+    //https://github.com/jrburke/r.js/issues/825
+    doh.register("dynamicDefine",
+        [
+            function dynamicDefine(t) {
+                file.deleteFile("lib/dynamicDefine/main-built.js");
+
+                build(["lib/dynamicDefine/build.js"]);
+
+                t.is(nol(c("lib/dynamicDefine/expected.js")),
+                     nol(c("lib/dynamicDefine/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
+    //When running in Rhino and using Closure for optimization,
+    //it should be possible to declare externs for Closure's
+    //ADVANCED_OPTIMIZATION mode.
+    //https://github.com/jrburke/r.js/issues/860
+    if (env.get() === 'rhino') {
+        doh.register("closureExterns",
+            [
+                function closureExterns(t) {
+                    file.deleteFile("lib/closureExterns/built");
+
+                    build(["lib/closureExterns/build.js"]);
+                    var contents = c("lib/closureExterns/built/built.js");
+                    //Without a working externs definition, these property
+                    //names are typically replaced with one-character aliases.
+                    t.is(true, /define\.amd/.test(contents));
+                    t.is(true, /module\.exports/.test(contents));
+
+                    require._buildReset();
+                }
+            ]
+        );
+        doh.run();
+    }
 });

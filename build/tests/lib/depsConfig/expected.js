@@ -1,4 +1,3 @@
-
 define('a',{
     name: 'a'
 });
@@ -16,3 +15,4 @@ require(['c'], function (c) {
 
 
 define("main", function(){});
+

@@ -1,12 +1,12 @@
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
 
 /**
  * Run the tests in Node with this command:
- * ../../bin/x all.js
+ * node ../../r.js all.js
  */
 
 /*jslint plusplus: false, strict: false */
@@ -34,14 +34,15 @@ require({
     'env!../../tests/doh/_{env}Runner.js',
     'tests/convert',
     'tests/parse',
+    'tests/pragma',
+    'tests/transform',
     'tests/buildUtils',
 
     //Build tests should be last in case they alter the environment
     //in a weird way.
     'tests/builds'
-]);
+], function () {
+    //Show final report.
+    doh.run();
+});
 
-//Show final report. Do this outside the require call, not
-//in a require callback because the builds will modify require.js
-//to not call callbacks.
-doh.run();

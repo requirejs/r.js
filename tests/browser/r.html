@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        textarea {
+            width: 100%;
+            height: 20em;
+        }
+    </style>
+    <script src="../../r.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function (evt) {
+        document.getElementById('build').addEventListener('click', function (evt) {
+            requirejs.optimize({
+                baseUrl: '.',
+                paths: {
+                    'd': 'sub/d'
+                },
+                include: ['a'],
+                out: function (text) {
+                    document.getElementById('output').value = text;
+                }
+            }, function (buildText) {
+                document.getElementById('buildMessages').value = buildText;
+            });
+        }, false);
+    }, false);
+    </script>
+</head>
+<body>
+    <h1>r.js in the browser</h1>
+
+
+    <p>A test of running r.js in the browser.</p>
+
+    <p>
+        <button id="build">Build it</button>
+    </p>
+
+    <h2>Build Messages</h2>
+    <textarea id="buildMessages"></textarea>
+
+    <h2>Output</h2>
+    <textarea id="output"></textarea>
+</body>
+</html>

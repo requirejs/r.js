@@ -1,0 +1,1 @@
+var foo={"‌":"bar"};define("main",function(){});

@@ -1,0 +1,6 @@
+.test {
+    background: url(/test/subfolder/test.png);
+}
+body {
+    background: url(/test/img/bg.png);
+}

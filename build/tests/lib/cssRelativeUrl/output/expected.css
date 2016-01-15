@@ -1,0 +1,6 @@
+.test {
+    background: url(subfolder/test.png);
+}
+.other {
+    background: url(about:blank);
+}

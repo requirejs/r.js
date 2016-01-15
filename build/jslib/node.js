@@ -1,10 +1,13 @@
 /**
- * @license RequireJS node Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS node Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
 
-/*jslint regexp: false */
+//Explicity not strict since this file contains an eval call, and do not want
+//to enforce strict on code evaluated that way. See
+//https://github.com/jrburke/r.js/issues/774
+/*jslint regexp: false, sloppy: true*/
 /*global require: false, define: false, requirejsVars: false, process: false */
 
 /**
@@ -15,8 +18,6 @@
  */
 
 (function () {
-    'use strict';
-
     var nodeReq = requirejsVars.nodeRequire,
         req = requirejsVars.require,
         def = requirejsVars.define,
@@ -24,32 +25,78 @@
         path = nodeReq('path'),
         vm = nodeReq('vm'),
         //In Node 0.7+ existsSync is on fs.
-        exists = fs.existsSync || path.existsSync;
+        exists = fs.existsSync || path.existsSync,
+        hasOwn = Object.prototype.hasOwnProperty;
+
+    function hasProp(obj, prop) {
+        return hasOwn.call(obj, prop);
+    }
+
+    function syncTick(fn) {
+        fn();
+    }
+
+    function makeError(message, moduleName) {
+        var err = new Error(message);
+        err.requireModules = [moduleName];
+        return err;
+    }
 
     //Supply an implementation that allows synchronous get of a module.
-    req.get = function (context, moduleName, relModuleMap) {
+    req.get = function (context, moduleName, relModuleMap, localRequire) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
-            req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
+            context.onError(makeError("Explicit require of " + moduleName + " is not allowed.", moduleName));
         }
 
-        var ret,
-            moduleMap = context.makeModuleMap(moduleName, relModuleMap);
+        var ret, oldTick,
+            moduleMap = context.makeModuleMap(moduleName, relModuleMap, false, true);
 
         //Normalize module name, if it contains . or ..
         moduleName = moduleMap.id;
 
-        if (context.defined.hasOwnProperty(moduleName)) {
+        if (hasProp(context.defined, moduleName)) {
             ret = context.defined[moduleName];
         } else {
             if (ret === undefined) {
-                //Try to dynamically fetch it.
-                req.load(context, moduleName, moduleMap.url);
-                //The above call is sync, so can do the next thing safely.
-                ret = context.defined[moduleName];
+                //Make sure nextTick for this type of call is sync-based.
+                oldTick = context.nextTick;
+                context.nextTick = syncTick;
+                try {
+                    if (moduleMap.prefix) {
+                        //A plugin, call requirejs to handle it. Now that
+                        //nextTick is syncTick, the require will complete
+                        //synchronously.
+                        localRequire([moduleMap.originalName]);
+
+                        //Now that plugin is loaded, can regenerate the moduleMap
+                        //to get the final, normalized ID.
+                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap, false, true);
+                        moduleName = moduleMap.id;
+                    } else {
+                        //Try to dynamically fetch it.
+                        req.load(context, moduleName, moduleMap.url);
+
+                        //Enable the module
+                        context.enable(moduleMap, relModuleMap);
+                    }
+
+                    //Break any cycles by requiring it normally, but this will
+                    //finish synchronously
+                    context.require([moduleName]);
+
+                    //The above calls are sync, so can do the next thing safely.
+                    ret = context.defined[moduleName];
+                } finally {
+                    context.nextTick = oldTick;
+                }
             }
         }
 
         return ret;
+    };
+
+    req.nextTick = function (fn) {
+        process.nextTick(fn);
     };
 
     //Add wrapper around the code so that it gets the requirejs
@@ -62,7 +109,13 @@
     };
 
     req.load = function (context, moduleName, url) {
-        var contents, err;
+        var contents, err,
+            config = context.config;
+
+        if (config.shim[moduleName] && (!config.suppress || !config.suppress.nodeShim)) {
+            console.warn('Shim config not supported in Node, may or may not work. Detected ' +
+                            'for module: ' + moduleName);
+        }
 
         if (exists(url)) {
             contents = fs.readFileSync(url, 'utf8');
@@ -75,19 +128,39 @@
                                 moduleName + '" failed with error: ' + e);
                 err.originalError = e;
                 err.moduleName = moduleName;
+                err.requireModules = [moduleName];
                 err.fileName = url;
-                return req.onError(err);
+                return context.onError(err);
             }
         } else {
             def(moduleName, function () {
+                //Get the original name, since relative requires may be
+                //resolved differently in node (issue #202). Also, if relative,
+                //make it relative to the URL of the item requesting it
+                //(issue #393)
+                var dirName,
+                    map = hasProp(context.registry, moduleName) &&
+                            context.registry[moduleName].map,
+                    parentMap = map && map.parentMap,
+                    originalName = map && map.originalName;
+
+                if (originalName.charAt(0) === '.' && parentMap) {
+                    dirName = parentMap.url.split('/');
+                    dirName.pop();
+                    originalName = dirName.join('/') + '/' + originalName;
+                }
+
                 try {
-                    return (context.config.nodeRequire || req.nodeRequire)(moduleName);
+                    return (context.config.nodeRequire || req.nodeRequire)(originalName);
                 } catch (e) {
-                    err = new Error('Calling node\'s require("' +
-                                        moduleName + '") failed with error: ' + e);
+                    err = new Error('Tried loading "' + moduleName + '" at ' +
+                                     url + ' then tried node\'s require("' +
+                                        originalName + '") and it failed ' +
+                                     'with error: ' + e);
                     err.originalError = e;
-                    err.moduleName = moduleName;
-                    return req.onError(err);
+                    err.moduleName = originalName;
+                    err.requireModules = [moduleName];
+                    throw err;
                 }
             });
         }

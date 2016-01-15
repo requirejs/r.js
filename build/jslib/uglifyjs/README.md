@@ -1,7 +1,7 @@
 This is a copy of UglifyJS from:
 https://github.com/mishoo/UglifyJS
 
-Using "1.3.2", from npm. Check github tags and npm to find the latest version.
+Using "1.3.4", from npm. Check github tags and npm to find the latest version.
 
 UglifyJS is under the BSD license, and it a third-party package.
 

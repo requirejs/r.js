@@ -1,0 +1,3 @@
+//Distributed under the BSD license:
+//Copyright 2012 (c) Mihai Bazon <mihai.bazon@gmail.com>
+define(['exports', 'source-map', 'logger', 'env!env/file'], function (exports, MOZ_SourceMap, logger, rjsFile) {

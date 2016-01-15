@@ -1,0 +1,5 @@
+requirejs({
+  paths: {
+    a: "a"
+  }
+});

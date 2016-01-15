@@ -1,6 +1,6 @@
 
-define("tres",[],
-  function() {
+define("tres",
+  [],function() {
     return {
       name: "tres"
     };

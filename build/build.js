@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -20,7 +20,10 @@ require({
     catchError: {
         define: true
     }
-},       ['env!env/args', 'build'],
-function (args,            build) {
-    build(args);
+},       ['env!env/args', 'env!env/quit', 'logger', 'build'],
+function (args, quit, logger, build) {
+    build(args).then(function () {}, function (err) {
+        logger.error(err);
+        quit(1);
+    });
 });

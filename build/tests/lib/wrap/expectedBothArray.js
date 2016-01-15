@@ -1,0 +1,19 @@
+//FIRST
+
+
+//SECOND
+
+define('a',{
+    name: 'a'
+});
+
+
+require(['a'], function (a) {
+
+});
+
+define("main", function(){});
+//FIRST
+
+
+//SECOND

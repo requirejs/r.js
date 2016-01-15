@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -31,26 +31,32 @@ define(['parse', 'logger'], function (parse, logger) {
 
     var pragma = {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
-        useStrictRegExp: /['"]use strict['"];/g,
+        useStrictRegExp: /(^|[^{]\r?\n)['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-        nsRegExp: /(^|[^\.])(requirejs|require|define)(\.config)?\s*\(/g,
+        configRegExp: /(^|[^\.])(requirejs|require)(\.config)\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
-        apiDefRegExp: /var requirejs, require, define;/,
-        defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
-        defineTypeFirstCheckRegExp: /\s*["']function["']\s*===\s*typeof\s+define\s*&&\s*define\s*\.\s*amd/g,
-        defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
+        apiDefRegExp: /var requirejs,\s*require,\s*define;/,
+        defineCheckRegExp: /typeof(\s+|\s*\(\s*)define(\s*\))?\s*===?\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
+        defineStringCheckRegExp: /typeof\s+define\s*===?\s*["']function["']\s*&&\s*define\s*\[\s*["']amd["']\s*\]/g,
+        defineTypeFirstCheckRegExp: /\s*["']function["']\s*==(=?)\s*typeof\s+define\s*&&\s*define\s*\.\s*amd/g,
+        defineJQueryRegExp: /typeof\s+define\s*===?\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
-        defineTernaryRegExp: /typeof\s+define\s*===\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
-        amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*'function'\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
+        defineTernaryRegExp: /typeof\s+define\s*===?\s*['"]function["']\s*&&\s*define\s*\.\s*amd\s*\?\s*define/,
+        defineExistsRegExp: /\s+typeof\s+define\s*!==?\s*['"]undefined["']\s*/,
+        defineExistsAndAmdRegExp: /typeof\s+define\s*!==?\s*['"]undefined["']\s*&&\s*define\s*\.\s*amd\s*/,
+        amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*['"]function['"]\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
-            return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
+            return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '$1');
         },
 
         namespace: function (fileContents, ns, onLifecycleName) {
             if (ns) {
                 //Namespace require/define calls
-                fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2$3(');
+                fileContents = fileContents.replace(pragma.configRegExp, '$1' + ns + '.$2$3(');
+
+
+                fileContents = parse.renameNamespace(fileContents, ns);
 
                 //Namespace define ternary use:
                 fileContents = fileContents.replace(pragma.defineTernaryRegExp,
@@ -64,22 +70,29 @@ define(['parse', 'logger'], function (parse, logger) {
                 fileContents = fileContents.replace(pragma.defineHasRegExp,
                                                     "typeof " + ns + ".define === 'function' && typeof " + ns + ".define.amd === 'object' && " + ns + ".define.amd");
 
+                //Namespace async.js define use:
+                fileContents = fileContents.replace(pragma.defineExistsAndAmdRegExp,
+                                                    "typeof " + ns + ".define !== 'undefined' && " + ns + ".define.amd");
+
                 //Namespace define checks.
                 //Do these ones last, since they are a subset of the more specific
                 //checks above.
                 fileContents = fileContents.replace(pragma.defineCheckRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
+                fileContents = fileContents.replace(pragma.defineStringCheckRegExp,
+                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define['amd']");
                 fileContents = fileContents.replace(pragma.defineTypeFirstCheckRegExp,
                                                     "'function' === typeof " + ns + ".define && " + ns + ".define.amd");
+                fileContents = fileContents.replace(pragma.defineExistsRegExp,
+                                                    "typeof " + ns + ".define !== 'undefined'");
 
                 //Check for require.js with the require/define definitions
                 if (pragma.apiDefRegExp.test(fileContents) &&
-                    fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
+                    fileContents.indexOf("if (!" + ns + " || !" + ns + ".requirejs)") === -1) {
                     //Wrap the file contents in a typeof check, and a function
                     //to contain the API globals.
-                    fileContents = "var " + ns + ";(function () { if (typeof " +
-                                    ns + " === 'undefined') {\n" +
-                                    ns + ' = {};\n' +
+                    fileContents = "var " + ns + ";(function () { if (!" + ns + " || !" + ns + ".requirejs) {\n" +
+                                    "if (!" + ns + ") { " + ns + ' = {}; } else { require = ' + ns + '; }\n' +
                                     fileContents +
                                     "\n" +
                                     ns + ".requirejs = requirejs;" +
@@ -243,7 +256,9 @@ define(['parse', 'logger'], function (parse, logger) {
             }
 
             //Strip amdefine use for node-shared modules.
-            fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            if (!config.keepAmdefine) {
+                fileContents = fileContents.replace(pragma.amdefineRegExp, '');
+            }
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {

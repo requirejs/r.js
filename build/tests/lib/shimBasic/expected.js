@@ -1,4 +1,3 @@
-
 (function (root) {
     root.A = {
         name: 'a'
@@ -7,9 +6,13 @@
 
 define("a", (function (global) {
     return function () {
-        var func = function (){return this.A.name};
-        return func.apply(global, arguments);
-    }
+        var ret, fn;
+       fn = function () {
+                    window.globalA = this.A.name;
+                };
+        ret = fn.apply(global, arguments);
+        return ret || global.A.name;
+    };
 }(this)));
 
 function D() {
@@ -23,8 +26,8 @@ var B = {
     aValue: A.name,
     dValue: new D()
 };
-
-define("b", function(){});
+//ending comment;
+define("b", ["a","d"], function(){});
 
 var C = {
     name: 'c',
@@ -34,8 +37,9 @@ var C = {
 
 define("c", ["a","b"], (function (global) {
     return function () {
-        return global.C;
-    }
+        var ret, fn;
+        return ret || global.C;
+    };
 }(this)));
 
 var e = {
@@ -48,16 +52,44 @@ var e = {
 
 define("e", (function (global) {
     return function () {
-        return global.e.nested.e;
-    }
+        var ret, fn;
+       fn = function () {
+                    return {
+                        name: e.nested.e.name + 'Modified'
+                    };
+                };
+        ret = fn.apply(global, arguments);
+        return ret || global.e.nested.e;
+    };
+}(this)));
+
+var FCAP = {
+    name: 'FCAP',
+    globalA: A
+};
+
+define("f", ["a"], (function (global) {
+    return function () {
+        var ret, fn;
+       fn = function (a) {
+                    return {
+                        name: FCAP.name,
+                        globalA: FCAP.globalA,
+                        a: a
+                    };
+                };
+        ret = fn.apply(global, arguments);
+        return ret;
+    };
 }(this)));
 
 require({
         baseUrl: './',
         shim: {
             a: {
-                exports: function () {
-                    return this.A.name;
+                exports: 'A.name',
+                init: function () {
+                    window.globalA = this.A.name;
                 }
             },
             'b': ['a', 'd'],
@@ -66,22 +98,41 @@ require({
                 exports: 'C'
             },
             'e': {
-                exports: 'e.nested.e'
+                exports: 'e.nested.e',
+                init: function () {
+                    return {
+                        name: e.nested.e.name + 'Modified'
+                    };
+                }
+            },
+            'f': {
+                deps: ['a'],
+                init: function (a) {
+                    return {
+                        name: FCAP.name,
+                        globalA: FCAP.globalA,
+                        a: a
+                    };
+                }
             }
         }
     },
-    ['a', 'c', 'e'],
-    function(a, c, e) {
+    ['a', 'c', 'e', 'f'],
+    function(a, c, e, f) {
         doh.register(
             'shimBasic',
             [
                 function shimBasic(t){
                     t.is('a', a);
+                    t.is('a', window.globalA);
                     t.is('a', c.b.aValue);
                     t.is('b', c.b.name);
                     t.is('c', c.name);
                     t.is('d', c.b.dValue.name);
-                    t.is('e', e.name);
+                    t.is('eModified', e.name);
+                    t.is('FCAP', f.name);
+                    t.is('a', f.globalA.name);
+                    t.is('a', f.a);
                 }
             ]
         );
@@ -90,3 +141,4 @@ require({
 );
 
 define("basic-tests", function(){});
+

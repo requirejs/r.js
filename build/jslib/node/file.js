@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -7,7 +7,7 @@
 /*jslint plusplus: false, octal:false, strict: false */
 /*global define: false, process: false */
 
-define(['fs', 'path'], function (fs, path) {
+define(['fs', 'path', 'prim'], function (fs, path, prim) {
 
     var isWindows = process.platform === 'win32',
         windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
@@ -223,6 +223,16 @@ define(['fs', 'path'], function (fs, path) {
             return text;
         },
 
+        readFileAsync: function (path, encoding) {
+            var d = prim();
+            try {
+                d.resolve(file.readFile(path, encoding));
+            } catch (e) {
+                d.reject(e);
+            }
+            return d.promise;
+        },
+
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
             //summary: saves a *text* file using UTF-8 encoding.
             file.saveFile(fileName, fileContents, "utf8");
@@ -252,7 +262,7 @@ define(['fs', 'path'], function (fs, path) {
             //summary: deletes a file or directory if it exists.
             var files, i, stat;
             if (file.exists(fileName)) {
-                stat = fs.statSync(fileName);
+                stat = fs.lstatSync(fileName);
                 if (stat.isDirectory()) {
                     files = fs.readdirSync(fileName);
                     for (i = 0; i < files.length; i++) {
@@ -277,7 +287,7 @@ define(['fs', 'path'], function (fs, path) {
                 for (i = 0; i < dirFileArray.length; i++) {
                     fileName = dirFileArray[i];
                     filePath = path.join(startDir, fileName);
-                    stat = fs.statSync(filePath);
+                    stat = fs.lstatSync(filePath);
                     if (stat.isDirectory()) {
                         file.deleteEmptyDirs(filePath);
                     }

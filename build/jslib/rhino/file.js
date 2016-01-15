@@ -1,14 +1,14 @@
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
 //Helper functions to deal with file I/O.
 
-/*jslint plusplus: false, strict: true */
+/*jslint plusplus: false */
 /*global java: false, define: false */
 
-define(function () {
+define(['prim'], function (prim) {
     var file = {
         backSlashRegExp: /\\/g,
 
@@ -202,6 +202,16 @@ define(function () {
             }
         },
 
+        readFileAsync: function (path, encoding) {
+            var d = prim();
+            try {
+                d.resolve(file.readFile(path, encoding));
+            } catch (e) {
+                d.reject(e);
+            }
+            return d.promise;
+        },
+
         saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
             //summary: saves a file using UTF-8 encoding.
             file.saveFile(fileName, fileContents, "utf-8");
@@ -226,7 +236,13 @@ define(function () {
 
             os = new java.io.BufferedWriter(outWriter);
             try {
-                os.write(fileContents);
+                //If in Nashorn, need to coerce the JS string to a Java string so that
+                //writer.write method dispatch correctly detects the type.
+                if (typeof importPackage !== 'undefined') {
+                    os.write(fileContents);
+                } else {
+                    os.write(new java.lang.String(fileContents));
+                }
             } finally {
                 os.close();
             }

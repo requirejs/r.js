@@ -1,5 +1,5 @@
 /**
- * @license RequireJS Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -82,11 +82,11 @@ define(['env!env/file', 'parse'], function (file, parse) {
 
                 if (commonJsProps.dirname || commonJsProps.filename) {
                     preamble = 'var __filename = module.uri || "", ' +
-                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n';
+                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1); ';
                 }
 
                 //Construct the wrapper boilerplate.
-                fileContents = 'define(function (require, exports, module) {\n' +
+                fileContents = 'define(function (require, exports, module) {' +
                     preamble +
                     fileContents +
                     '\n});\n';

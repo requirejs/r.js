@@ -1,7 +1,7 @@
 # r.js
 
 A command line tool for running JavaScript scripts that use the
-[Asychronous Module Defintion API (AMD)](http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition)
+[Asychronous Module Defintion API (AMD)](https://github.com/amdjs/amdjs-api/blob/master/AMD.md)
 for declaring and using JavaScript modules and regular JavaScript script files.
 
 It is part of the [RequireJS project](http://requirejs.org), and works with
@@ -9,17 +9,46 @@ the RequireJS implementation of AMD.
 
 r.js is a single script that has two major functions:
 
-* Run AMD-based projects in Node and Rhino.
-* Includes the RequireJS Optimizer that combines scripts for optimal browser
-delivery.
+* Run AMD-based projects [in Node](http://requirejs.org/docs/node.html) and Nashorn, Rhino and xpcshell.
+* Includes the [RequireJS Optimizer](http://requirejs.org/docs/optimization.html)
+that combines scripts for optimal browser delivery.
 
-Releases of r.js are kept in the **dist** directory. To build your own from
-the files in this repo, run:
+# Installation
+
+## Node
+
+    npm install -g requirejs
+
+From then on, you can use `r.js` on the command line to run the optimizer.
+
+## Nashorn/Rhino/Browser
+
+Download the latest release from the
+[RequireJS download page](http://requirejs.org/docs/download.html#rjs).
+
+## xpcshell
+
+[xpcshell](https://developer.mozilla.org/en-US/docs/XPConnect/xpcshell) support
+was added in r.js version 2.1.5, so use that r.js version or later.
+
+Download the latest release of r.js from the
+[RequireJS download page](http://requirejs.org/docs/download.html#rjs).
+
+## From this repo
+
+r.js is made up of a series of modules that are built into one file for
+distribution. The **dist** directory contains the built version of the
+code. In the master branch, it should match the current state of the master
+code.
+
+If you are doing local modifications from a clone of this repo, you can run
+the following command to generate an r.js at the root of this repo:
 
     node dist.js
 
-That will generate an r.js file in the same directory as dist.js
+To generate an r.js that also gets copied to **dist** with a time stamp, run:
 
+    ./copydist.js
 
 # Running AMD-based projects
 
@@ -28,7 +57,7 @@ the following:
 
 ## Node
 
-    node path/to/r.js main.js
+    r.js main.js
 
 Requires Node 0.4 or later.
 
@@ -37,7 +66,32 @@ r.js allows using Node modules installed via npm. For more info see the
 
 ## Java
 
-Java requires some JAR files in the CLASSPATH for it to work:
+### Nashorn
+
+As of r.js 2.1.16, r.js can run in [Nashorn](http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html), Java 8+'s JavaScript engine, via the `jjs` command line tool that is installed with Java.
+
+Then general format of the command:
+
+```
+jjs -scripting path/to/r.js -- [r.js command line arguments here]
+```
+
+Examples:
+
+```
+# Calling r.js to optimize a project using the build config in build.js
+jjs -scripting path/to/r.js -- -o build.js
+
+# Calling r.js to run AMD modules, where the main app program is main.js
+jjs -scripting path/to/r.js -- main.js
+
+```
+
+All further examples will use the Node notation, but substitute the **r.js** references below with the command line structure mentioned above (`jjs -scripting path/to/r.js -- `).
+
+### Rhino
+
+Using Rhino requires some JAR files in the CLASSPATH for it to work:
 
 * [rhino.jar](https://github.com/jrburke/r.js/blob/master/lib/rhino/js.jar?raw=true) from the [Rhino project](http://www.mozilla.org/rhino/).
 * [compiler.jar](https://github.com/jrburke/r.js/blob/master/lib/closure/compiler.jar?raw=true) if you are using the optimizer and want to use
@@ -58,13 +112,26 @@ If you want to run it in the debugger, replace
 org.mozilla.javascript.tools.shell.Main with
 **org.mozilla.javascript.tools.debugger.Main**.
 
-All further examples will use the Node notation, but substitute **node r.js** in the commands with the appropriate java command.
+All further examples will use the Node notation, but substitute the **r.js** references below with the appropriate java command.
+
+## xpcshell
+
+To run the optimizer using a build config file or command line build options:
+
+    path/to/xpcshell path/to/r.js -o buildconfig.js
+
+r.js can also be used as a library in another .js file run via xpcshell.
+
+* [tests/xpcshell/run.js](https://github.com/jrburke/r.js/blob/master/tests/xpcshell/run.js):
+shows how to load AMD modules by using r.js as a library.
+* [tests/xpcshell/build.js](https://github.com/jrburke/r.js/blob/master/tests/xpcshell/build.js):
+shows how to trigger the optimizer from within another .js file.
 
 # Optimizer
 
 The optimizer can be run by passing the **-o** command to r.js:
 
-    node r.js -o path/to/buildconfig.js
+    r.js -o path/to/buildconfig.js
 
 See the [Optimization doc](http://requirejs.org/docs/optimization.html) for more
 information on the optimizer.
@@ -97,13 +164,13 @@ will get errors running the built code.
 
 To get the version of r.js and the version of require.js used by r.js:
 
-    node r.js -v
+    r.js -v
 
 ## Convert CommonJS modules
 
 To convert a directory of CommonJS modules to ones that have define() wrappers:
 
-    node r.js -convert path/to/commonjs/dir output/dir
+    r.js -convert path/to/commonjs/dir output/dir
 
 Most, but not all, CommonJS modules can be converted to define()-wrapped modules
 and still work.
@@ -118,9 +185,26 @@ modules.
 
 # Directory layout
 
-**NOTE**: If you clone this repository, it **must** be a sibling to a clone of the
-[RequireJS repository](https://github.com/jrburke/requirejs), where that
-repository is called **requirejs**. Otherwise the tests will not run.
+## Directory prerequisites
+
+r.js assumes that there are some other projects checked out as sibling
+directories to it, and named certain names, in order for the tests to pass.
+
+So it is best to create the following directory structure with the following
+git clone commands:
+
+    mkdir requirejs
+    cd requirejs
+    git clone git://github.com/jrburke/r.js.git
+    git clone git://github.com/jrburke/requirejs.git
+    git clone git://github.com/requirejs/text.git
+
+So there should be a sibling `requirejs` and `text` directories to the r.js
+directory containing your clone of the r.js project.
+
+## Directory details
+
+The r.js project has the following directory layout:
 
 * **dist.js**: the script that builds r.js
 * **require.js**: the version of require.js to include in r.js
@@ -141,10 +225,15 @@ and Java/Rhino:
     * node dist.js
     * cd tests
     * node ../r.js all.js
-    * java -classpath ../lib/rhino/js.jar:../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ./r.js all.js
+    * java -classpath ../lib/rhino/js.jar:../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ../r.js all.js
     * cd ../build/tests
     * node ../../r.js all.js
     * java -classpath ../../lib/rhino/js.jar:../../lib/closure/compiler.jar org.mozilla.javascript.tools.shell.Main ../../r.js all.js
+
+For running tests, put xpcshell in env/xpcshell/ as a directory, that contains
+all the files needed for it to run, including the xpcshell binary. Downloading
+[a xulrunner nightly](http://ftp.mozilla.org/pub/mozilla.org/xulrunner/nightly/latest-mozilla-central/)
+might work.
 
 # Contributing code changes
 
@@ -166,19 +255,19 @@ r.js includes modules from these projects:
 
 To do a release of version 0.0.0:
 
-* git checkout -b 0.0.0
 * Make sure the right version of require.js is in the project.
 * Modify build/jslib/x.js to update the r.js version number in two places.
 * node dist.js
 * Run the tests (see above). They should pass. :)
-* mv r.js dist/r-0.0.0.js
-* git add dist/r-0.0.0.js
-* git commit -a -m "Release 0.0.0"
+* mv r.js dist/r.js
+* git commit -am "Release 0.0.0"
 * git tag -am "Release 0.0.0" 0.0.0
-* git checkout master
-* git merge 0.0.0
 * git push origin master
 * git push --tags
-* git branch -d 0.0.0
 
-Update the RequireJS download site to point to the latest release.
+Update the RequireJS download site to point to the latest release, then update
+the [requirejs/requirejs-npm](https://github.com/requirejs/requirejs-npm) repo to have the latest
+changes and publish the result to npm.
+
+Make sure to keep `#!/usr/bin/env node` as the first line in bin/r.js in
+the requirejs-npm repo.

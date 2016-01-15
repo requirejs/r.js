@@ -10,4 +10,4 @@
 
 //@license comment to be found
 
-define("bang",[],function(){return{name:"bang"}}),define("license",{name:"license"})
+define("bang",[],function(){return{name:"bang"}}),define("license",{name:"license"});

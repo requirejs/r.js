@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -12,8 +12,8 @@ var jsLibRhinoArgs = (typeof rhinoArgs !== 'undefined' && rhinoArgs) || [].conca
 define(function () {
     var args = jsLibRhinoArgs;
 
-    //Ignore any command option used for rq.js
-    if (args[0] && args[0].indexOf('-' === 0)) {
+    //Ignore any command option used for main x.js branching
+    if (args[0] && args[0].indexOf('-') === 0) {
         args = args.slice(1);
     }
 

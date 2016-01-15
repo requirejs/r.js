@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -22,7 +22,7 @@ var fs = require('fs'),
     loadRegExp = /\/\/INSERT ([\w\/\.]+)/g,
     moduleNameRegExp = /build\/jslib\/([\w\/\-]+)\.js$/,
     defRegExp = /define\s*\(/,
-    envs = ['node', 'rhino'],
+    envs = ['browser', 'node', 'rhino', 'xpconnect'],
     //Update this list of files by running the optimizer against
     //build/jslib/opto.build.js,
     //but then remove any jslib/node entries and make sure there is
@@ -31,22 +31,25 @@ var fs = require('fs'),
     //since it is loaded separately.
     libFiles = [
         'build/jslib/env.js',
+        'build/jslib/lang.js',
+        'build/jslib/prim.js',
         'env!env/assert',
         'env!env/args',
         'env!env/load',
         'env!env/file',
         'env!env/quit',
-        'build/jslib/lang.js',
         'env!env/print',
         'build/jslib/logger.js',
         'build/jslib/blank.js',
-        'build/jslib/blank.js',
         'build/jslib/esprima.js',
+        'build/jslib/esprimaAdapter.js',
+        'build/jslib/source-map.js',
         'build/jslib/uglifyjs/consolidator.js',
         'build/jslib/uglifyjs/parse-js.js',
         'build/jslib/uglifyjs/squeeze-more.js',
         'build/jslib/uglifyjs/process.js',
         'build/jslib/uglifyjs/index.js',
+        'build/jslib/uglifyjs2.js',
         'build/jslib/parse.js',
         'build/jslib/transform.js',
         'build/jslib/pragma.js',

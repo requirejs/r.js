@@ -1,0 +1,3 @@
+define(['c'], function (c) {
+
+})
