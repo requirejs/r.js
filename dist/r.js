@@ -1,7 +1,6 @@
 /**
- * @license r.js 2.1.22+ Thu, 17 Dec 2015 05:09:46 GMT Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
+ * @license r.js 2.1.22+ Tue, 08 Mar 2016 20:17:39 GMT Copyright jQuery Foundation and other contributors.
+ * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
 /*
@@ -20,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Thu, 17 Dec 2015 05:09:46 GMT',
+        version = '2.1.22+ Tue, 08 Mar 2016 20:17:39 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -31,7 +30,7 @@ var requirejs, require, define, xpcUtil;
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     function showHelp() {
-        console.log('See https://github.com/jrburke/r.js for usage.');
+        console.log('See https://github.com/requirejs/r.js for usage.');
     }
 
     if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
@@ -249,9 +248,8 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.22 Copyright (c) 2010-2015, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
+ * @license RequireJS 2.1.22 Copyright jQuery Foundation and other contributors.
+ * Released under MIT license, http://github.com/requirejs/requirejs/LICENSE
  */
 //Not using strict: uneven strict support in browsers, #392, and causes
 //problems with requirejs.exec()/transpiler plugins that may not be strict.
@@ -270,7 +268,6 @@ var requirejs, require, define, xpcUtil;
         op = Object.prototype,
         ostring = op.toString,
         hasOwn = op.hasOwnProperty,
-        ap = Array.prototype,
         isBrowser = !!(typeof window !== 'undefined' && typeof navigator !== 'undefined' && window.document),
         isWebWorker = !isBrowser && typeof importScripts !== 'undefined',
         //PS3 indicates loaded and complete, but need to wait for complete
@@ -2159,11 +2156,11 @@ var requirejs, require, define, xpcUtil;
             if (node.attachEvent &&
                     //Check if node.attachEvent is artificially added by custom script or
                     //natively supported by browser
-                    //read https://github.com/jrburke/requirejs/issues/187
+                    //read https://github.com/requirejs/requirejs/issues/187
                     //if we can NOT find [native code] then it must NOT natively supported.
                     //in IE8, node.attachEvent does not have toString()
                     //Note the test for "[native code" with no closing brace, see:
-                    //https://github.com/jrburke/requirejs/issues/273
+                    //https://github.com/requirejs/requirejs/issues/273
                     !(node.attachEvent.toString && node.attachEvent.toString().indexOf('[native code') < 0) &&
                     !isOpera) {
                 //Probably IE. IE (at least 6-8) do not fire
@@ -2212,6 +2209,11 @@ var requirejs, require, define, xpcUtil;
                 //are in play, the expectation is that a build has been done so
                 //that only one script needs to be loaded anyway. This may need
                 //to be reevaluated if other use cases become common.
+
+                // Post a task to the event loop to work around a bug in WebKit
+                // where the worker gets garbage-collected after calling
+                // importScripts(): https://webkit.org/b/153317
+                setTimeout(function() {}, 0);
                 importScripts(url);
 
                 //Account for anonymous modules
@@ -2387,13 +2389,7 @@ var requirejs, require, define, xpcUtil;
     };
 
     if (env === 'browser') {
-        /**
- * @license RequireJS rhino Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-//sloppy since eval enclosed with use strict causes problems if the source
+        //sloppy since eval enclosed with use strict causes problems if the source
 //text is not strict-compliant.
 /*jslint sloppy: true, evil: true */
 /*global require, XMLHttpRequest */
@@ -2421,14 +2417,7 @@ var requirejs, require, define, xpcUtil;
     };
 }());
     } else if (env === 'rhino') {
-        /**
- * @license RequireJS rhino Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint */
-/*global require: false, java: false, load: false */
+        /*global require: false, java: false, load: false */
 
 (function () {
     'use strict';
@@ -2445,15 +2434,9 @@ var requirejs, require, define, xpcUtil;
         this.requirejsVars.nodeRequire = nodeRequire;
         require.nodeRequire = nodeRequire;
 
-        /**
- * @license RequireJS node Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-//Explicity not strict since this file contains an eval call, and do not want
+        //Explicity not strict since this file contains an eval call, and do not want
 //to enforce strict on code evaluated that way. See
-//https://github.com/jrburke/r.js/issues/774
+//https://github.com/requirejs/r.js/issues/774
 /*jslint regexp: false, sloppy: true*/
 /*global require: false, define: false, requirejsVars: false, process: false */
 
@@ -2625,13 +2608,7 @@ var requirejs, require, define, xpcUtil;
 }());
 
     } else if (env === 'xpconnect') {
-        /**
- * @license RequireJS xpconnect Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint */
+        /*jslint */
 /*global require, load */
 
 (function () {
@@ -2660,13 +2637,7 @@ var requirejs, require, define, xpcUtil;
      * tasks.
      */
     function loadLib() {
-        /**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint strict: false */
+        /*jslint strict: false */
 /*global Packages: false, process: false, window: false, navigator: false,
   document: false, define: false */
 
@@ -2714,12 +2685,6 @@ var requirejs, require, define, xpcUtil;
         }
     });
 }());
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint plusplus: true */
 /*global define, java */
 
@@ -3132,12 +3097,6 @@ var prim;
     }
 }());
 if(env === 'browser') {
-/**
- * @license RequireJS Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, load: false */
 
@@ -3149,12 +3108,6 @@ define('browser/assert', function () {
 }
 
 if(env === 'node') {
-/**
- * @license RequireJS Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, load: false */
 
@@ -3166,12 +3119,6 @@ define('node/assert', ['assert'], function (assert) {
 }
 
 if(env === 'rhino') {
-/**
- * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, load: false */
 
@@ -3183,12 +3130,6 @@ define('rhino/assert', function () {
 }
 
 if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, load: false */
 
@@ -3200,12 +3141,6 @@ define('xpconnect/assert', function () {
 }
 
 if(env === 'browser') {
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, process: false */
 
@@ -3217,12 +3152,6 @@ define('browser/args', function () {
 }
 
 if(env === 'node') {
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, process: false */
 
@@ -3241,12 +3170,6 @@ define('node/args', function () {
 }
 
 if(env === 'rhino') {
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, process: false */
 
@@ -3266,12 +3189,6 @@ define('rhino/args', function () {
 }
 
 if(env === 'xpconnect') {
-/**
- * @license Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define, xpconnectArgs */
 
@@ -3291,12 +3208,6 @@ define('xpconnect/args', function () {
 }
 
 if(env === 'browser') {
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, console: false */
 
@@ -3311,12 +3222,6 @@ define('browser/load', ['./file'], function (file) {
 }
 
 if(env === 'node') {
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, console: false */
 
@@ -3332,12 +3237,6 @@ define('node/load', ['fs'], function (fs) {
 }
 
 if(env === 'rhino') {
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, load: false */
 
@@ -3348,12 +3247,6 @@ define('rhino/load', function () {
 }
 
 if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, load: false */
 
@@ -3364,12 +3257,6 @@ define('xpconnect/load', function () {
 }
 
 if(env === 'browser') {
-/**
- * @license Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint sloppy: true, nomen: true */
 /*global require, define, console, XMLHttpRequest, requirejs, location */
 
@@ -3542,12 +3429,6 @@ define('browser/file', ['prim'], function (prim) {
 }
 
 if(env === 'node') {
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint plusplus: false, octal:false, strict: false */
 /*global define: false, process: false */
 
@@ -3852,11 +3733,6 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
 }
 
 if(env === 'rhino') {
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
 //Helper functions to deal with file I/O.
 
 /*jslint plusplus: false */
@@ -4152,11 +4028,6 @@ define('rhino/file', ['prim'], function (prim) {
 }
 
 if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
 //Helper functions to deal with file I/O.
 
 /*jslint plusplus: false */
@@ -4472,12 +4343,6 @@ define('xpconnect/quit', function () {
 }
 
 if(env === 'browser') {
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, console: false */
 
@@ -4492,12 +4357,6 @@ define('browser/print', function () {
 }
 
 if(env === 'node') {
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, console: false */
 
@@ -4512,12 +4371,6 @@ define('node/print', function () {
 }
 
 if(env === 'rhino') {
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, print: false */
 
@@ -4528,12 +4381,6 @@ define('rhino/print', function () {
 }
 
 if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false, print: false */
 
@@ -4542,12 +4389,6 @@ define('xpconnect/print', function () {
 });
 
 }
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint nomen: false, strict: false */
 /*global define: false */
 
@@ -10347,12 +10188,6 @@ define('logger', ['env!env/print'], function (print) {
 
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
-/**
- * @license Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*global define, Reflect */
 
 /*
@@ -26760,12 +26595,6 @@ exports.describe_ast = function() {
 };
 
 });
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint plusplus: true */
 /*global define: false */
 
@@ -27811,12 +27640,6 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
     return parse;
 });
-/**
- * @license Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*global define */
 
 define('transform', [ './esprimaAdapter', './parse', 'logger', 'lang'],
@@ -28255,12 +28078,6 @@ function (esprima, parse, logger, lang) {
 
     return transform;
 });
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint regexp: true, plusplus: true  */
 /*global define: false */
 
@@ -28531,12 +28348,6 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
 });
 
 if(env === 'browser') {
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false */
 
@@ -28545,12 +28356,6 @@ define('browser/optimize', {});
 }
 
 if(env === 'node') {
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint strict: false */
 /*global define: false */
 
@@ -28559,12 +28364,6 @@ define('node/optimize', {});
 }
 
 if(env === 'rhino') {
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint sloppy: true, plusplus: true */
 /*global define, java, Packages, com */
 
@@ -28756,12 +28555,6 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
 if(env === 'xpconnect') {
 define('xpconnect/optimize', {});
 }
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint plusplus: true, nomen: true, regexp: true */
 /*global define: false */
 
@@ -29255,11 +29048,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
     return optimize;
 });
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
 /*
  * This file patches require.js to communicate with the build system.
  */
@@ -29782,12 +29570,6 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
         };
     };
 });
-/**
- * @license RequireJS Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint */
 /*global define: false, console: false */
 
@@ -29886,12 +29668,6 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
 
     return commonJs;
 });
-/**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*jslint plusplus: true, nomen: true, regexp: true  */
 /*global define, requirejs, java, process, console */
 
@@ -32068,13 +31844,7 @@ define('build', function (require) {
         //Do the optimizer work.
         loadLib();
 
-        /**
- * @license Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*
+        /*
  * Create a build.js file that has the build options you want and pass that
  * build file to this file to do the build. See example.build.js for more information.
  */
