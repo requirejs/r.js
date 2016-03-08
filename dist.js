@@ -1,9 +1,3 @@
-/**
- * @license Copyright (c) 2010-2013, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 /*
  * This script will create the final r.js file used in node projects to use
  * RequireJS.

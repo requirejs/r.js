@@ -93,8 +93,8 @@ All further examples will use the Node notation, but substitute the **r.js** ref
 
 Using Rhino requires some JAR files in the CLASSPATH for it to work:
 
-* [rhino.jar](https://github.com/jrburke/r.js/blob/master/lib/rhino/js.jar?raw=true) from the [Rhino project](http://www.mozilla.org/rhino/).
-* [compiler.jar](https://github.com/jrburke/r.js/blob/master/lib/closure/compiler.jar?raw=true) if you are using the optimizer and want to use
+* [rhino.jar](https://github.com/requirejs/r.js/blob/master/lib/rhino/js.jar?raw=true) from the [Rhino project](http://www.mozilla.org/rhino/).
+* [compiler.jar](https://github.com/requirejs/r.js/blob/master/lib/closure/compiler.jar?raw=true) if you are using the optimizer and want to use
 [Closure Compiler](http://code.google.com/closure/compiler/).
 
 Download those files to your machine. To run r.js, you can use this type of
@@ -122,9 +122,9 @@ To run the optimizer using a build config file or command line build options:
 
 r.js can also be used as a library in another .js file run via xpcshell.
 
-* [tests/xpcshell/run.js](https://github.com/jrburke/r.js/blob/master/tests/xpcshell/run.js):
+* [tests/xpcshell/run.js](https://github.com/requirejs/r.js/blob/master/tests/xpcshell/run.js):
 shows how to load AMD modules by using r.js as a library.
-* [tests/xpcshell/build.js](https://github.com/jrburke/r.js/blob/master/tests/xpcshell/build.js):
+* [tests/xpcshell/build.js](https://github.com/requirejs/r.js/blob/master/tests/xpcshell/build.js):
 shows how to trigger the optimizer from within another .js file.
 
 # Optimizer
@@ -195,8 +195,8 @@ git clone commands:
 
     mkdir requirejs
     cd requirejs
-    git clone git://github.com/jrburke/r.js.git
-    git clone git://github.com/jrburke/requirejs.git
+    git clone git://github.com/requirejs/r.js.git
+    git clone git://github.com/requirejs/requirejs.git
     git clone git://github.com/requirejs/text.git
 
 So there should be a sibling `requirejs` and `text` directories to the r.js

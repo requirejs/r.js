@@ -1,9 +1,3 @@
-/**
- * @license RequireJS rhino Copyright (c) 2012-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 //sloppy since eval enclosed with use strict causes problems if the source
 //text is not strict-compliant.
 /*jslint sloppy: true, evil: true */

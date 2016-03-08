@@ -425,7 +425,7 @@
     //a script to the built file, if there is no top-level require, no modules
     //will execute. specify insertRequire to have a require([]) call placed at
     //the end of the file to trigger the execution of modules. More detail at
-    //https://github.com/jrburke/almond
+    //https://github.com/requirejs/almond
     //Note that insertRequire does not affect or add to the modules that are
     //built into the build bundle. It just adds a require([]) call to the end
     //of the built file for use during the runtime execution of the built code.
@@ -626,7 +626,7 @@
     skipSemiColonInsertion: false,
 
     //Introduced in 2.1.10: if set to true, will not strip amdefine use:
-    //https://github.com/jrburke/amdefine
+    //https://github.com/requirejs/amdefine
     //Normally you should not need to set this. It is only a concern if using
     //a built .js file from some other source, that may have included amdefine
     //in the built input. If you get a build error like

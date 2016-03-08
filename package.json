@@ -1,5 +1,5 @@
 {
     "volo": {
-        "url": "https://raw.github.com/jrburke/r.js/{version}/dist/r.js"
+        "url": "https://raw.github.com/requirejs/r.js/{version}/dist/r.js"
     }
 }

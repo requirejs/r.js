@@ -1,12 +1,6 @@
-/**
- * @license RequireJS node Copyright (c) 2010-2014, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
 //Explicity not strict since this file contains an eval call, and do not want
 //to enforce strict on code evaluated that way. See
-//https://github.com/jrburke/r.js/issues/774
+//https://github.com/requirejs/r.js/issues/774
 /*jslint regexp: false, sloppy: true*/
 /*global require: false, define: false, requirejsVars: false, process: false */
 
