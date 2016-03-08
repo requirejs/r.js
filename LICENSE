@@ -39,7 +39,7 @@ CC0: http://creativecommons.org/publicdomain/zero/1.0/
 ====
 
 Files located in the node_modules directory, and certain utilities used
-to build or test the software in the test and dist directories, are
-externally maintained libraries used by this software which have their own
+to build or test the software in the tests, build/tests, env, lib directories,
+are externally maintained libraries used by this software which have their own
 licenses; we recommend you read them, as their terms may differ from the
 terms above.
