@@ -26,7 +26,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
 
     //From an esprima example for traversing its ast.
     function traverse(object, visitor) {
-        var key, child;
+        var child;
 
         if (!object) {
             return;
@@ -35,13 +35,11 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         if (visitor.call(null, object) === false) {
             return false;
         }
-        for (key in object) {
-            if (object.hasOwnProperty(key)) {
-                child = object[key];
-                if (typeof child === 'object' && child !== null) {
-                    if (traverse(child, visitor) === false) {
-                        return false;
-                    }
+        for (var i = 0, keys = Object.keys(object); i < keys.length; i++) {
+            child = object[keys[i]];
+            if (typeof child === 'object' && child !== null) {
+                if (traverse(child, visitor) === false) {
+                    return false;
                 }
             }
         }
@@ -51,7 +49,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
     //stops that subtree analysis, not the rest of tree
     //visiting.
     function traverseBroad(object, visitor) {
-        var key, child;
+        var child;
 
         if (!object) {
             return;
@@ -60,12 +58,10 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         if (visitor.call(null, object) === false) {
             return false;
         }
-        for (key in object) {
-            if (object.hasOwnProperty(key)) {
-                child = object[key];
-                if (typeof child === 'object' && child !== null) {
-                    traverseBroad(child, visitor);
-                }
+        for (var i = 0, keys = Object.keys(object); i < keys.length; i++) {
+            child = object[key];
+            if (typeof child === 'object' && child !== null) {
+                traverseBroad(child, visitor);
             }
         }
     }
@@ -212,7 +208,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         //Like traverse, but skips if branches that would not be processed
         //after has application that results in tests of true or false boolean
         //literal values.
-        var key, child, result, i, params, param, tempObject,
+        var keys, child, result, i, params, param, tempObject,
             hasHas = options && options.has;
 
         fnExpScope = fnExpScope || emptyScope;
@@ -266,14 +262,12 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 }
             }
 
-            for (key in object) {
-                if (object.hasOwnProperty(key)) {
-                    child = object[key];
-                    if (typeof child === 'object' && child !== null) {
-                        result = this.recurse(child, onMatch, options, fnExpScope);
-                        if (typeof result === 'string') {
-                            break;
-                        }
+            for (i = 0, keys = Object.keys(object); i < keys.length; i++) {
+                child = object[keys[i]];
+                if (typeof child === 'object' && child !== null) {
+                    result = this.recurse(child, onMatch, options, fnExpScope);
+                    if (typeof result === 'string') {
+                        break;
                     }
                 }
             }
