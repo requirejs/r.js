@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.22+ Tue, 08 Mar 2016 20:17:39 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.1.22+ Wed, 09 Mar 2016 20:46:27 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Tue, 08 Mar 2016 20:17:39 GMT',
+        version = '2.1.22+ Wed, 09 Mar 2016 20:46:27 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -1971,8 +1971,8 @@ var requirejs, require, define, xpcUtil;
                             each(value.depMaps, function(depMap) {
                                 if (depMap.id === data.id) {
                                     parents.push(key);
+                                    return true;
                                 }
-                                return true;
                             });
                         }
                     });
@@ -30853,7 +30853,8 @@ define('build', function (require) {
                     var out = new java.io.PrintStream(java.lang.System.out, true, 'UTF-8');
                     out.println(content);
                 } else if (e === 'node') {
-                    process.stdout.write(content, 'utf8');
+                    process.stdout.setEncoding('utf8');
+                    process.stdout.write(content);
                 } else {
                     console.log(content);
                 }
