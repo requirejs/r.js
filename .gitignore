@@ -102,6 +102,7 @@ build/tests/lib/umd/main-built.js
 build/tests/lib/umd2/built.js
 build/tests/lib/umd4/app-built.js
 build/tests/lib/umdNested/main-built.js
+build/tests/lib/umdTypeScript/main-built.js
 build/tests/lib/unicode/main-built.js
 build/tests/lib/urlToEmpty/main-built.js
 build/tests/lib/wrap/outBothArray.js

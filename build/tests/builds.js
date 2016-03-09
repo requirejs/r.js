@@ -2470,6 +2470,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Detect TypeScript style UMD wrappers
+    doh.register("umdTypeScript",
+        [
+            function umdNested(t) {
+                file.deleteFile("lib/umdTypeScript/main-built.js");
+
+                build(["lib/umdTypeScript/build.js"]);
+
+                t.is(nol(c("lib/umdTypeScript/expected.js")),
+                     nol(c("lib/umdTypeScript/main-built.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Keep parsing if a define uses an identifier, but is not part of
     //a function wrapper for UMD
     //https://github.com/requirejs/requirejs/issues/1133

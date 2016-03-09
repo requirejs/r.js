@@ -135,6 +135,12 @@ function (esprima, parse, logger, lang) {
                         //define([], ...);
                         needsId = true;
                         depAction = 'skip';
+                    } else if (firstArg.type === 'Identifier' &&
+                               firstArg.name === 'deps') {
+                        //define(deps, ...);
+                        //TypeScript UMD
+                        needsId = true;
+                        depAction = 'skip';
                     } else if (firstArg.type === 'Literal' &&
                                typeof firstArg.value === 'string') {
                         //define('string', ....)

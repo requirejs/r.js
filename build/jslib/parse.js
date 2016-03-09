@@ -105,6 +105,22 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
     }
 
     /**
+     * Detect whether the passed AST uses TypeScript UMD.
+     *
+     * @param {Node} astRoot an AST root node.
+     * @returns {Boolean}
+     */
+    function isTypeScriptUmd(astRoot) {
+        return astRoot.body.length === 1 &&
+            astRoot.body[0].type === 'ExpressionStatement' &&
+            astRoot.body[0].expression.type === 'CallExpression' &&
+            astRoot.body[0].expression.callee.type === 'FunctionExpression' &&
+            astRoot.body[0].expression.callee.params.length === 2 &&
+            astRoot.body[0].expression.callee.params[0].type === 'Identifier' &&
+            astRoot.body[0].expression.callee.params[0].name === 'deps';
+    }
+
+    /**
      * Main parse function. Returns a string of any valid require or
      * define/require.def calls as part of one JavaScript source string.
      * @param {String} moduleName the module name that represents this file.
@@ -124,12 +140,16 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         options = options || {};
 
         //Set up source input
-        var i, moduleCall, depString,
+        var i, moduleCall, depString, tsDeps,
             moduleDeps = [],
             result = '',
             moduleList = [],
             needsDefine = true,
             astRoot = esprima.parse(fileContents);
+
+        if (isTypeScriptUmd(astRoot)) {
+            tsDeps = astRoot.body[0].expression.arguments[0];
+        }
 
         parse.recurse(astRoot, function (callName, config, name, deps, node, factoryIdentifier, fnExpScope) {
             if (!deps) {
@@ -158,7 +178,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             //If define was found, no need to dive deeper, unless
             //the config explicitly wants to dig deeper.
             return !!options.findNestedDependencies;
-        }, options);
+        }, options, null, tsDeps);
 
         if (options.insertNeedsDefine && needsDefine) {
             result += 'require.needsDefine("' + moduleName + '");';
@@ -208,7 +228,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * @param {Object} [fnExpScope] holds list of function expresssion
      * argument identifiers, set up internally, not passed in
      */
-    parse.recurse = function (object, onMatch, options, fnExpScope) {
+    parse.recurse = function (object, onMatch, options, fnExpScope, tsDeps) {
         //Like traverse, but skips if branches that would not be processed
         //after has application that results in tests of true or false boolean
         //literal values.
@@ -227,13 +247,13 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 object.test.type === 'Literal') {
             if (object.test.value) {
                 //Take the if branch
-                this.recurse(object.consequent, onMatch, options, fnExpScope);
+                this.recurse(object.consequent, onMatch, options, fnExpScope, tsDeps);
             } else {
                 //Take the else branch
-                this.recurse(object.alternate, onMatch, options, fnExpScope);
+                this.recurse(object.alternate, onMatch, options, fnExpScope, tsDeps);
             }
         } else {
-            result = this.parseNode(object, onMatch, fnExpScope);
+            result = this.parseNode(object, onMatch, fnExpScope, tsDeps);
             if (result === false) {
                 return;
             } else if (typeof result === 'string') {
@@ -270,7 +290,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 if (object.hasOwnProperty(key)) {
                     child = object[key];
                     if (typeof child === 'object' && child !== null) {
-                        result = this.recurse(child, onMatch, options, fnExpScope);
+                        result = this.recurse(child, onMatch, options, fnExpScope, tsDeps);
                         if (typeof result === 'string') {
                             break;
                         }
@@ -807,7 +827,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
      * @returns {String} a JS source string with the valid require/define call.
      * Otherwise null.
      */
-    parse.parseNode = function (node, onMatch, fnExpScope) {
+    parse.parseNode = function (node, onMatch, fnExpScope, tsDeps) {
         var name, deps, cjsDeps, arg, factory, exp, refsDefine, bodyNode,
             args = node && node[argPropName],
             callName = parse.hasRequire(node),
@@ -849,6 +869,15 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 //function.
                 isUmd = true;
                 factory = name;
+                name = null;
+            } else if (tsDeps && name.type === 'Identifier' &&
+                       name.name === 'deps' && args.length === 2 &&
+                       hasProp(fnExpScope, name.name)) {
+                //define(deps, ...)
+                //TypeScript UMD
+                isUmd = true;
+                factory = deps;
+                deps = tsDeps;
                 name = null;
             } else if (name.type !== 'Literal') {
                  //An object literal, just null out
