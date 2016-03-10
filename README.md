@@ -183,6 +183,14 @@ problems supporting this kind of dynamic module calls in an async environment.
 are normally very brittle and depend on the execution order of the dependent
 modules.
 
+# License
+
+MIT
+
+# Code of Conduct
+
+[jQuery Foundation Code of Conduct](https://jquery.org/conduct/).
+
 # Directory layout
 
 ## Directory prerequisites
