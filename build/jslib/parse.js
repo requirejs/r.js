@@ -868,6 +868,9 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                         //static parsing.
                         deps = null;
                     }
+                } else if (factory && factory.type === 'Identifier') {
+                    //define('id', ['someDep'], factory)
+                    factory = null;
                 }
             }
 
