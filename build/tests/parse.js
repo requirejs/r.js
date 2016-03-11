@@ -93,6 +93,7 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                     good11 = "define([\'plug!role=\"base something\"\'], function () {});",
                     good12 = c('parse/threeDefines.js'),
                     good13 = "define('one', somevar)",
+                    good14 = "define(function test(require) {\nvar alertModal = require('c')// here the comment\n})",
                     emptyAnon1 = "define(function(){ return 'foo'; });";
 
                 t.is('define("one",["two","three"]);', parse("good1", "good1", good1));
@@ -108,6 +109,7 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                 t.is('define("good11",["plug!role=\\"base something\\""]);', parse("good11", "good11", good11));
                 t.is('define("myLib",[]);define("myLib2",[]);define("myLib3",[]);', nol(parse("good12", "good12", good12)));
                 t.is('define("one",[]);', nol(parse("good13", "good13", good13)));
+                t.is('define("good14",["require","c"]);', nol(parse("good14", "good14", good14)));
                 t.is('define("goodAnon4",["require","exports","module","c"]);', nol(parse("goodAnon4", "goodAnon4", goodAnon4)));
 
                 t.is('define("foo",[]);', parse("nested1", "nested1", nested1));
