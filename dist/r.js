@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.22+ Wed, 09 Mar 2016 21:14:35 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.1.22+ Tue, 15 Mar 2016 01:42:15 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Wed, 09 Mar 2016 21:14:35 GMT',
+        version = '2.1.22+ Tue, 15 Mar 2016 01:42:15 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -33,24 +33,7 @@ var requirejs, require, define, xpcUtil;
         console.log('See https://github.com/requirejs/r.js for usage.');
     }
 
-    if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
-            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
-        env = 'browser';
-
-        readFile = function (path) {
-            return fs.readFileSync(path, 'utf8');
-        };
-
-        exec = function (string) {
-            return eval(string);
-        };
-
-        exists = function () {
-            console.log('x.js exists not applicable in browser env');
-            return false;
-        };
-
-    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
+    if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
 
         //Get the fs module via Node's require before it
@@ -131,6 +114,23 @@ var requirejs, require, define, xpcUtil;
                 }
             };
         }
+    } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
+        env = 'browser';
+
+        readFile = function (path) {
+            return fs.readFileSync(path, 'utf8');
+        };
+
+        exec = function (string) {
+            return eval(string);
+        };
+
+        exists = function () {
+            console.log('x.js exists not applicable in browser env');
+            return false;
+        };
+
     } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
         env = 'xpconnect';
 
@@ -283,6 +283,11 @@ var requirejs, require, define, xpcUtil;
         cfg = {},
         globalDefQueue = [],
         useInteractive = false;
+
+    //Could match something like ')//comment', do not lose the prefix to comment.
+    function commentReplace(match, multi, multiText, singlePrefix) {
+        return singlePrefix || '';
+    }
 
     function isFunction(it) {
         return ostring.call(it) === '[object Function]';
@@ -1535,6 +1540,14 @@ var requirejs, require, define, xpcUtil;
                     }
                 }
 
+                // Convert old style urlArgs string to a function.
+                if (typeof cfg.urlArgs === 'string') {
+                    var urlArgs = cfg.urlArgs;
+                    cfg.urlArgs = function(id, url) {
+                        return (url.indexOf('?') === -1 ? '?' : '&') + urlArgs;
+                    };
+                }
+
                 //Save off the paths since they require special processing,
                 //they are additive.
                 var shim = config.shim,
@@ -1911,13 +1924,12 @@ var requirejs, require, define, xpcUtil;
 
                     //Join the path parts together, then figure out if baseUrl is needed.
                     url = syms.join('/');
-                    url += (ext || (/^data\:|\?/.test(url) || skipExt ? '' : '.js'));
+                    url += (ext || (/^data\:|^blob\:|\?/.test(url) || skipExt ? '' : '.js'));
                     url = (url.charAt(0) === '/' || url.match(/^[\w\+\.\-]+:/) ? '' : config.baseUrl) + url;
                 }
 
-                return config.urlArgs ? url +
-                                        ((url.indexOf('?') === -1 ? '?' : '&') +
-                                         config.urlArgs) : url;
+                return config.urlArgs && !/^blob\:/.test(url) ?
+                       url + config.urlArgs(moduleName, url) : url;
             },
 
             //Delegates to req.load. Broken out as a separate function to
@@ -2138,9 +2150,6 @@ var requirejs, require, define, xpcUtil;
         if (isBrowser) {
             //In the browser so use a script tag
             node = req.createNode(config, moduleName, url);
-            if (config.onNodeCreated) {
-                config.onNodeCreated(node, config, moduleName, url);
-            }
 
             node.setAttribute('data-requirecontext', context.contextName);
             node.setAttribute('data-requiremodule', moduleName);
@@ -2187,6 +2196,12 @@ var requirejs, require, define, xpcUtil;
                 node.addEventListener('error', context.onScriptError, false);
             }
             node.src = url;
+
+            //Calling onNodeCreated after all properties on the node have been
+            //set, but before it is placed in the DOM.
+            if (config.onNodeCreated) {
+                config.onNodeCreated(node, config, moduleName, url);
+            }
 
             //For some cache cases in IE 6-8, the script executes before the end
             //of the appendChild execution, so to tie an anonymous define
@@ -2321,7 +2336,7 @@ var requirejs, require, define, xpcUtil;
             if (callback.length) {
                 callback
                     .toString()
-                    .replace(commentRegExp, '')
+                    .replace(commentRegExp, commentReplace)
                     .replace(cjsRequireRegExp, function (match, dep) {
                         deps.push(dep);
                     });
