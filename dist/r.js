@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.22+ Tue, 15 Mar 2016 18:35:16 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.1.22+ Tue, 15 Mar 2016 21:43:09 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Tue, 15 Mar 2016 18:35:16 GMT',
+        version = '2.1.22+ Tue, 15 Mar 2016 21:43:09 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -22550,6 +22550,11 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 } else if (exp.left.object.name === 'exports' &&
                         exp.left.property) {
                     type = 'exports';
+                } else if (exp.left.object.type === 'MemberExpression' &&
+                           exp.left.object.object.name === 'module' &&
+                           exp.left.object.property.name === 'exports' &&
+                           exp.left.object.property.type === 'Identifier') {
+                    type = 'moduleExports';
                 }
 
             } else if (node && node.type === 'CallExpression' && node.callee &&
