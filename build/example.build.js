@@ -636,5 +636,10 @@
     //source code overwriting. However, use at your own risk, and be sure you
     //have your configuration set correctly. For example, you may want to
     //set "keepBuildDir" to true.
-    allowSourceOverwrites: false
+    allowSourceOverwrites: false,
+
+    //Introduced in 2.2.0. Default is true for compatibility with older
+    //releases. If set to false, r.js will not write a build.txt file in the
+    //"dir" directory when doing a full project optimization.
+    writeBuildTxt: true
 })

@@ -73,6 +73,7 @@ define(function (require) {
             optimizeAllPluginResources: false,
             findNestedDependencies: false,
             preserveLicenseComments: true,
+            writeBuildTxt: true,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp,
@@ -688,7 +689,9 @@ define(function (require) {
 
 
                 //All module layers are done, write out the build.txt file.
-                file.saveUtf8File(config.dir + "build.txt", buildFileContents);
+                if (config.writeBuildTxt) {
+                    file.saveUtf8File(config.dir + "build.txt", buildFileContents);
+                }
             }
 
             //If just have one CSS file to optimize, do that here.
