@@ -74,6 +74,8 @@ define(function (require) {
             findNestedDependencies: false,
             preserveLicenseComments: true,
             writeBuildTxt: true,
+            //Some builds can take a while, up the default limit.
+            waitSeconds: 30,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp,
