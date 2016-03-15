@@ -33,24 +33,7 @@ var requirejs, require, define, xpcUtil;
         console.log('See https://github.com/requirejs/r.js for usage.');
     }
 
-    if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
-            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
-        env = 'browser';
-
-        readFile = function (path) {
-            return fs.readFileSync(path, 'utf8');
-        };
-
-        exec = function (string) {
-            return eval(string);
-        };
-
-        exists = function () {
-            console.log('x.js exists not applicable in browser env');
-            return false;
-        };
-
-    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
+    if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
         env = 'node';
 
         //Get the fs module via Node's require before it
@@ -131,6 +114,23 @@ var requirejs, require, define, xpcUtil;
                 }
             };
         }
+    } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
+            (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
+        env = 'browser';
+
+        readFile = function (path) {
+            return fs.readFileSync(path, 'utf8');
+        };
+
+        exec = function (string) {
+            return eval(string);
+        };
+
+        exists = function () {
+            console.log('x.js exists not applicable in browser env');
+            return false;
+        };
+
     } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
         env = 'xpconnect';
 
