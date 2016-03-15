@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.22+ Tue, 15 Mar 2016 21:57:59 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.1.22+ Tue, 15 Mar 2016 23:27:47 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Tue, 15 Mar 2016 21:57:59 GMT',
+        version = '2.1.22+ Tue, 15 Mar 2016 23:27:47 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24918,6 +24918,8 @@ define('build', function (require) {
             findNestedDependencies: false,
             preserveLicenseComments: true,
             writeBuildTxt: true,
+            //Some builds can take a while, up the default limit.
+            waitSeconds: 30,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp,
@@ -24945,6 +24947,13 @@ define('build', function (require) {
         return dirName;
     }
 
+    function endsWithNewLine(text) {
+        if (text.charAt(text.length - 1) !== "\n") {
+            text += "\n";
+        }
+        return text;
+    }
+
     //Method used by plugin writeFile calls, defined up here to avoid
     //jslint warning about "making a function in a loop".
     function makeWriteFile(namespace, layer) {
@@ -24959,6 +24968,75 @@ define('build', function (require) {
         };
 
         return writeFile;
+    }
+
+    /**
+     * Appends singleContents to fileContents and returns the result.  If a sourceMapGenerator
+     * is provided, adds singleContents to the source map.
+     *
+     * @param {string} fileContents - The file contents to which to append singleContents
+     * @param {string} singleContents - The additional contents to append to fileContents
+     * @param {string} path - An absolute path of a file whose name to use in the source map.
+     * The file need not actually exist if the code in singleContents is generated.
+     * @param {{out: ?string, baseUrl: ?string}} config - The build configuration object.
+     * @param {?{_buildPath: ?string}} module - An object with module information.
+     * @param {?SourceMapGenerator} sourceMapGenerator - An instance of Mozilla's SourceMapGenerator,
+     * or null if no source map is being generated.
+     * @returns {string} fileContents with singleContents appended
+     */
+    function appendToFileContents(fileContents, singleContents, path, config, module, sourceMapGenerator) {
+        var refPath, sourceMapPath, resourcePath, pluginId, sourceMapLineNumber, lineCount, parts, i;
+        if (sourceMapGenerator) {
+            if (config.out) {
+                refPath = config.baseUrl;
+            } else if (module && module._buildPath) {
+                refPath = module._buildPath;
+            } else {
+                refPath = "";
+            }
+            parts = path.split('!');
+            if (parts.length === 1) {
+                //Not a plugin resource, fix the path
+                sourceMapPath = build.makeRelativeFilePath(refPath, path);
+            } else {
+                //Plugin resource. If it looks like just a plugin
+                //followed by a module ID, pull off the plugin
+                //and put it at the end of the name, otherwise
+                //just leave it alone.
+                pluginId = parts.shift();
+                resourcePath = parts.join('!');
+                if (resourceIsModuleIdRegExp.test(resourcePath)) {
+                    sourceMapPath = build.makeRelativeFilePath(refPath, require.toUrl(resourcePath)) +
+                                    '!' + pluginId;
+                } else {
+                    sourceMapPath = path;
+                }
+            }
+
+            sourceMapLineNumber = fileContents.split('\n').length - 1;
+            lineCount = singleContents.split('\n').length;
+            for (i = 1; i <= lineCount; i += 1) {
+                sourceMapGenerator.addMapping({
+                    generated: {
+                        line: sourceMapLineNumber + i,
+                        column: 0
+                    },
+                    original: {
+                        line: i,
+                        column: 0
+                    },
+                    source: sourceMapPath
+                });
+            }
+
+            //Store the content of the original in the source
+            //map since other transforms later like minification
+            //can mess up translating back to the original
+            //source.
+            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+        }
+        fileContents += singleContents;
+        return fileContents;
     }
 
     /**
@@ -25621,7 +25699,9 @@ define('build', function (require) {
                 "insertRequire": true,
                 "stubModules": true,
                 "deps": true,
-                "mainConfigFile": true
+                "mainConfigFile": true,
+                "wrap.startFile": true,
+                "wrap.endFile": true
             };
 
         for (i = 0; i < ary.length; i++) {
@@ -25831,22 +25911,37 @@ define('build', function (require) {
      * Converts a wrap.startFile or endFile to be start/end as a string.
      * the startFile/endFile values can be arrays.
      */
-    function flattenWrapFile(wrap, keyName, absFilePath) {
-        var keyFileName = keyName + 'File';
+    function flattenWrapFile(config, keyName, absFilePath) {
+        var wrap = config.wrap,
+            keyFileName = keyName + 'File',
+            keyMapName = '__' + keyName + 'Map';
 
         if (typeof wrap[keyName] !== 'string' && wrap[keyFileName]) {
             wrap[keyName] = '';
             if (typeof wrap[keyFileName] === 'string') {
                 wrap[keyFileName] = [wrap[keyFileName]];
             }
+            wrap[keyMapName] = [];
             wrap[keyFileName].forEach(function (fileName) {
-                wrap[keyName] += (wrap[keyName] ? '\n' : '') +
-                    file.readFile(build.makeAbsPath(fileName, absFilePath));
+                var absPath = build.makeAbsPath(fileName, absFilePath),
+                    fileText = endsWithNewLine(file.readFile(absPath));
+                wrap[keyMapName].push(function (fileContents, cfg, sourceMapGenerator) {
+                    return appendToFileContents(fileContents, fileText, absPath, cfg, null, sourceMapGenerator);
+                });
+                wrap[keyName] += fileText;
             });
         } else if (wrap[keyName] === null ||  wrap[keyName] === undefined) {
             //Allow missing one, just set to empty string.
             wrap[keyName] = '';
-        } else if (typeof wrap[keyName] !== 'string') {
+        } else if (typeof wrap[keyName] === 'string') {
+            wrap[keyName] = endsWithNewLine(wrap[keyName]);
+            wrap[keyMapName] = [
+                function (fileContents, cfg, sourceMapGenerator) {
+                    var absPath = build.makeAbsPath("config-wrap-" + keyName + "-default.js", absFilePath);
+                    return appendToFileContents(fileContents, wrap[keyName], absPath, cfg, null, sourceMapGenerator);
+                }
+            ];
+        } else {
             throw new Error('wrap.' + keyName + ' or wrap.' + keyFileName + ' malformed');
         }
     }
@@ -25858,12 +25953,27 @@ define('build', function (require) {
                 if (config.wrap === true) {
                     //Use default values.
                     config.wrap = {
-                        start: '(function () {',
-                        end: '}());'
+                        start: '(function () {\n',
+                        end: '}());',
+                        __startMap: [
+                            function (fileContents, cfg, sourceMapGenerator) {
+                                return appendToFileContents(fileContents, "(function () {\n",
+                                                            build.makeAbsPath("config-wrap-start-default.js",
+                                                                              absFilePath), cfg, null,
+                                                            sourceMapGenerator);
+                            }
+                        ],
+                        __endMap: [
+                            function (fileContents, cfg, sourceMapGenerator) {
+                                return appendToFileContents(fileContents, "}());",
+                                                            build.makeAbsPath("config-wrap-end-default.js", absFilePath),
+                                                            cfg, null, sourceMapGenerator);
+                            }
+                        ]
                     };
                 } else {
-                    flattenWrapFile(config.wrap, 'start', absFilePath);
-                    flattenWrapFile(config.wrap, 'end', absFilePath);
+                    flattenWrapFile(config, 'start', absFilePath);
+                    flattenWrapFile(config, 'end', absFilePath);
                 }
             }
         } catch (wrapError) {
@@ -26623,11 +26733,16 @@ define('build', function (require) {
             });
 
             //Write the built module to disk, and build up the build output.
-            fileContents = config.wrap ? config.wrap.start : "";
+            fileContents = "";
+            if (config.wrap && config.wrap.__startMap) {
+                config.wrap.__startMap.forEach(function (wrapFunction) {
+                    fileContents = wrapFunction(fileContents, config, sourceMapGenerator);
+                });
+            }
+
             return prim.serial(layer.buildFilePaths.map(function (path) {
                 return function () {
-                    var lineCount,
-                        singleContents = '';
+                    var singleContents = '';
 
                     moduleName = layer.buildFileToModule[path];
 
@@ -26724,9 +26839,7 @@ define('build', function (require) {
                             });
                         }
                     }).then(function () {
-                        var refPath, pluginId, resourcePath, shimDeps,
-                            sourceMapPath, sourceMapLineNumber,
-                            shortPath = path.replace(config.dir, "");
+                        var shimDeps, shortPath = path.replace(config.dir, "");
 
                         module.onCompleteData.included.push(shortPath);
                         buildFileContents += shortPath + "\n";
@@ -26773,58 +26886,14 @@ define('build', function (require) {
                         //for concatenation would cause an error otherwise.
                         singleContents += '\n';
 
-                        //Add to the source map
-                        if (sourceMapGenerator) {
-                            refPath = config.out ? config.baseUrl : module._buildPath;
-                            parts = path.split('!');
-                            if (parts.length === 1) {
-                                //Not a plugin resource, fix the path
-                                sourceMapPath = build.makeRelativeFilePath(refPath, path);
-                            } else {
-                                //Plugin resource. If it looks like just a plugin
-                                //followed by a module ID, pull off the plugin
-                                //and put it at the end of the name, otherwise
-                                //just leave it alone.
-                                pluginId = parts.shift();
-                                resourcePath = parts.join('!');
-                                if (resourceIsModuleIdRegExp.test(resourcePath)) {
-                                    sourceMapPath = build.makeRelativeFilePath(refPath, require.toUrl(resourcePath)) +
-                                                    '!' + pluginId;
-                                } else {
-                                    sourceMapPath = path;
-                                }
-                            }
-
-                            sourceMapLineNumber = fileContents.split('\n').length - 1;
-                            lineCount = singleContents.split('\n').length;
-                            for (var i = 1; i <= lineCount; i += 1) {
-                                sourceMapGenerator.addMapping({
-                                    generated: {
-                                        line: sourceMapLineNumber + i,
-                                        column: 0
-                                    },
-                                    original: {
-                                        line: i,
-                                        column: 0
-                                    },
-                                    source: sourceMapPath
-                                });
-                            }
-
-                            //Store the content of the original in the source
-                            //map since other transforms later like minification
-                            //can mess up translating back to the original
-                            //source.
-                            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
-                        }
-
-                        //Add the file to the final contents
-                        fileContents += singleContents;
+                        //Add to the source map and to the final contents
+                        fileContents = appendToFileContents(fileContents, singleContents, path, config, module,
+                                                            sourceMapGenerator);
                     });
                 };
             })).then(function () {
                 if (onLayerEnds.length) {
-                    onLayerEnds.forEach(function (builder) {
+                    onLayerEnds.forEach(function (builder, index) {
                         var path;
                         if (typeof module.out === 'string') {
                             path = module.out;
@@ -26832,7 +26901,9 @@ define('build', function (require) {
                             path = module._buildPath;
                         }
                         builder.onLayerEnd(function (input) {
-                            fileContents += "\n" + addSemiColon(input, config);
+                            fileContents =
+                                appendToFileContents(fileContents, "\n" + addSemiColon(input, config),
+                                                     'onLayerEnd' + index + '.js', config, module, sourceMapGenerator);
                         }, {
                             name: module.name,
                             path: path
@@ -26845,21 +26916,30 @@ define('build', function (require) {
                     //a module definition for it in case the
                     //built file is used with enforceDefine
                     //(#432)
-                    fileContents += '\n' + namespaceWithDot + 'define("' + module.name + '", function(){});\n';
+                    fileContents =
+                        appendToFileContents(fileContents, '\n' + namespaceWithDot + 'define("' + module.name +
+                                                           '", function(){});\n', 'module-create.js', config, module,
+                                             sourceMapGenerator);
                 }
 
                 //Add a require at the end to kick start module execution, if that
                 //was desired. Usually this is only specified when using small shim
                 //loaders like almond.
                 if (module.insertRequire) {
-                    fileContents += '\n' + namespaceWithDot + 'require(["' + module.insertRequire.join('", "') + '"]);\n';
+                    fileContents =
+                        appendToFileContents(fileContents, '\n' + namespaceWithDot + 'require(["' + module.insertRequire.join('", "') +
+                                                           '"]);\n', 'module-insertRequire.js', config, module,
+                                             sourceMapGenerator);
                 }
             });
         }).then(function () {
+            if (config.wrap && config.wrap.__endMap) {
+                config.wrap.__endMap.forEach(function (wrapFunction) {
+                    fileContents = wrapFunction(fileContents, config, sourceMapGenerator);
+                });
+            }
             return {
-                text: config.wrap ?
-                        fileContents + config.wrap.end :
-                        fileContents,
+                text: fileContents,
                 buildText: buildFileContents,
                 sourceMap: sourceMapGenerator ?
                               JSON.stringify(sourceMapGenerator.toJSON(), null, '  ') :
