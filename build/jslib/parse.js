@@ -266,7 +266,10 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 child = object[keys[i]];
                 if (typeof child === 'object' && child !== null) {
                     result = this.recurse(child, onMatch, options, fnExpScope);
-                    if (typeof result === 'string') {
+                    if (typeof result === 'string' && hasProp(fnExpScope, result)) {
+                        //The result was still in fnExpScope so break. Otherwise,
+                        //was a return from a a tree that had a UMD definition,
+                        //but now out of that scope so keep siblings.
                         break;
                     }
                 }
