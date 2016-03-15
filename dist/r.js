@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.22+ Tue, 15 Mar 2016 21:43:09 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.1.22+ Tue, 15 Mar 2016 21:57:59 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Tue, 15 Mar 2016 21:43:09 GMT',
+        version = '2.1.22+ Tue, 15 Mar 2016 21:57:59 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24917,6 +24917,7 @@ define('build', function (require) {
             optimizeAllPluginResources: false,
             findNestedDependencies: false,
             preserveLicenseComments: true,
+            writeBuildTxt: true,
             //By default, all files/directories are copied, unless
             //they match this regexp, by default just excludes .folders
             dirExclusionRegExp: file.dirExclusionRegExp,
@@ -25532,7 +25533,9 @@ define('build', function (require) {
 
 
                 //All module layers are done, write out the build.txt file.
-                file.saveUtf8File(config.dir + "build.txt", buildFileContents);
+                if (config.writeBuildTxt) {
+                    file.saveUtf8File(config.dir + "build.txt", buildFileContents);
+                }
             }
 
             //If just have one CSS file to optimize, do that here.
