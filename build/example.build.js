@@ -342,6 +342,10 @@
     //removed from the output folder.
     removeCombined: false,
 
+    //By default, when a full project is built, the optimization results are written
+    //to dir/build.txt. Set to true to not write build.txt.
+    noBuildTxt: false,
+
     //List the modules that will be optimized. All their immediate and deep
     //dependencies will be included in the module's file when the build is
     //done. If that module or any of its dependencies includes i18n bundles,
