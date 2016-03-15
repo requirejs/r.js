@@ -1260,6 +1260,16 @@ define(function (require) {
                             ' to insert in to a require([]) call.');
         }
 
+        //Support older configs with uglify2 settings, but now that uglify1 has
+        //been removed, just translate it to 'uglify' settings.
+        if (config.optimize === 'uglify2') {
+            config.optimize = 'uglify';
+        }
+        if (config.uglify2) {
+            config.uglify = config.uglify2;
+            delete config.uglify2;
+        }
+
         if (config.generateSourceMaps) {
             if (config.preserveLicenseComments && config.optimize !== 'none') {
                 throw new Error('Cannot use preserveLicenseComments and ' +
@@ -1270,7 +1280,7 @@ define(function (require) {
                     'http://requirejs.org/docs/errors.html#sourcemapcomments');
             } else if (config.optimize !== 'none' &&
                        config.optimize !== 'closure' &&
-                       config.optimize !== 'uglify2') {
+                       config.optimize !== 'uglify') {
                 //Allow optimize: none to pass, since it is useful when toggling
                 //minification on and off to debug something, and it implicitly
                 //works, since it does not need a source map.

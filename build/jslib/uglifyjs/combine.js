@@ -31,10 +31,10 @@ exportContents = exportContents.replace(/UglifyJS\./g, '');
 exportContents = exportContents.replace('exports.minify = function(files, options) {', 'exports.minify = function(files, options, name) {');
 exportContents = exportContents.replace('filename: options.fromString ? i : file,', 'filename: options.fromString ? name : file,');
 
-fs.writeFileSync(__dirname + '/../uglifyjs2.js', [
+fs.writeFileSync(__dirname + '/../uglifyjs.js', [
     pre,
     raw,
-    'AST_Node.warn_function = function(txt) { logger.error("uglifyjs2 WARN: " + txt); };',
+    'AST_Node.warn_function = function(txt) { logger.error("uglifyjs WARN: " + txt); };',
     exportContents,
     post
  ].join('\n'), 'utf8');

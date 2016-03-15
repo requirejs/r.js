@@ -2,10 +2,10 @@
 /*global define: false */
 
 define([ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
-         'pragma', 'uglifyjs/index', 'uglifyjs2',
+         'pragma', 'uglifyjs',
          'source-map'],
 function (lang,   logger,   envOptimize,        file,           parse,
-          pragma, uglify,             uglify2,
+          pragma, uglify,
           sourceMap) {
     'use strict';
 
@@ -403,40 +403,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
         optimizers: {
             uglify: function (fileName, fileContents, outFileName, keepLines, config) {
-                var parser = uglify.parser,
-                    processor = uglify.uglify,
-                    ast, errMessage, errMatch;
-
-                config = config || {};
-
-                logger.trace("Uglifying file: " + fileName);
-
-                try {
-                    ast = parser.parse(fileContents, config.strict_semicolons);
-                    if (config.no_mangle !== true) {
-                        ast = processor.ast_mangle(ast, config);
-                    }
-                    ast = processor.ast_squeeze(ast, config);
-
-                    fileContents = processor.gen_code(ast, config);
-
-                    if (config.max_line_length) {
-                        fileContents = processor.split_lines(fileContents, config.max_line_length);
-                    }
-
-                    //Add trailing semicolon to match uglifyjs command line version
-                    fileContents += ';';
-                } catch (e) {
-                    errMessage = e.toString();
-                    errMatch = /\nError(\r)?\n/.exec(errMessage);
-                    if (errMatch) {
-                        errMessage = errMessage.substring(0, errMatch.index);
-                    }
-                    throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
-                }
-                return fileContents;
-            },
-            uglify2: function (fileName, fileContents, outFileName, keepLines, config) {
                 var result, existingMap, resultMap, finalMap, sourceIndex,
                     uconfig = {},
                     existingMapPath = outFileName + '.map',
@@ -460,11 +426,11 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     }
                 }
 
-                logger.trace("Uglify2 file: " + fileName);
+                logger.trace("Uglify file: " + fileName);
 
                 try {
                     //var tempContents = fileContents.replace(/\/\/\# sourceMappingURL=.*$/, '');
-                    result = uglify2.minify(fileContents, uconfig, baseName + '.src.js');
+                    result = uglify.minify(fileContents, uconfig, baseName + '.src.js');
                     if (uconfig.outSourceMap && result.map) {
                         resultMap = result.map;
                         if (!existingMap && !config._buildSourceMap) {
@@ -482,7 +448,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                         fileContents = result.code;
                     }
                 } catch (e) {
-                    throw new Error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
+                    throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
                 return fileContents;
             }

@@ -1,16 +1,23 @@
-This is a copy of UglifyJS from:
-https://github.com/mishoo/UglifyJS
+Sets up uglifyjs for use in the optimizer.
 
-Using "1.3.4", from npm. Check github tags and npm to find the latest version.
+Current embedded version: 2.6.1, source-map 0.5.3
 
-UglifyJS is under the BSD license, and it a third-party package.
+Steps:
 
-* The contents of the package were modified to wrap the modules in a define() wrapper,
-  including listing out the separate dependencies.
-* uglify-js.js was renamed to index.js
-* The scripts in the original lib directory were just placed alongside index.js to allow for an easier path mapping.
-* index.js was modified to use the ./ path instead of the ./lib/ path.
+    ./generate.sh
 
-If UglifyJS is updated, be sure to run a Java-backed optimizer test to be sure
-it still works in that environment. Array.prototype.reduce needed to be added
-to get the existing version to work.
+Then update this file with the uglifyjs version fetched.
+
+* UPDATE VERSION NUMBERS IN X.JS
+* Confirm the `raw` array in combine.js is correct.
+
+THINGS TO CHECK:
+
+* Compare node_modules/uglify-js/tools/node.js and what
+  is put in last part of the combined file.
+* REMOVE these functions from the end:
+    * readReservedFile
+    * exports.readReservedFile,
+    * exports.readDefaultReservedFile,
+    * exports.readNameCache,
+    * exports.writeNameCache

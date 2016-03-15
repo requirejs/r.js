@@ -99,8 +99,11 @@
     //How to optimize all the JS files in the build output directory.
     //Right now only the following values
     //are supported:
-    //- "uglify": (default) uses UglifyJS to minify the code.
-    //- "uglify2": in version 2.1.2+. Uses UglifyJS2.
+    //- "uglify": (default) uses UglifyJS to minify the code. Before version
+    //2.2, the uglify version was a 1.3.x release. With r.js 2.2, it is now
+    //a 2.x uglify release.
+    //- "uglify2": in version 2.1.2+. Uses UglifyJS2. As of r.js 2.2, this
+    //is just an alias for "uglify" now that 2.2 just uses uglify 2.x.
     //- "closure": uses Google's Closure Compiler in simple optimization
     //mode to minify the code. Only available if running the optimizer using
     //Java.
@@ -153,27 +156,16 @@
 
     //If using UglifyJS for script optimization, these config options can be
     //used to pass configuration values to UglifyJS.
-    //See https://github.com/mishoo/UglifyJS for the possible values.
+    //In r.js 2.2, this is now just uglify2, so see the 'uglify2' section below
+    //for example options. For r.js pre-2.2, this was for setting uglify 1.3.x
+    //options.
     uglify: {
-        toplevel: true,
-        ascii_only: true,
-        beautify: true,
-        max_line_length: 1000,
-
-        //How to pass uglifyjs defined symbols for AST symbol replacement,
-        //see "defines" options for ast_mangle in the uglifys docs.
-        defines: {
-            DEBUG: ['name', 'false']
-        },
-
-        //Custom value supported by r.js but done differently
-        //in uglifyjs directly:
-        //Skip the processor.ast_mangle() part of the uglify call (r.js 2.0.5+)
-        no_mangle: true
     },
 
     //If using UglifyJS2 for script optimization, these config options can be
-    //used to pass configuration values to UglifyJS2.
+    //used to pass configuration values to UglifyJS2. As of r.js 2.2, UglifyJS2
+    //is the only uglify option, so the config key can just be 'uglify' for
+    //r.js 2.2+.
     //For possible `output` values see:
     //https://github.com/mishoo/UglifyJS2#beautifier-options
     //For possible `compress` values see:
@@ -454,8 +446,9 @@
     out: function (text, sourceMapText) {
         //Do what you want with the optimized text here.
         //Starting in 2.1.10, if generateSourceMaps was set to true
-        //and optimize: 'uglify2' was used, then the second argument
-        //to this function, sourceMapText, will be the text of the source map.
+        //and optimize: 'uglify2' was used ('uglify' in r.js 2.2+), then the
+        //second argument to this function, sourceMapText, will be the text of
+        //the source map.
     },
 
     //In 2.0.12+: by setting "out" to "stdout", the optimized output is written
