@@ -855,7 +855,9 @@ define(function (require) {
                 "insertRequire": true,
                 "stubModules": true,
                 "deps": true,
-                "mainConfigFile": true
+                "mainConfigFile": true,
+                "wrap.startFile": true,
+                "wrap.endFile": true
             };
 
         for (i = 0; i < ary.length; i++) {

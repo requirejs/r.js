@@ -146,6 +146,25 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    doh.register("buildOneJsFileWrappedArray",
+        [
+            function buildOneJsFileWrappedArray(t) {
+                build(["name=one", "include=dimple", "out=builds/outSingleWrapArray.js",
+                       "baseUrl=../../../requirejs/tests", "optimize=none",
+                       "wrap.startFile=support/wrap/pre1.js,support/wrap/pre2.js",
+                       "wrap.endFile=support/wrap/post1.js,support/wrap/post2.js"]);
+
+                t.is(nol("//pre1.js//pre2.js" + oneResult + "//post1.js//post2.js"),
+                     nol(c("builds/outSingleWrapArray.js")));
+
+                //Reset require internal state for the contexts so future
+                //builds in these tests will work correctly.
+                require._buildReset();
+            }
+        ]
+    );
+    doh.run();
+
     doh.register("buildOneJsFileWrappedTrue",
         [
             function buildOneJsFile(t) {
