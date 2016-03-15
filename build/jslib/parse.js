@@ -747,6 +747,11 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 } else if (exp.left.object.name === 'exports' &&
                         exp.left.property) {
                     type = 'exports';
+                } else if (exp.left.object.type === 'MemberExpression' &&
+                           exp.left.object.object.name === 'module' &&
+                           exp.left.object.property.name === 'exports' &&
+                           exp.left.object.property.type === 'Identifier') {
+                    type = 'moduleExports';
                 }
 
             } else if (node && node.type === 'CallExpression' && node.callee &&

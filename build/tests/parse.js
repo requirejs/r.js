@@ -240,6 +240,7 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                     good4 = "var a = require('a'); something(); exports.b = a;",
                     good5 = "exports.foo = function () { return something(__dirname); };",
                     good6 = "var foo = 'bar', path = __filename;",
+                    good7 = "module.exports.exec = function() {}",
 
                     bad1 = "(function(){ if (typeof define === 'function' && define.amd) { define(['some'], function (some) {}) } }());",
                     bad2 = "require(['something']);",
@@ -266,6 +267,9 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                 t.is(false, !!result.exports);
                 t.is(false, !!result.moduleExports);
 
+                result = parse.usesCommonJs("good7", good7);
+                t.is(false, !!result.exports);
+                t.is(true, result.moduleExports);
 
                 t.is(null, parse.usesCommonJs("bad1", bad1));
                 t.is(null, parse.usesCommonJs("bad2", bad2));
