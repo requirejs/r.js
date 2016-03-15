@@ -25,6 +25,47 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
         return contents.replace(/\\n|\\r/g, '');
     }
 
+    function sourcemapEquals(t, expected, actual) {
+        var expectedJson = JSON.parse(expected),
+            actualJson = JSON.parse(actual),
+            index,
+            segmentIndex,
+            expectedMappings,
+            actualMappings,
+            expectedLine,
+            actualLine;
+        t.is(expectedJson.version, actualJson.version, "version properties differ");
+        t.is(expectedJson.file, actualJson.file, "file properties differ");
+        t.is(expectedJson.sourceRoot, actualJson.sourceRoot, "sourceRoot properties differ");
+        t.is(expectedJson.sources, actualJson.sources, "sources properties differ");
+        t.is((expectedJson.sourcesContent || []).length, (actualJson.sourcesContent || []).length, "sourcesContent array lengths differ");
+        if (expectedJson.sourcesContent && actualJson.sourcesContent && expectedJson.sourcesContent.length === actualJson.sourcesContent.length) {
+            for (index = 0; index < expectedJson.sourcesContent.length; index++) {
+                t.is(noSlashRn(nol(expectedJson.sourcesContent[index])), noSlashRn(nol(actualJson.sourcesContent[index])), "sourcesContent[" + index + "] properties differ");
+            }
+        }
+        t.is(expectedJson.names, actualJson.names, "names properties differ");
+        if (typeof expectedJson.mappings === 'string' && typeof actualJson.mappings === 'string') {
+            expectedMappings = expectedJson.mappings.split(";");
+            actualMappings = actualJson.mappings.split(";");
+            t.is(expectedMappings.length, actualMappings.length, "mappings group counts differ");
+            if (expectedMappings.length === actualMappings.length) {
+                for (index = 0; index < expectedMappings.length; index++) {
+                    expectedLine = expectedMappings[index].split(",");
+                    actualLine = actualMappings[index].split(",");
+                    t.is(expectedLine.length, actualLine.length, "mapping arrays differ in segment count at group index " + index);
+                    if (expectedLine.length === actualLine.length) {
+                        for (segmentIndex = 0; segmentIndex < expectedLine.length; segmentIndex++) {
+                            t.is(expectedLine[segmentIndex], actualLine[segmentIndex], "mapping arrays differ at group index " + index + ", segment index " + segmentIndex);
+                        }
+                    }
+                }
+            }
+        } else {
+            t.is(expectedJson.mappings, actualJson.mappings, "mappings properties differ");
+        }
+    }
+
     //Do a build of the text plugin to get any pragmas processed.
     build(["name=text", "baseUrl=../../../text", "out=builds/text.js", "optimize=none"]);
 
@@ -2177,8 +2218,7 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
 
                 build(["lib/sourcemap/build.js"]);
 
-                t.is(nol(c("lib/sourcemap/expected-main.js.map")),
-                     nol(c("lib/sourcemap/www-built/js/main.js.map")));
+                sourcemapEquals(t, c("lib/sourcemap/expected-main.js.map"), c("lib/sourcemap/www-built/js/main.js.map"));
 
                 require._buildReset();
             }
@@ -2196,8 +2236,7 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
 
                 build(["lib/sourcemapSingle/build.js"]);
 
-                t.is(nol(c("lib/sourcemapSingle/expected-main-built.js.map")),
-                     nol(c("lib/sourcemapSingle/main-built.js.map")));
+                sourcemapEquals(t, c("lib/sourcemapSingle/expected-main-built.js.map"), c("lib/sourcemapSingle/main-built.js.map"));
 
                 require._buildReset();
             }
@@ -2221,8 +2260,7 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
 
                     build(["lib/sourcemap/onejs/build.js"]);
 
-                    t.is(nol(c("lib/sourcemap/onejs/expected.map")),
-                         nol(c("lib/sourcemap/onejs/www/js/built.js.map")));
+                    sourcemapEquals(t, c("lib/sourcemap/onejs/expected.map"), c("lib/sourcemap/onejs/www/js/built.js.map"));
 
                     require._buildReset();
                 }
@@ -2240,8 +2278,7 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
 
                     build(["lib/sourcemap/twojs/build.js"]);
 
-                    t.is(nol(c("lib/sourcemap/twojs/expected.map")),
-                         nol(c("lib/sourcemap/twojs/www-built/core.js.map")));
+                    sourcemapEquals(t, c("lib/sourcemap/twojs/expected.map"), c("lib/sourcemap/twojs/www-built/core.js.map"));
 
                     require._buildReset();
                 }
@@ -2734,4 +2771,24 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
         );
         doh.run();
     }
+
+    doh.register("sourcemapWrap",
+    [
+        function sourcemapWrap(t) {
+            file.deleteFile("lib/sourcemapWrap/built");
+
+            build(["lib/sourcemapWrap/build-with-wrap.js"]);
+            build(["lib/sourcemapWrap/build-without-wrap.js"]);
+
+            var withWrapMap = c("lib/sourcemapWrap/built/built-with-wrap.js.map");
+            var withoutWrapMap = c("lib/sourcemapWrap/built/built-without-wrap.js.map");
+            var withWrapObject = JSON.parse(withWrapMap);
+            var withoutWrapObject = JSON.parse(withoutWrapMap);
+
+            t.isNot(withoutWrapObject.mappings, withWrapObject.mappings, "Mappings with and without the wrapping code should differ");
+
+            require._buildReset();
+        }
+    ]);
+    doh.run();
 });
