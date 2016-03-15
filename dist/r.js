@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.22+ Tue, 15 Mar 2016 01:42:15 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.1.22+ Tue, 15 Mar 2016 04:18:25 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Tue, 15 Mar 2016 01:42:15 GMT',
+        version = '2.1.22+ Tue, 15 Mar 2016 04:18:25 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -26878,7 +26878,10 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 child = object[keys[i]];
                 if (typeof child === 'object' && child !== null) {
                     result = this.recurse(child, onMatch, options, fnExpScope);
-                    if (typeof result === 'string') {
+                    if (typeof result === 'string' && hasProp(fnExpScope, result)) {
+                        //The result was still in fnExpScope so break. Otherwise,
+                        //was a return from a a tree that had a UMD definition,
+                        //but now out of that scope so keep siblings.
                         break;
                     }
                 }
