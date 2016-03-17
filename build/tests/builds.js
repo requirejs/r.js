@@ -2810,4 +2810,23 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
         }
     ]);
     doh.run();
+
+    //Test writing bundles config.
+    //See https://github.com/requirejs/r.js/issues/613
+    doh.register("writeBundlesConfig",
+        [
+            function writeBundlesConfig(t) {
+                file.deleteFile("lib/bundlesConfig/built");
+
+                build(["lib/bundlesConfig/build.js"]);
+
+                t.is(nol(c("lib/bundlesConfig/expected.js")),
+                     nol(c("lib/bundlesConfig/built/main.js")));
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

@@ -564,16 +564,35 @@ define(function (require) {
                 }));
             }
         }).then(function () {
-            var moduleName, outOrigSourceMap;
+            var moduleName, outOrigSourceMap,
+                bundlesConfig = {},
+                bundlesConfigOutFile = config.bundlesConfigOutFile;
+
             if (modules) {
                 //Now move the build layers to their final position.
                 modules.forEach(function (module) {
-                    var finalPath = module._buildPath;
+                    var entryConfig,
+                        finalPath = module._buildPath;
+
                     if (finalPath !== 'FUNCTION') {
                         if (file.exists(finalPath)) {
                             file.deleteFile(finalPath);
                         }
                         file.renameFile(finalPath + '-temp', finalPath);
+
+                        //If bundles config should be written out, scan the
+                        //built file for module IDs. Favor doing this reparse
+                        //since tracking the IDs as the file is built has some
+                        //edge cases around files that had more than one ID in
+                        //them already, and likely loader plugin-written contents.
+                        if (bundlesConfigOutFile) {
+                            entryConfig = bundlesConfig[module.name] = [];
+                            var bundleContents = file.readFile(finalPath);
+                            var excludeMap = {};
+                            excludeMap[module.name] = true;
+                            var parsedIds = parse.getAllNamedDefines(bundleContents, excludeMap);
+                            entryConfig.push.apply(entryConfig, parsedIds);
+                        }
 
                         //And finally, if removeCombined is specified, remove
                         //any of the files that were used in this layer.
@@ -601,6 +620,24 @@ define(function (require) {
                         config.onModuleBundleComplete(module.onCompleteData);
                     }
                 });
+
+                //Write out bundles config, if it is wanted.
+                if (bundlesConfigOutFile) {
+                    var text = file.readFile(bundlesConfigOutFile);
+                    text = transform.modifyConfig(text, function (config) {
+                        if (!config.bundles) {
+                            config.bundles = {};
+                        }
+
+                        lang.eachProp(bundlesConfig, function (value, prop) {
+                            config.bundles[prop] = value;
+                        });
+
+                        return config;
+                    });
+
+                    file.saveUtf8File(bundlesConfigOutFile, text);
+                }
             }
 
             //If removeCombined in play, remove any empty directories that
@@ -1287,6 +1324,13 @@ define(function (require) {
             config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
         }
 
+        if (config.bundlesConfigOutFile) {
+            if (!config.dir) {
+                throw new Error('bundlesConfigOutFile can only be used with optimizations ' +
+                                'that use "dir".');
+            }
+            config.bundlesConfigOutFile = build.makeAbsPath(config.bundlesConfigOutFile, config.dir);
+        }
 
         //If out=stdout, write output to STDOUT instead of a file.
         if (config.out && config.out === 'stdout') {

@@ -678,6 +678,33 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
     };
 
     /**
+     * Finds all the named define module IDs in a file.
+     */
+    parse.getAllNamedDefines = function (fileContents, excludeMap) {
+        var names = [];
+        parse.recurse(esprima.parse(fileContents),
+        function (callName, config, name, deps, node, factoryIdentifier, fnExpScope) {
+            if (callName === 'define' && name) {
+                if (!excludeMap.hasOwnProperty(name)) {
+                    names.push(name);
+                }
+            }
+
+            //If a UMD definition that points to a factory that is an Identifier,
+            //indicate processing should not traverse inside the UMD definition.
+            if (callName === 'define' && factoryIdentifier && hasProp(fnExpScope, factoryIdentifier)) {
+                return factoryIdentifier;
+            }
+
+            //If define was found, no need to dive deeper, unless
+            //the config explicitly wants to dig deeper.
+            return true;
+        }, {});
+
+        return names;
+    };
+
+    /**
      * Determines if define(), require({}|[]) or requirejs was called in the
      * file. Also finds out if define() is declared and if define.amd is called.
      */

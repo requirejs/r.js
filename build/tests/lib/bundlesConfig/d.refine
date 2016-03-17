@@ -1,0 +1,6 @@
+//The refine plugin changes the word refine into define.
+refine(function (require, exports, module) {
+    return {
+        name: 'd'
+    };
+});

@@ -638,6 +638,18 @@
     //set "keepBuildDir" to true.
     allowSourceOverwrites: false,
 
+    //Introduced in 2.2.0. Path to file to write out bundles config
+    //(http://requirejs.org/docs/api.html#config-bundles) found in the module
+    //layers built by the optimizer. The path is relative to the "dir" config's
+    //path. Only applies to full project optimization:
+    //http://requirejs.org/docs/optimization.html#wholeproject
+    //Only use if the optimized layers are grouped more intricately then just
+    //a simple optimization of main app entry points. The file path specified
+    //should be to one that has the top level requirejs.config() call that sets
+    //up the loader. If using "mainConfigFile", then this path likely should be
+    //the path to that file where it is placed in the "dir" output directory.
+    bundlesConfigOutFile: 'some/path/to/main.js',
+
     //Introduced in 2.2.0. Default is true for compatibility with older
     //releases. If set to false, r.js will not write a build.txt file in the
     //"dir" directory when doing a full project optimization.
