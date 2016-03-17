@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.22+ Tue, 15 Mar 2016 23:27:47 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.1.22+ Thu, 17 Mar 2016 00:36:23 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.22+ Tue, 15 Mar 2016 23:27:47 GMT',
+        version = '2.1.22+ Thu, 17 Mar 2016 00:36:23 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -5598,6 +5598,7 @@ define('logger', ['env!env/print'], function (print) {
         }
 
         if (quote !== '') {
+            index = start;
             throwUnexpectedToken();
         }
 
@@ -7190,7 +7191,7 @@ define('logger', ['env!env/print'], function (print) {
 
                 return node.finishProperty(
                     'init', key, false,
-                    new WrappingNode(keyToken).finishAssignmentPattern(key, init), false, false);
+                    new WrappingNode(keyToken).finishAssignmentPattern(key, init), false, true);
             } else if (!match(':')) {
                 params.push(keyToken);
                 return node.finishProperty('init', key, false, key, false, true);
@@ -7725,6 +7726,9 @@ define('logger', ['env!env/print'], function (print) {
             if (!strict && state.allowYield && matchKeyword('yield')) {
                 return parseNonComputedProperty();
             }
+            if (!strict && matchKeyword('let')) {
+                return node.finishIdentifier(lex().value);
+            }
             isAssignmentTarget = isBindingElement = false;
             if (matchKeyword('function')) {
                 return parseFunctionExpression();
@@ -7735,9 +7739,6 @@ define('logger', ['env!env/print'], function (print) {
             }
             if (matchKeyword('class')) {
                 return parseClassExpression();
-            }
-            if (!strict && matchKeyword('let')) {
-                return node.finishIdentifier(lex().value);
             }
             throwUnexpectedToken(lex());
         } else if (type === Token.BooleanLiteral) {
@@ -8316,6 +8317,7 @@ define('logger', ['env!env/print'], function (print) {
 
         argument = null;
         expr = new Node();
+        delegate = false;
 
         expectKeyword('yield');
 
@@ -8521,15 +8523,15 @@ define('logger', ['env!env/print'], function (print) {
     }
 
     function parseVariableDeclarationList(options) {
-        var list = [];
+        var opt, list;
 
-        do {
-            list.push(parseVariableDeclaration({ inFor: options.inFor }));
-            if (!match(',')) {
-                break;
-            }
+        opt = { inFor: options.inFor };
+        list = [parseVariableDeclaration(opt)];
+
+        while (match(',')) {
             lex();
-        } while (startIndex < length);
+            list.push(parseVariableDeclaration(opt));
+        }
 
         return list;
     }
@@ -8572,15 +8574,12 @@ define('logger', ['env!env/print'], function (print) {
     }
 
     function parseBindingList(kind, options) {
-        var list = [];
+        var list = [parseLexicalBinding(kind, options)];
 
-        do {
-            list.push(parseLexicalBinding(kind, options));
-            if (!match(',')) {
-                break;
-            }
+        while (match(',')) {
             lex();
-        } while (startIndex < length);
+            list.push(parseLexicalBinding(kind, options));
+        }
 
         return list;
     }
@@ -9284,7 +9283,7 @@ define('logger', ['env!env/print'], function (print) {
 
     function parseFunctionSourceElements() {
         var statement, body = [], token, directive, firstRestricted,
-            oldLabelSet, oldInIteration, oldInSwitch, oldInFunctionBody, oldParenthesisCount,
+            oldLabelSet, oldInIteration, oldInSwitch, oldInFunctionBody,
             node = new Node();
 
         expect('{');
@@ -9318,13 +9317,11 @@ define('logger', ['env!env/print'], function (print) {
         oldInIteration = state.inIteration;
         oldInSwitch = state.inSwitch;
         oldInFunctionBody = state.inFunctionBody;
-        oldParenthesisCount = state.parenthesizedCount;
 
         state.labelSet = {};
         state.inIteration = false;
         state.inSwitch = false;
         state.inFunctionBody = true;
-        state.parenthesizedCount = 0;
 
         while (startIndex < length) {
             if (match('}')) {
@@ -9339,7 +9336,6 @@ define('logger', ['env!env/print'], function (print) {
         state.inIteration = oldInIteration;
         state.inSwitch = oldInSwitch;
         state.inFunctionBody = oldInFunctionBody;
-        state.parenthesizedCount = oldParenthesisCount;
 
         return node.finishBlockStatement(body);
     }
@@ -10173,7 +10169,7 @@ define('logger', ['env!env/print'], function (print) {
     }
 
     // Sync with *.json manifests.
-    exports.version = '2.7.0';
+    exports.version = '2.7.2';
 
     exports.tokenize = tokenize;
 
@@ -22481,6 +22477,33 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
     };
 
     /**
+     * Finds all the named define module IDs in a file.
+     */
+    parse.getAllNamedDefines = function (fileContents, excludeMap) {
+        var names = [];
+        parse.recurse(esprima.parse(fileContents),
+        function (callName, config, name, deps, node, factoryIdentifier, fnExpScope) {
+            if (callName === 'define' && name) {
+                if (!excludeMap.hasOwnProperty(name)) {
+                    names.push(name);
+                }
+            }
+
+            //If a UMD definition that points to a factory that is an Identifier,
+            //indicate processing should not traverse inside the UMD definition.
+            if (callName === 'define' && factoryIdentifier && hasProp(fnExpScope, factoryIdentifier)) {
+                return factoryIdentifier;
+            }
+
+            //If define was found, no need to dive deeper, unless
+            //the config explicitly wants to dig deeper.
+            return true;
+        }, {});
+
+        return names;
+    };
+
+    /**
      * Determines if define(), require({}|[]) or requirejs was called in the
      * file. Also finds out if define() is declared and if define.amd is called.
      */
@@ -25408,16 +25431,35 @@ define('build', function (require) {
                 }));
             }
         }).then(function () {
-            var moduleName, outOrigSourceMap;
+            var moduleName, outOrigSourceMap,
+                bundlesConfig = {},
+                bundlesConfigOutFile = config.bundlesConfigOutFile;
+
             if (modules) {
                 //Now move the build layers to their final position.
                 modules.forEach(function (module) {
-                    var finalPath = module._buildPath;
+                    var entryConfig,
+                        finalPath = module._buildPath;
+
                     if (finalPath !== 'FUNCTION') {
                         if (file.exists(finalPath)) {
                             file.deleteFile(finalPath);
                         }
                         file.renameFile(finalPath + '-temp', finalPath);
+
+                        //If bundles config should be written out, scan the
+                        //built file for module IDs. Favor doing this reparse
+                        //since tracking the IDs as the file is built has some
+                        //edge cases around files that had more than one ID in
+                        //them already, and likely loader plugin-written contents.
+                        if (bundlesConfigOutFile) {
+                            entryConfig = bundlesConfig[module.name] = [];
+                            var bundleContents = file.readFile(finalPath);
+                            var excludeMap = {};
+                            excludeMap[module.name] = true;
+                            var parsedIds = parse.getAllNamedDefines(bundleContents, excludeMap);
+                            entryConfig.push.apply(entryConfig, parsedIds);
+                        }
 
                         //And finally, if removeCombined is specified, remove
                         //any of the files that were used in this layer.
@@ -25445,6 +25487,24 @@ define('build', function (require) {
                         config.onModuleBundleComplete(module.onCompleteData);
                     }
                 });
+
+                //Write out bundles config, if it is wanted.
+                if (bundlesConfigOutFile) {
+                    var text = file.readFile(bundlesConfigOutFile);
+                    text = transform.modifyConfig(text, function (config) {
+                        if (!config.bundles) {
+                            config.bundles = {};
+                        }
+
+                        lang.eachProp(bundlesConfig, function (value, prop) {
+                            config.bundles[prop] = value;
+                        });
+
+                        return config;
+                    });
+
+                    file.saveUtf8File(bundlesConfigOutFile, text);
+                }
             }
 
             //If removeCombined in play, remove any empty directories that
@@ -26131,6 +26191,13 @@ define('build', function (require) {
             config.dirBaseUrl = endsWithSlash(config.dirBaseUrl);
         }
 
+        if (config.bundlesConfigOutFile) {
+            if (!config.dir) {
+                throw new Error('bundlesConfigOutFile can only be used with optimizations ' +
+                                'that use "dir".');
+            }
+            config.bundlesConfigOutFile = build.makeAbsPath(config.bundlesConfigOutFile, config.dir);
+        }
 
         //If out=stdout, write output to STDOUT instead of a file.
         if (config.out && config.out === 'stdout') {
