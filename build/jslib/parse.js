@@ -127,6 +127,21 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             needsDefine = true,
             astRoot = esprima.parse(fileContents);
 
+        // Escape escape sequence in string literal for generating code on the fly
+        var escapeString = function (str) { 
+            return str.replace(/\\/g, "\\\\");
+        };
+
+        // Assemble define call with specified modulename and dependency string 
+        var makeDefineExpression = function (moduleName, depString) {
+            return 'define("' + escapeString(moduleName) + '",' + depString + ');';
+        };
+
+        // Assemble require.needsDefine expression with specified modulename
+        var makeRequireNeedsDefine = function (moduleName) {
+            return 'require.needsDefine("' + escapeString(moduleName) + '");';
+        };
+
         parse.recurse(astRoot, function (callName, config, name, deps, node, factoryIdentifier, fnExpScope) {
             if (!deps) {
                 deps = [];
@@ -157,7 +172,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         }, options);
 
         if (options.insertNeedsDefine && needsDefine) {
-            result += 'require.needsDefine("' + moduleName + '");';
+            result += makeRequireNeedsDefine(moduleName);
         }
 
         if (moduleDeps.length || moduleList.length) {
@@ -176,15 +191,14 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 }
 
                 depString = arrayToString(moduleCall.deps);
-                result += 'define("' + moduleCall.name + '",' +
-                          depString + ');';
+                result += makeDefineExpression(moduleCall.name, depString);
             }
             if (moduleDeps.length) {
                 if (result) {
                     result += '\n';
                 }
                 depString = arrayToString(moduleDeps);
-                result += 'define("' + moduleName + '",' + depString + ');';
+                result += makeDefineExpression(moduleName, depString);
             }
         }
 
