@@ -49,6 +49,7 @@ define(['parse', 'env!env/file', 'env'], function (parse, file, env) {
                 t.is('define("good2",["one","two"]);', parse("good2", "good2", good2));
                 t.is('define("good3",["one","two"]);', parse("good3", "good3", good3));
                 t.is('define("good4",["one","two"]);', parse("good4", "good4", good4));
+                t.is('define("a\\\\b\\\\c",["one","two"]);', parse("a\\b\\c", "good1", good1));
                 t.is('define("bad1",["me"]);', parse("bad1", "bad1", bad1));
                 t.is(null, parse("bad2", "bad2", bad2));
             }
