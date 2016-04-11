@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.2.0 Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.2.0 Mon, 11 Apr 2016 19:28:16 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.2.0',
+        version = '2.2.0 Mon, 11 Apr 2016 19:28:16 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -21921,6 +21921,21 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
             needsDefine = true,
             astRoot = esprima.parse(fileContents);
 
+        // Escape escape sequence in string literal for generating code on the fly
+        var escapeString = function (str) {
+            return str.replace(/\\/g, "\\\\");
+        };
+
+        // Assemble define call with specified modulename and dependency string
+        var makeDefineExpression = function (moduleName, depString) {
+            return 'define("' + escapeString(moduleName) + '",' + depString + ');';
+        };
+
+        // Assemble require.needsDefine expression with specified modulename
+        var makeRequireNeedsDefine = function (moduleName) {
+            return 'require.needsDefine("' + escapeString(moduleName) + '");';
+        };
+
         parse.recurse(astRoot, function (callName, config, name, deps, node, factoryIdentifier, fnExpScope) {
             if (!deps) {
                 deps = [];
@@ -21951,7 +21966,7 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
         }, options);
 
         if (options.insertNeedsDefine && needsDefine) {
-            result += 'require.needsDefine("' + moduleName + '");';
+            result += makeRequireNeedsDefine(moduleName);
         }
 
         if (moduleDeps.length || moduleList.length) {
@@ -21970,15 +21985,14 @@ define('parse', ['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 }
 
                 depString = arrayToString(moduleCall.deps);
-                result += 'define("' + moduleCall.name + '",' +
-                          depString + ');';
+                result += makeDefineExpression(moduleCall.name, depString);
             }
             if (moduleDeps.length) {
                 if (result) {
                     result += '\n';
                 }
                 depString = arrayToString(moduleDeps);
-                result += 'define("' + moduleName + '",' + depString + ');';
+                result += makeDefineExpression(moduleName, depString);
             }
         }
 
