@@ -128,11 +128,11 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             astRoot = esprima.parse(fileContents);
 
         // Escape escape sequence in string literal for generating code on the fly
-        var escapeString = function (str) { 
+        var escapeString = function (str) {
             return str.replace(/\\/g, "\\\\");
         };
 
-        // Assemble define call with specified modulename and dependency string 
+        // Assemble define call with specified modulename and dependency string
         var makeDefineExpression = function (moduleName, depString) {
             return 'define("' + escapeString(moduleName) + '",' + depString + ');';
         };
