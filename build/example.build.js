@@ -43,6 +43,8 @@
     //Useful to map module names that are to resources on a CDN or other
     //http: URL when running in the browser and during an optimization that
     //file should be skipped because it has no dependencies.
+    //e.g. if you wish to include `jquery` and `angularjs` from public CDNs,
+    //paths: { "jquery": "empty:", "angular": "empty:" }
     paths: {
         "foo.bar": "../scripts/foo/bar",
         "baz": "../another/path/baz"
