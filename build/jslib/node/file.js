@@ -128,7 +128,7 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
                     } else if (stat.isDirectory() &&
                               (!file.exclusionRegExp || !file.exclusionRegExp.test(fileName))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
-                        files.push.apply(files, dirFiles);
+                        files = files.concat(dirFiles);
                     }
                 }
             }
