@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.2.0 Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.2.0+ Tue, 12 Jul 2016 03:17:23 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.2.0',
+        version = '2.2.0+ Tue, 12 Jul 2016 03:17:23 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -3569,7 +3569,11 @@ define('node/file', ['fs', 'path', 'prim'], function (fs, path, prim) {
                     } else if (stat.isDirectory() &&
                               (!file.exclusionRegExp || !file.exclusionRegExp.test(fileName))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
-                        files.push.apply(files, dirFiles);
+                        //Do not use push.apply for dir listings, can hit limit of max number
+                        //of arguments to a function call, #921.
+                        dirFiles.forEach(function (dirFile) {
+                            files.push(dirFile);
+                        });
                     }
                 }
             }
@@ -3838,7 +3842,11 @@ define('rhino/file', ['prim'], function (prim) {
                     } else if (fileObj.isDirectory() &&
                               (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.getName()))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
-                        files.push.apply(files, dirFiles);
+                        //Do not use push.apply for dir listings, can hit limit of max number
+                        //of arguments to a function call, #921.
+                        dirFiles.forEach(function (dirFile) {
+                            files.push(dirFile);
+                        });
                     }
                 }
             }
@@ -4145,7 +4153,11 @@ define('xpconnect/file', ['prim'], function (prim) {
                     } else if (fileObj.isDirectory() &&
                               (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.leafName))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
-                        files.push.apply(files, dirFiles);
+                        //Do not use push.apply for dir listings, can hit limit of max number
+                        //of arguments to a function call, #921.
+                        dirFiles.forEach(function (dirFile) {
+                            files.push(dirFile);
+                        });
                     }
                 }
             }
