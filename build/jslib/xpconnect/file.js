@@ -105,7 +105,11 @@ define(['prim'], function (prim) {
                     } else if (fileObj.isDirectory() &&
                               (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.leafName))) {
                         dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
-                        files.push.apply(files, dirFiles);
+                        //Do not use push.apply for dir listings, can hit limit of max number
+                        //of arguments to a function call, #921.
+                        dirFiles.forEach(function (dirFile) {
+                            files.push(dirFile);
+                        });
                     }
                 }
             }

@@ -128,7 +128,11 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
                     } else if (stat.isDirectory() &&
                               (!file.exclusionRegExp || !file.exclusionRegExp.test(fileName))) {
                         dirFiles = this.getFilteredFileList(filePath, regExpFilters, makeUnixPaths);
-                        files.push.apply(files, dirFiles);
+                        //Do not use push.apply for dir listings, can hit limit of max number
+                        //of arguments to a function call, #921.
+                        dirFiles.forEach(function (dirFile) {
+                            files.push(dirFile);
+                        });
                     }
                 }
             }
