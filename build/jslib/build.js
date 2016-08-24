@@ -1428,10 +1428,10 @@ define(function (require) {
         }
 
         if (config.generateSourceMaps) {
-            if (config.preserveLicenseComments && !(config.optimize === 'none' || config.optimize === 'uglify2')) {
+            if (config.preserveLicenseComments && !(config.optimize === 'none' || config.optimize === 'uglify')) {
                 throw new Error('Cannot use preserveLicenseComments and ' +
                     'generateSourceMaps together, unless optimize is set ' +
-                    'to \'uglify2\'. Either explicitly set preserveLicenseComments ' +
+                    'to \'uglify\'. Either explicitly set preserveLicenseComments ' +
                     'to false (default is true) or turn off generateSourceMaps. ' +
                     'If you want source maps with license comments, see: ' +
                     'http://requirejs.org/docs/errors.html#sourcemapcomments');
