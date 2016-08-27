@@ -1428,12 +1428,12 @@ define(function (require) {
         }
 
         if (config.generateSourceMaps) {
-            if (config.preserveLicenseComments && config.optimize !== 'none') {
+            if (config.preserveLicenseComments && !(config.optimize === 'none' || config.optimize === 'uglify')) {
                 throw new Error('Cannot use preserveLicenseComments and ' +
-                    'generateSourceMaps together. Either explcitly set ' +
-                    'preserveLicenseComments to false (default is true) or ' +
-                    'turn off generateSourceMaps. If you want source maps with ' +
-                    'license comments, see: ' +
+                    'generateSourceMaps together, unless optimize is set ' +
+                    'to \'uglify\'. Either explicitly set preserveLicenseComments ' +
+                    'to false (default is true) or turn off generateSourceMaps. ' +
+                    'If you want source maps with license comments, see: ' +
                     'http://requirejs.org/docs/errors.html#sourcemapcomments');
             } else if (config.optimize !== 'none' &&
                        config.optimize !== 'closure' &&
