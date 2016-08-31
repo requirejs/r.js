@@ -1,6 +1,6 @@
 Sets up uglifyjs for use in the optimizer.
 
-Current embedded version: 2.6.1, source-map 0.5.3
+Current embedded version: 2.7.3, source-map 0.5.6
 
 Steps:
 
@@ -21,3 +21,4 @@ THINGS TO CHECK:
     * exports.readDefaultReservedFile,
     * exports.readNameCache,
     * exports.writeNameCache
+    * exports.simple_glob
