@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.2.0+ Sun, 04 Sep 2016 06:25:31 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.0 Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.2.0+ Sun, 04 Sep 2016 06:25:31 GMT',
+        version = '2.3.0',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -248,8 +248,8 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.2.0 Copyright jQuery Foundation and other contributors.
- * Released under MIT license, http://github.com/requirejs/requirejs/LICENSE
+ * @license RequireJS 2.3.0 Copyright jQuery Foundation and other contributors.
+ * Released under MIT license, https://github.com/requirejs/requirejs/blob/master/LICENSE
  */
 //Not using strict: uneven strict support in browsers, #392, and causes
 //problems with requirejs.exec()/transpiler plugins that may not be strict.
@@ -257,11 +257,11 @@ var requirejs, require, define, xpcUtil;
 /*global window, navigator, document, importScripts, setTimeout, opera */
 
 
-(function (global) {
+(function (global, setTimeout) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.2.0',
-        commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
+        version = '2.3.0',
+        commentRegExp = /\/\*[\s\S]*?\*\/|([^:"'=]|^)\/\/.*$/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
         currDirRegExp = /^\.\//,
@@ -285,7 +285,7 @@ var requirejs, require, define, xpcUtil;
         useInteractive = false;
 
     //Could match something like ')//comment', do not lose the prefix to comment.
-    function commentReplace(match, multi, multiText, singlePrefix) {
+    function commentReplace(match, singlePrefix) {
         return singlePrefix || '';
     }
 
@@ -2388,7 +2388,7 @@ var requirejs, require, define, xpcUtil;
 
     //Set up with config info.
     req(cfg);
-}(this));
+}(this, setTimeout));
 
 
 
