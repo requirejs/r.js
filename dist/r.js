@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.2.0+ Wed, 31 Aug 2016 05:56:23 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.2.0+ Sun, 04 Sep 2016 06:25:31 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.2.0+ Wed, 31 Aug 2016 05:56:23 GMT',
+        version = '2.2.0+ Sun, 04 Sep 2016 06:25:31 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -26019,7 +26019,8 @@ define('build', function (require) {
                                                 '. Stopping, config is malformed.');
                             }
 
-                            if (!module.create) {
+                            // Copy the file, but only if it is not provided in rawText.
+                            if (!module.create && (!config.rawText || !lang.hasProp(config.rawText, module.name))) {
                                 file.copyFile(module._sourcePath, module._buildPath);
                             }
                         }
