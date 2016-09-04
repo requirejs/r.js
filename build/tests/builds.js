@@ -2327,6 +2327,30 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Allow whole project config where a module entry's name is provided
+    // via rawText instead of being on disk.
+    // https://github.com/requirejs/r.js/issues/919
+    doh.register("rawTextNameWholeProject",
+        [
+            function rawTextNameWholeProject(t) {
+
+                file.deleteFile("lib/rawTextNameWholeProject/built");
+
+                build(["lib/rawTextNameWholeProject/www/app.build.js"]);
+
+                t.is(nol(c("lib/rawTextNameWholeProject/expected-main.js")),
+                     nol(c("lib/rawTextNameWholeProject/www-built/js/main.js")));
+                t.is(nol(c("lib/rawTextNameWholeProject/expected-b.js")),
+                     nol(c("lib/rawTextNameWholeProject/www-built/js/b.js")));
+
+                require._buildReset();
+
+            }
+
+        ]
+    );
+    doh.run();
+
     //Allow skipping semicolon insertion
     //https://github.com/requirejs/r.js/issues/506
     doh.register("semicolonInsert",

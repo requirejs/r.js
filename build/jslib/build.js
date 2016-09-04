@@ -442,7 +442,8 @@ define(function (require) {
                                                 '. Stopping, config is malformed.');
                             }
 
-                            if (!module.create) {
+                            // Copy the file, but only if it is not provided in rawText.
+                            if (!module.create && (!config.rawText || !lang.hasProp(config.rawText, module.name))) {
                                 file.copyFile(module._sourcePath, module._buildPath);
                             }
                         }

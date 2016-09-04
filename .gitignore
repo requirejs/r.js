@@ -81,6 +81,7 @@ build/tests/lib/pristineSrc/built
 build/tests/lib/rawText/built.js
 build/tests/lib/rawTextLongId/built.js
 build/tests/lib/rawTextNameTarget/a-built.js
+build/tests/lib/rawTextNameWholeProject/www-built
 build/tests/lib/removeCombined/app-built
 build/tests/lib/removeCombined/baseUrl-built
 build/tests/lib/removeCombinedPaths/testcase/project/build/build_output
