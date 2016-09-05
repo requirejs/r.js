@@ -9075,7 +9075,7 @@ exports.minify = function(files, options, name) {
     if (options.spidermonkey) {
         toplevel = AST_Node.from_mozilla_ast(files);
     } else {
-        function addFile(file, fileUrl) {
+        var addFile = function(file, fileUrl) {
             var code = options.fromString
                 ? file
                 : rjsFile.readFile(file, "utf8");
