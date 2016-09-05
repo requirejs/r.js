@@ -31,6 +31,11 @@ exportContents = exportContents.replace(/UglifyJS\./g, '');
 exportContents = exportContents.replace('exports.minify = function(files, options) {', 'exports.minify = function(files, options, name) {');
 exportContents = exportContents.replace('filename: options.fromString ? i : file,', 'filename: options.fromString ? name : file,');
 
+// Node 0.10/0.12 do not like the addFile function declaration with the "use strict"
+// that is used near that declaration, but not at the top of the file.
+// https://github.com/requirejs/r.js/pull/929
+exportContents = exportContents.replace(/function addFile\(/, 'var addFile = function(');
+
 fs.writeFileSync(__dirname + '/../uglifyjs.js', [
     pre,
     raw,
