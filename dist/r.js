@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.3.1 Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.1+ Fri, 16 Sep 2016 03:08:07 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.3.1',
+        version = '2.3.1+ Fri, 16 Sep 2016 03:08:07 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -248,7 +248,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.3.1 Copyright jQuery Foundation and other contributors.
+ * @license RequireJS 2.3.1+ Copyright jQuery Foundation and other contributors.
  * Released under MIT license, https://github.com/requirejs/requirejs/blob/master/LICENSE
  */
 //Not using strict: uneven strict support in browsers, #392, and causes
@@ -260,7 +260,7 @@ var requirejs, require, define, xpcUtil;
 (function (global, setTimeout) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.3.1',
+        version = '2.3.1+',
         commentRegExp = /\/\*[\s\S]*?\*\/|([^:"'=]|^)\/\/.*$/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -2388,7 +2388,7 @@ var requirejs, require, define, xpcUtil;
 
     //Set up with config info.
     req(cfg);
-}(this, setTimeout));
+}(this, (typeof setTimeout === 'undefined' ? undefined : setTimeout)));
 
 
 
