@@ -2853,4 +2853,22 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Test build with file that has no newlines just carriage returns.
+    //See https://github.com/requirejs/r.js/issues/924
+    doh.register("carriageReturn",
+        [
+            function carriageReturn(t) {
+                file.deleteFile("lib/carriageReturn/built.js");
+
+                build(["lib/carriageReturn/build.js"]);
+
+                t.is(nol(c("lib/carriageReturn/expected.js")),
+                     nol(c("lib/carriageReturn/built.js")));
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
 });

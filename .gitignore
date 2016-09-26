@@ -8,6 +8,7 @@ build/tests/lib/anonUmdInteriorModules/main-built.js
 build/tests/lib/appDirSrcOverwrite/www-built
 build/tests/lib/arrow/main-built.js
 build/tests/lib/bundlesConfig/built
+build/tests/lib/carriageReturn/built.js
 build/tests/lib/cjsTranslate/www-built
 build/tests/lib/closureExterns/built
 build/tests/lib/comments/built.js

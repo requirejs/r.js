@@ -217,6 +217,17 @@ function (esprima, parse, logger, lang) {
                 //start.line is 1-based, not 0 based.
                 lineIndex = loc.start.line - 1,
                 line = contentLines[lineIndex];
+
+                if (!line) {
+                    //In rare cases, file contains just \r instead of \r\n, so
+                    //adjust the contentLines and try again.
+                    //https://github.com/requirejs/r.js/issues/924
+                    if (contents.indexOf('\r') !== -1) {
+                        contentLines = contents.split('\r');
+                    }
+                    line = contentLines[lineIndex];
+                }
+
                 contentLines[lineIndex] = line.substring(0, startIndex) +
                                            contentInsertion +
                                            line.substring(startIndex,
