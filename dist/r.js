@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.3.2+ Mon, 26 Sep 2016 05:58:05 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.2+ Sat, 01 Oct 2016 23:40:33 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.3.2+ Mon, 26 Sep 2016 05:58:05 GMT',
+        version = '2.3.2+ Sat, 01 Oct 2016 23:40:33 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -23789,17 +23789,6 @@ function (esprima, parse, logger, lang) {
                 //start.line is 1-based, not 0 based.
                 lineIndex = loc.start.line - 1,
                 line = contentLines[lineIndex];
-
-                if (!line) {
-                    //In rare cases, file contains just \r instead of \r\n, so
-                    //adjust the contentLines and try again.
-                    //https://github.com/requirejs/r.js/issues/924
-                    if (contents.indexOf('\r') !== -1) {
-                        contentLines = contents.split('\r');
-                    }
-                    line = contentLines[lineIndex];
-                }
-
                 contentLines[lineIndex] = line.substring(0, startIndex) +
                                            contentInsertion +
                                            line.substring(startIndex,
