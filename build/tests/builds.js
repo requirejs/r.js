@@ -2853,4 +2853,21 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Support mangleProperties in uglify config.
+    //See https://github.com/requirejs/r.js/issues/943
+    doh.register("uglifyMangleProperties",
+        [
+            function writeBundlesConfig(t) {
+                file.deleteFile("lib/uglifyMangleProperties/main-built.js");
+
+                build(["lib/uglifyMangleProperties/build.js"]);
+
+                t.is(nol(c("lib/uglifyMangleProperties/expected.js")),
+                     nol(c("lib/uglifyMangleProperties/main-built.js")));
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
 });

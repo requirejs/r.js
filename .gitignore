@@ -101,6 +101,7 @@ build/tests/lib/stubModules/main-built.js
 build/tests/lib/stubModules/perModule/built
 build/tests/lib/transportBeforeMinify/www-built
 build/tests/lib/typescriptConfig/main-built.js
+build/tests/lib/uglifyMangleProperties/main-built.js
 build/tests/lib/umd/main-built.js
 build/tests/lib/umd2/built.js
 build/tests/lib/umd4/app-built.js
