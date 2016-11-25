@@ -1341,8 +1341,7 @@ define(function (require) {
                     var out = new java.io.PrintStream(java.lang.System.out, true, 'UTF-8');
                     out.println(content);
                 } else if (e === 'node') {
-                    process.stdout.setEncoding('utf8');
-                    process.stdout.write(content);
+                    process.stdout.write(content, 'utf8');
                 } else {
                     console.log(content);
                 }
