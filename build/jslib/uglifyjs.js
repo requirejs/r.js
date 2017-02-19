@@ -116,6 +116,8 @@ function merge(obj, ext) {
 };
 
 function noop() {};
+function return_false() { return false; }
+function return_true() { return true; }
 
 var MAP = (function(){
     function MAP(a, f, backwards) {
@@ -3830,6 +3832,20 @@ AST_Toplevel.DEFMETHOD("scope_warnings", function(options){
 
 var EXPECT_DIRECTIVE = /^$|[;{][\s\n]*$/;
 
+function is_some_comments(comment) {
+    var text = comment.value;
+    var type = comment.type;
+    if (type == "comment2") {
+        // multiline comment
+        return /@preserve|@license|@cc_on/i.test(text);
+    }
+    return type == "comment5";
+}
+
+function is_comment5(comment) {
+    return comment.type == "comment5";
+}
+
 function OutputStream(options) {
 
     options = defaults(options, {
@@ -3853,50 +3869,34 @@ function OutputStream(options) {
         preamble         : null,
         quote_style      : 0,
         keep_quoted_props: false,
-        wrap_iife        : false
+        wrap_iife        : false,
     }, true);
 
     // Convert comment option to RegExp if neccessary and set up comments filter
-    if (typeof options.comments === "string" && /^\/.*\/[a-zA-Z]*$/.test(options.comments)) {
-        var regex_pos = options.comments.lastIndexOf("/");
-        options.comments = new RegExp(
-            options.comments.substr(1, regex_pos - 1),
-            options.comments.substr(regex_pos + 1)
-        );
-    }
-    if (options.comments instanceof RegExp) {
-        options.comments = (function(f) {
-            return function(comment) {
-                return comment.type == "comment5" || f.test(comment.value);
-            }
-        })(options.comments);
-    }
-    else if (typeof options.comments === "function") {
-        options.comments = (function(f) {
-            return function(comment) {
-                return comment.type == "comment5" || f(this, comment);
-            }
-        })(options.comments);
-    }
-    else if (options.comments === "some") {
-        options.comments = function(comment) {
-            var text = comment.value;
-            var type = comment.type;
-            if (type == "comment2") {
-                // multiline comment
-                return /@preserve|@license|@cc_on/i.test(text);
-            }
-            return type == "comment5";
+    var comment_filter = options.shebang ? is_comment5 : return_false; // Default case, throw all comments away except shebangs
+    if (options.comments) {
+        var comments = options.comments;
+        if (typeof options.comments === "string" && /^\/.*\/[a-zA-Z]*$/.test(options.comments)) {
+            var regex_pos = options.comments.lastIndexOf("/");
+            comments = new RegExp(
+                options.comments.substr(1, regex_pos - 1),
+                options.comments.substr(regex_pos + 1)
+            );
         }
-    }
-    else if (options.comments){ // NOTE includes "all" option
-        options.comments = function() {
-            return true;
+        if (comments instanceof RegExp) {
+            comment_filter = function(comment) {
+                return comment.type == "comment5" || comments.test(comment.value);
+            };
         }
-    } else {
-        // Falsy case, so reject all comments, except shebangs
-        options.comments = function(comment) {
-            return comment.type == "comment5";
+        else if (typeof comments === "function") {
+            comment_filter = function(comment) {
+                return comment.type == "comment5" || comments(this, comment);
+            };
+        }
+        else if (comments === "some") {
+            comment_filter = is_some_comments;
+        } else { // NOTE includes "all" option
+            comment_filter = return_true;
         }
     }
 
@@ -4206,6 +4206,7 @@ function OutputStream(options) {
         with_square     : with_square,
         add_mapping     : add_mapping,
         option          : function(opt) { return options[opt] },
+        comment_filter  : comment_filter,
         line            : function() { return current_line },
         col             : function() { return current_col },
         pos             : function() { return current_pos },
@@ -4288,7 +4289,7 @@ function OutputStream(options) {
                 }));
             }
 
-            comments = comments.filter(output.option("comments"), self);
+            comments = comments.filter(output.comment_filter, self);
 
             // Keep single line comments after nlb, after nlb
             if (!output.option("beautify") && comments.length > 0 &&
@@ -6161,7 +6162,7 @@ merge(Compressor.prototype, {
     (function (def){
         var unary_bool = [ "!", "delete" ];
         var binary_bool = [ "in", "instanceof", "==", "!=", "===", "!==", "<", "<=", ">=", ">" ];
-        def(AST_Node, function(){ return false });
+        def(AST_Node, return_false);
         def(AST_UnaryPrefix, function(){
             return member(this.operator, unary_bool);
         });
@@ -6179,16 +6180,16 @@ merge(Compressor.prototype, {
         def(AST_Seq, function(){
             return this.cdr.is_boolean();
         });
-        def(AST_True, function(){ return true });
-        def(AST_False, function(){ return true });
+        def(AST_True, return_true);
+        def(AST_False, return_true);
     })(function(node, func){
         node.DEFMETHOD("is_boolean", func);
     });
 
     // methods to determine if an expression has a string result type
     (function (def){
-        def(AST_Node, function(){ return false });
-        def(AST_String, function(){ return true });
+        def(AST_Node, return_false);
+        def(AST_String, return_true);
         def(AST_UnaryPrefix, function(){
             return this.operator == "typeof";
         });
@@ -6442,11 +6443,11 @@ merge(Compressor.prototype, {
 
     // determine if expression has side effects
     (function(def){
-        def(AST_Node, function(compressor){ return true });
+        def(AST_Node, return_true);
 
-        def(AST_EmptyStatement, function(compressor){ return false });
-        def(AST_Constant, function(compressor){ return false });
-        def(AST_This, function(compressor){ return false });
+        def(AST_EmptyStatement, return_false);
+        def(AST_Constant, return_false);
+        def(AST_This, return_false);
 
         def(AST_Call, function(compressor){
             var pure = compressor.option("pure_funcs");
@@ -6466,13 +6467,13 @@ merge(Compressor.prototype, {
         def(AST_SimpleStatement, function(compressor){
             return this.body.has_side_effects(compressor);
         });
-        def(AST_Defun, function(compressor){ return true });
-        def(AST_Function, function(compressor){ return false });
+        def(AST_Defun, return_true);
+        def(AST_Function, return_false);
         def(AST_Binary, function(compressor){
             return this.left.has_side_effects(compressor)
                 || this.right.has_side_effects(compressor);
         });
-        def(AST_Assign, function(compressor){ return true });
+        def(AST_Assign, return_true);
         def(AST_Conditional, function(compressor){
             return this.condition.has_side_effects(compressor)
                 || this.consequent.has_side_effects(compressor)
@@ -8235,7 +8236,7 @@ function SourceMap(options) {
     var orig_map = options.orig && new MOZ_SourceMap.SourceMapConsumer(options.orig);
 
     if (orig_map && Array.isArray(options.orig.sources)) {
-        options.orig.sources.forEach(function(source) {
+        orig_map._sources.toArray().forEach(function(source) {
             var sourceContent = orig_map.sourceContentFor(source, true);
             if (sourceContent) {
                 generator.setSourceContent(source, sourceContent);
@@ -8949,7 +8950,8 @@ function mangle_properties(ast, options) {
         cache : null,
         only_cache : false,
         regex : null,
-        ignore_quoted : false
+        ignore_quoted : false,
+        debug : false
     });
 
     var reserved = options.reserved;
@@ -8966,6 +8968,15 @@ function mangle_properties(ast, options) {
 
     var regex = options.regex;
     var ignore_quoted = options.ignore_quoted;
+
+    // note debug is either false (disabled), or a string of the debug suffix to use (enabled).
+    // note debug may be enabled as an empty string, which is falsey. Also treat passing 'true'
+    // the same as passing an empty string.
+    var debug = (options.debug !== false);
+    var debug_name_suffix;
+    if (debug) {
+        debug_name_suffix = (options.debug === true ? "" : options.debug);
+    }
 
     var names_to_mangle = [];
     var unmangleable = [];
@@ -9060,9 +9071,25 @@ function mangle_properties(ast, options) {
 
         var mangled = cache.props.get(name);
         if (!mangled) {
-            do {
-                mangled = base54(++cache.cname);
-            } while (!can_mangle(mangled));
+            if (debug) {
+                // debug mode: use a prefix and suffix to preserve readability, e.g. o.foo -> o._$foo$NNN_.
+                var debug_mangled = "_$" + name + "$" + debug_name_suffix + "_";
+
+                if (can_mangle(debug_mangled) && !(ignore_quoted && debug_mangled in ignored)) {
+                    mangled = debug_mangled;
+                }
+            }
+
+            // either debug mode is off, or it is on and we could not use the mangled name
+            if (!mangled) {
+                // note can_mangle() does not check if the name collides with the 'ignored' set
+                // (filled with quoted properties when ignore_quoted set). Make sure we add this
+                // check so we don't collide with a quoted name.
+                do {
+                    mangled = base54(++cache.cname);
+                } while (!can_mangle(mangled) || (ignore_quoted && mangled in ignored));
+            }
+
             cache.props.set(name, mangled);
         }
         return mangled;
@@ -9117,6 +9144,7 @@ exports.minify = function(files, options, name) {
     options = defaults(options, {
         spidermonkey     : false,
         outSourceMap     : null,
+        outFileName      : null,
         sourceRoot       : null,
         inSourceMap      : null,
         sourceMapUrl     : null,
@@ -9196,7 +9224,8 @@ exports.minify = function(files, options, name) {
     }
     if (options.outSourceMap || options.sourceMapInline) {
         output.source_map = SourceMap({
-            file: options.outSourceMap,
+            // prefer outFileName, otherwise use outSourceMap without .map suffix
+            file: options.outFileName || (typeof options.outSourceMap === 'string' ? options.outSourceMap.replace(/\.map$/i, '') : null),
             orig: inMap,
             root: options.sourceRoot
         });
@@ -9283,7 +9312,7 @@ exports.describe_ast = function() {
     return out + "";
 };
 
-exports.readNameCache = function(filename, key) {
+var readNameCache = function(filename, key) {
     var cache = null;
     if (filename) {
         try {
@@ -9300,9 +9329,8 @@ exports.readNameCache = function(filename, key) {
     }
     return cache;
 };
-var readNameCache = exports.readNameCache;
 
-exports.writeNameCache = function(filename, key, cache) {
+var writeNameCache = function(filename, key, cache) {
     if (filename) {
         var data;
         try {
@@ -9318,7 +9346,6 @@ exports.writeNameCache = function(filename, key, cache) {
         fs.writeFileSync(filename, JSON.stringify(data, null, 2), "utf8");
     }
 };
-var writeNameCache = exports.writeNameCache;
 
 
 });

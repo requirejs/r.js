@@ -1,6 +1,6 @@
 Sets up uglifyjs for use in the optimizer.
 
-Current embedded version: 2.7.4, source-map 0.5.6
+Current embedded version: 2.7.5, source-map 0.5.6
 
 Steps:
 
