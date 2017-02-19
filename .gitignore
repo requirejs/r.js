@@ -69,6 +69,7 @@ build/tests/lib/packages/main-built.js
 build/tests/lib/packagesNode/main-built.js
 build/tests/lib/pathsNoCopy/js-built
 build/tests/lib/pluginBuilder/main-built.js
+build/tests/lib/pluginBuildUndef/out.js
 build/tests/lib/pluginDepExec/main-built.js
 build/tests/lib/pluginShimDep/main-built.js
 build/tests/lib/plugins/main-built.js

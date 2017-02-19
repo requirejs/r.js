@@ -370,7 +370,8 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                         lang.each(depMaps, lang.bind(this, function (depMap) {
                             if (typeof depMap === 'string') {
                                 depMap = context.makeModuleMap(depMap,
-                                               (this.map.isDefine ? this.map : this.map.parentMap));
+                                               (this.map.isDefine ? this.map : this.map.parentMap),
+                                               false, true);
                             }
 
                             if (!context.fullExec[depMap.id]) {

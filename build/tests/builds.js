@@ -1860,6 +1860,26 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    // When undefining a plugin to re-execute for full build execution, make
+    // sure its dependency undefs consider map config.
+    // https://github.com/requirejs/r.js/issues/944
+    doh.register("pluginBuildUndef",
+        [
+            function pluginFirstWithDeps(t) {
+                file.deleteFile("lib/pluginBuildUndef/out.js");
+
+                build(["lib/pluginBuildUndef/build.js"]);
+
+                t.is(nol(c("lib/pluginBuildUndef/expected.js")),
+                     nol(c("lib/pluginBuildUndef/out.js")));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     //Make sure plugin dependencies that need normalization run in a build.
     //https://github.com/requirejs/r.js/issues/648
     doh.register("pluginDepExec",
@@ -2870,4 +2890,5 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
         ]
     );
     doh.run();
+
 });
