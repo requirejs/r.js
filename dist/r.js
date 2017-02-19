@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.3.2+ Sun, 19 Feb 2017 00:43:50 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.2+ Sun, 19 Feb 2017 04:01:40 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.3.2+ Sun, 19 Feb 2017 00:43:50 GMT',
+        version = '2.3.2+ Sun, 19 Feb 2017 04:01:40 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -26117,7 +26117,8 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                         lang.each(depMaps, lang.bind(this, function (depMap) {
                             if (typeof depMap === 'string') {
                                 depMap = context.makeModuleMap(depMap,
-                                               (this.map.isDefine ? this.map : this.map.parentMap));
+                                               (this.map.isDefine ? this.map : this.map.parentMap),
+                                               false, true);
                             }
 
                             if (!context.fullExec[depMap.id]) {
