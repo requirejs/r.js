@@ -54,9 +54,14 @@ define(function (require) {
             d.resolve(require._cachedRawText[path]);
             return d.promise;
         } else {
-            return file.readFileAsync(path, encoding).then(function (text) {
-                require._cachedRawText[path] = text;
-                return text;
+            d = prim();
+            var beforeFileRead = require.s.contexts._.config.beforeFileRead;
+            d.resolve(beforeFileRead ? beforeFileRead(path, encoding) : undefined);
+            return d.promise.then(function (text) {
+                return typeof text !== 'undefined' ? text : file.readFileAsync(path, encoding).then(function (text) {
+                    require._cachedRawText[path] = text;
+                    return text;
+                });
             });
         }
     };
