@@ -543,6 +543,17 @@ define(function (require) {
                                 }
                             });
                         }
+                        if (module.excludeSpecific) {
+                            //module.excludeSpecific is a function, called for each remaining
+                            //dependency at any level, and if it returns a truthy value, the
+                            //dependency is removed.
+                            module.layer.buildFilePaths.slice(0).forEach(function (path) {
+                                var map = module.layer.buildFileToModule;
+                                if (module.excludeSpecific(path, map[path])) {
+                                    build.removeModulePath(map[file], path, module.layer);
+                                }
+                            });
+                        }
 
                         //Flatten them and collect the build output for each module.
                         return build.flattenModule(module, module.layer, config).then(function (builtModule) {
