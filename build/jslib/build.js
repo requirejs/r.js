@@ -54,9 +54,14 @@ define(function (require) {
             d.resolve(require._cachedRawText[path]);
             return d.promise;
         } else {
-            return file.readFileAsync(path, encoding).then(function (text) {
-                require._cachedRawText[path] = text;
-                return text;
+            d = prim();
+            var beforeFileRead = require.s.contexts._.config.beforeFileRead;
+            d.resolve(beforeFileRead ? beforeFileRead(path, encoding) : undefined);
+            return d.promise.then(function (text) {
+                return typeof text !== 'undefined' ? text : file.readFileAsync(path, encoding).then(function (text) {
+                    require._cachedRawText[path] = text;
+                    return text;
+                });
             });
         }
     };
@@ -535,6 +540,17 @@ define(function (require) {
                                 var path = getOwn(module.layer.buildPathMap, excludeShallowModule);
                                 if (path) {
                                     build.removeModulePath(excludeShallowModule, path, module.layer);
+                                }
+                            });
+                        }
+                        if (module.excludeSpecific) {
+                            //module.excludeSpecific is a function, called for each remaining
+                            //dependency at any level, and if it returns a truthy value, the
+                            //dependency is removed.
+                            module.layer.buildFilePaths.slice(0).forEach(function (path) {
+                                var map = module.layer.buildFileToModule;
+                                if (module.excludeSpecific(path, map[path])) {
+                                    build.removeModulePath(map[file], path, module.layer);
                                 }
                             });
                         }
