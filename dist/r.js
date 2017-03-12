@@ -27258,6 +27258,7 @@ define('build', function (require) {
     build.convertArrayToObject = function (ary) {
         var result = {}, i, separatorIndex, prop, value,
             needArray = {
+                "deps": true,
                 "include": true,
                 "exclude": true,
                 "excludeShallow": true,
