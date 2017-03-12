@@ -44,7 +44,9 @@ define(['parse', 'logger'], function (parse, logger) {
             return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '$1');
         },
 
-        namespace: function (fileContents, ns, onLifecycleName) {
+        namespace: function (fileContents, config, onLifecycleName) {
+            var ns = config.namespace,
+                namespaceWrapLocals = config.namespaceWrapLocals ? config.namespaceWrapLocals + "\n" : '';
             if (ns) {
                 //Namespace require/define calls
                 fileContents = fileContents.replace(pragma.configRegExp, '$1' + ns + '.$2$3(');
@@ -87,6 +89,7 @@ define(['parse', 'logger'], function (parse, logger) {
                     //to contain the API globals.
                     fileContents = "var " + ns + ";(function () { if (!" + ns + " || !" + ns + ".requirejs) {\n" +
                                     "if (!" + ns + ") { " + ns + ' = {}; } else { require = ' + ns + '; }\n' +
+                                    namespaceWrapLocals +
                                     fileContents +
                                     "\n" +
                                     ns + ".requirejs = requirejs;" +
@@ -256,7 +259,7 @@ define(['parse', 'logger'], function (parse, logger) {
 
             //Do namespacing
             if (onLifecycleName === 'OnSave' && config.namespace) {
-                fileContents = pragma.namespace(fileContents, config.namespace, onLifecycleName);
+                fileContents = pragma.namespace(fileContents, config, onLifecycleName);
             }
 
 
