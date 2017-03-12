@@ -125,7 +125,8 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             result = '',
             moduleList = [],
             needsDefine = true,
-            astRoot = esprima.parse(fileContents);
+            astRoot = esprima.parse(fileContents),
+            forwardSlashRegexp = /\\/g; //used to replace windows style paths
 
         parse.recurse(astRoot, function (callName, config, name, deps, node, factoryIdentifier, fnExpScope) {
             if (!deps) {
@@ -157,7 +158,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
         }, options);
 
         if (options.insertNeedsDefine && needsDefine) {
-            result += 'require.needsDefine("' + moduleName + '");';
+            result += 'require.needsDefine("' + moduleName.replace(forwardSlashRegexp, '\\\\') + '");';
         }
 
         if (moduleDeps.length || moduleList.length) {
@@ -176,7 +177,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                 }
 
                 depString = arrayToString(moduleCall.deps);
-                result += 'define("' + moduleCall.name + '",' +
+                result += 'define("' + moduleCall.name.replace(forwardSlashRegexp, '\\\\') + '",' +
                           depString + ');';
             }
             if (moduleDeps.length) {
@@ -184,7 +185,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
                     result += '\n';
                 }
                 depString = arrayToString(moduleDeps);
-                result += 'define("' + moduleName + '",' + depString + ');';
+                result += 'define("' + moduleName.replace(forwardSlashRegexp, '\\\\') + '",' + depString + ');';
             }
         }
 
