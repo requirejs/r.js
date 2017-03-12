@@ -416,6 +416,15 @@ function (lang,   logger,   envOptimize,        file,           parse,
 
                 config = config || {};
 
+                uconfig.output = {
+                    comments = function(node, comment) {
+                        //More or less same functionality as closure compiler,
+                        //would be set by uglify.js' command line tool if --comments is set
+                        //see https://github.com/mishoo/UglifyJS2/blob/master/bin/uglifyjs
+                        return comment.type === "comment2" && /@preserve|@license|@cc_on/i.test(comment.value);
+                    };
+                };
+
                 lang.mixin(uconfig, config, true);
 
                 uconfig.fromString = true;
