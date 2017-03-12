@@ -25,7 +25,7 @@ define(['parse', 'logger'], function (parse, logger) {
 
     var pragma = {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
-        useStrictRegExp: /(^|[^{]\r?\n)['"]use strict['"];/g,
+        useStrictRegExp: /['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
         configRegExp: /(^|[^\.])(requirejs|require)(\.config)\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
@@ -41,7 +41,7 @@ define(['parse', 'logger'], function (parse, logger) {
         amdefineRegExp: /if\s*\(\s*typeof define\s*\!==\s*['"]function['"]\s*\)\s*\{\s*[^\{\}]+amdefine[^\{\}]+\}/g,
 
         removeStrict: function (contents, config) {
-            return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '$1');
+            return config.useStrict ? contents : contents.replace(pragma.useStrictRegExp, '');
         },
 
         namespace: function (fileContents, ns, onLifecycleName) {
