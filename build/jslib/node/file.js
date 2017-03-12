@@ -1,7 +1,7 @@
 /*jslint plusplus: false, octal:false, strict: false */
 /*global define: false, process: false */
 
-define(['fs', 'path', 'prim'], function (fs, path, prim) {
+define(['fs', 'path', 'prim', 'http', 'url'], function (fs, path, prim, http, url) {
 
     var isWindows = process.platform === 'win32',
         windowsDriveRegExp = /^[a-zA-Z]\:\/$/,
@@ -63,7 +63,11 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
             parts.pop();
             return parts.join('/');
         },
-
+		
+		is_url : function(path) {
+			return path.indexOf('//') === 0 || path.indexOf("http://") === 0 || path.indexOf("https://") === 0;
+		},
+		
         /**
          * Gets the absolute file path as a string, normalized
          * to using front slashes for path separators.
@@ -78,10 +82,16 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
         },
 
         isFile: function (path) {
+        	if (this.is_url(path)) {
+        		return true;
+        	}
             return fs.statSync(path).isFile();
         },
 
         isDirectory: function (path) {
+        	if (this.is_url(path)) {
+        		return false;
+        	}
             return fs.statSync(path).isDirectory();
         },
 
@@ -224,7 +234,38 @@ define(['fs', 'path', 'prim'], function (fs, path, prim) {
         readFileAsync: function (path, encoding) {
             var d = prim();
             try {
-                d.resolve(file.readFile(path, encoding));
+            	if (this.is_url(path)) {
+            		if (path.indexOf("//") === 0) {
+            			path = "http:" + path;
+            		}
+            		var options = url.parse(path);
+            		options.method = 'GET';
+            		
+            		var r = http.request(options, function(res) {
+            			res.setEncoding(encoding);
+            			if (res.statusCode > 400) {
+            				d.reject(new Error('Status: ' + res.statusCode));
+            			}
+            			else {
+            				var text = "";
+            				res.on('data', function(chunk) {
+            					text += chunk;
+            				})
+            				.on('end', function() {
+            					console.log("Fetched " + path);
+            					d.resolve(text);
+            				});
+            			}
+            		})
+            		.on('error', function(e) {
+            			console.log("error " + e + " fetching " + path);
+            			d.reject(e);
+            		});
+            		r.end();
+            	}
+            	else {
+                	d.resolve(file.readFile(path, encoding));
+                }
             } catch (e) {
                 d.reject(e);
             }
