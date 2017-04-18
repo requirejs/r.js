@@ -120,7 +120,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 //If it is not a relative path, then the readFile below will fail,
                 //and we will just skip that import.
                 var fullImportFileName = importFileName.charAt(0) === "/" ? importFileName : filePath + importFileName,
-                    importContents = file.readFile(fullImportFileName),
+                    importContents = file.readFile(fullImportFileName.split('?')[0]),
                     importEndIndex, importPath, flat;
 
                 //Skip the file if it has already been included.
