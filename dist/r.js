@@ -667,6 +667,7 @@ var requirejs, require, define, xpcUtil;
                 prefix = null,
                 parentName = parentModuleMap ? parentModuleMap.name : null,
                 originalName = name,
+                originalPrefix = prefix, 
                 isDefine = true,
                 normalizedName = '';
 
@@ -738,6 +739,7 @@ var requirejs, require, define, xpcUtil;
                 unnormalized: !!suffix,
                 url: url,
                 originalName: originalName,
+                originalPrefix: originalPrefix,
                 isDefine: isDefine,
                 id: (prefix ?
                         prefix + '!' + normalizedName :
@@ -1194,8 +1196,7 @@ var requirejs, require, define, xpcUtil;
             callPlugin: function () {
                 var map = this.map,
                     id = map.id,
-                    //Map already normalized the prefix.
-                    pluginMap = makeModuleMap(map.prefix);
+                    pluginMap = makeModuleMap(map.originalPrefix);
 
                 //Mark this as a dependency for this plugin, so it
                 //can be traced for cycles.
