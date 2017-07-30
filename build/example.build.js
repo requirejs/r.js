@@ -98,12 +98,13 @@
     //will be included in a build layer regardless of locale being set.
     locale: "en-us",
 
-    //How to optimize all the JS files in the build output directory.
+    //How to optimize (minify) all the JS files in the build output directory.
     //Right now only the following values
     //are supported:
     //- "uglify": (default) uses UglifyJS to minify the code. Before version
     //2.2, the uglify version was a 1.3.x release. With r.js 2.2, it is now
-    //a 2.x uglify release.
+    //a 2.x uglify release. Only supports ES5 syntax. For ES 2015 or later, use
+    //the "none" option instead.
     //- "uglify2": in version 2.1.2+. Uses UglifyJS2. As of r.js 2.2, this
     //is just an alias for "uglify" now that 2.2 just uses uglify 2.x.
     //- "closure": uses Google's Closure Compiler in simple optimization
@@ -111,7 +112,10 @@
     //Java.
     //- "closure.keepLines": Same as closure option, but keeps line returns
     //in the minified files.
-    //- "none": no minification will be done.
+    //- "none": no minification will be done. Use this setting if you are using
+    //ES 2015 or later syntax in your files, since the bundled UglifyJS only
+    //understands ES5 and earlier syntax. For ES2015 code, run a compliant
+    // minifier as a separate step after running r.js.
     optimize: "uglify",
 
     //Introduced in 2.1.2: If using "dir" for an output directory, normally the
