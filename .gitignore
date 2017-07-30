@@ -97,6 +97,8 @@ build/tests/lib/sourcemap/onejs/www/js/built.js
 build/tests/lib/sourcemap/onejs/www/js/built.js.map
 build/tests/lib/sourcemap/twojs/www-built
 build/tests/lib/sourcemapWrap/built
+build/tests/lib/sourcemapComments/main-built.js
+build/tests/lib/sourcemapComments/main-built.js.map
 build/tests/lib/stubModules/create/foobar-built.js
 build/tests/lib/stubModules/main-built.js
 build/tests/lib/stubModules/perModule/built
