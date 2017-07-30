@@ -2284,6 +2284,26 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
     );
     doh.run();
 
+    //Test a single file with optimize, preserve license comments, and source maps
+    doh.register("sourcemapComments",
+        [
+            function sourcemapComments(t) {
+                file.deleteFile("lib/sourcemapComments/main-built.js");
+                file.deleteFile("lib/sourcemapComments/main-built.js.map");
+
+                build(["lib/sourcemapComments/build.js"]);
+
+                t.is(nol(c("lib/sourcemapComments/expected-main-built.js")),
+                     nol(c("lib/sourcemapComments/main-built.js")));
+                sourcemapEquals(t, c("lib/sourcemapComments/expected-main-built.js.map"), c("lib/sourcemapComments/main-built.js.map"));
+
+                require._buildReset();
+            }
+
+        ]
+    );
+    doh.run();
+
     // The output in rhino is slightly different, but enough to cause the
     // text compare to fail. So just disabling it for now. Long term,
     // a fancier sourcemap diff checking would be nice.

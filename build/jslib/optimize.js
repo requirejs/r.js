@@ -461,7 +461,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 } catch (e) {
                     throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
-                return preamble + fileContents;
+                return fileContents;
             }
         }
     };
