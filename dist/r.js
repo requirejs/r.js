@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.3.4 Fri, 21 Jul 2017 05:43:59 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.4+ Sun, 30 Jul 2017 21:55:10 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.3.4 Fri, 21 Jul 2017 05:43:59 GMT',
+        version = '2.3.4+ Sun, 30 Jul 2017 21:55:10 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -25991,7 +25991,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 var result, existingMap, resultMap, finalMap, sourceIndex,
                     uconfig = {},
                     existingMapPath = outFileName + '.map',
-                    preamble = config.preamble || "",
                     baseName = fileName && fileName.split('/').pop();
 
                 config = config || {};
@@ -26041,7 +26040,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 } catch (e) {
                     throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
-                return preamble + fileContents;
+                return fileContents;
             }
         }
     };

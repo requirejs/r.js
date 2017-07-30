@@ -27,7 +27,7 @@ exec('node dist.js',
                 }
             );
 
-            fs.writeFile(distFileName, contents, 'utf8');
+            fs.writeFileSync(distFileName, contents, 'utf8');
         }
     }
 );
