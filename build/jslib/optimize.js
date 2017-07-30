@@ -411,7 +411,6 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 var result, existingMap, resultMap, finalMap, sourceIndex,
                     uconfig = {},
                     existingMapPath = outFileName + '.map',
-                    preamble = config.preamble || "",
                     baseName = fileName && fileName.split('/').pop();
 
                 config = config || {};
