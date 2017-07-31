@@ -4,7 +4,7 @@ rm -rf ./temp
 mkdir temp
 cd temp
 mkdir node_modules
-npm install uglify-js
+npm install uglify-js@2.8.29
 node_modules/.bin/uglifyjs --self -b -o raw.js
 
 node ../combine.js

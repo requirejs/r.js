@@ -1,5 +1,5 @@
 /*jslint node: true, nomen: true */
-var exportContents,
+var exportContents, exportIndex,
     fs = require('fs'),
     path = require('path'),
     pkgDir = path.join(__dirname, 'temp', 'node_modules', 'uglify-js'),
@@ -14,19 +14,21 @@ var exportContents,
         "compress.js",
         "sourcemap.js",
         "mozilla-ast.js",
-        "propmangle.js"
+        "propmangle.js",
+        "../tools/exports.js"
     ].map(function (filePath) {
         return fs.readFileSync(path.join(pkgDir, 'lib', filePath), 'utf8');
     }).join('\n'),
     post = fs.readFileSync(__dirname + '/post.txt', 'utf8'),
 
-    toolContents = fs.readFileSync(path.join(pkgDir, 'tools', 'node.js'), 'utf8'),
-    exportIndex = toolContents.indexOf('exports.minify =');
+    toolContents = fs.readFileSync(path.join(pkgDir, 'tools', 'node.js'), 'utf8');
+
+exportContents = toolContents.replace(/UglifyJS\./g, 'exports.');
 
 // Modify some things for the embedding:
-exportContents = toolContents.substring(exportIndex).replace(/fs\.readFileSync/g, 'rjsFile.readFile');
+exportContents = exportContents.replace(/fs\.readFileSync/g, 'rjsFile.readFile');
+exportContents = exportContents.replace(/fs\.writeFileSync/g, 'rjsFile.writeFile');
 
-exportContents = exportContents.replace(/UglifyJS\./g, '');
 
 exportContents = exportContents.replace('exports.minify = function(files, options) {', 'exports.minify = function(files, options, name) {');
 exportContents = exportContents.replace('filename: options.fromString ? i : file,', 'filename: options.fromString ? name : file,');

@@ -1,6 +1,6 @@
 Sets up uglifyjs for use in the optimizer.
 
-Current embedded version: 2.7.5, source-map 0.5.6
+Current embedded version: 2.8.29, source-map 0.5.6
 
 Steps:
 
@@ -20,3 +20,34 @@ THINGS TO CHECK:
     * exports.readReservedFile,
     * exports.readDefaultReservedFile,
     * exports.simple_glob
+
+REMOVE this section:
+
+```javascript
+    var path = require("path");
+    var fs = require("fs");
+
+    var UglifyJS = exports;
+    var FILES = exports.FILES = [
+        "../lib/utils.js",
+        "../lib/ast.js",
+        "../lib/parse.js",
+        "../lib/transform.js",
+        "../lib/scope.js",
+        "../lib/output.js",
+        "../lib/compress.js",
+        "../lib/sourcemap.js",
+        "../lib/mozilla-ast.js",
+        "../lib/propmangle.js",
+        "./exports.js",
+    ].map(function(file){
+        return require.resolve(file);
+    });
+
+    new Function("MOZ_SourceMap", "exports", FILES.map(function(file){
+        return rjsFile.readFile(file, "utf8");
+    }).join("\n\n"))(
+        require("source-map"),
+        UglifyJS
+    );
+```
