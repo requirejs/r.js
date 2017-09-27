@@ -102,12 +102,12 @@ command:
 
 ### OS X/Linux/Unix:
 
-    java -classpath path/to/rhino/js.jar:path/to/closure/compiler.jar org.mozilla.javascript.tools.shell.Main r.js main.js
+    java -classpath path/to/rhino/js.jar:path/to/closure/compiler.jar org.mozilla.javascript.tools.shell.Main -opt -1 r.js main.js
 
 ### Windows
 
-    java -classpath path/to/rhino/js.jar;path/to/closure/compiler.jar org.mozilla.javascript.tools.shell.Main r.js main.js
-
+    java -classpath path/to/rhino/js.jar;path/to/closure/compiler.jar org.mozilla.javascript.tools.shell.Main -opt -1 r.js main.js
+s
 If you want to run it in the debugger, replace
 org.mozilla.javascript.tools.shell.Main with
 **org.mozilla.javascript.tools.debugger.Main**.
