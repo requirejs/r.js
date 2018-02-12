@@ -24,6 +24,16 @@ THINGS TO CHECK:
 REMOVE this section:
 
 ```javascript
+// workaround for tty output truncation upon process.exit()
+[process.stdout, process.stderr].forEach(function(stream){
+    if (stream._handle && stream._handle.setBlocking)
+        stream._handle.setBlocking(true);
+});
+```
+
+ALSO REMOVE this section:
+
+```javascript
     var path = require("path");
     var fs = require("fs");
 

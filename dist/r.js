@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.3.5 Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.5 Mon, 12 Feb 2018 00:23:55 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.3.5',
+        version = '2.3.5+ Mon, 12 Feb 2018 00:23:55 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -24656,11 +24656,6 @@ exports["is_identifier"] = is_identifier;
 exports["SymbolDef"] = SymbolDef;
 
 AST_Node.warn_function = function(txt) { logger.error("uglifyjs WARN: " + txt); };
-// workaround for tty output truncation upon process.exit()
-[process.stdout, process.stderr].forEach(function(stream){
-    if (stream._handle && stream._handle.setBlocking)
-        stream._handle.setBlocking(true);
-});
 
 exports.AST_Node.warn_function = function(txt) {
     console.error("WARN: %s", txt);

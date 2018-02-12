@@ -10416,11 +10416,6 @@ exports["is_identifier"] = is_identifier;
 exports["SymbolDef"] = SymbolDef;
 
 AST_Node.warn_function = function(txt) { logger.error("uglifyjs WARN: " + txt); };
-// workaround for tty output truncation upon process.exit()
-[process.stdout, process.stderr].forEach(function(stream){
-    if (stream._handle && stream._handle.setBlocking)
-        stream._handle.setBlocking(true);
-});
 
 exports.AST_Node.warn_function = function(txt) {
     console.error("WARN: %s", txt);
