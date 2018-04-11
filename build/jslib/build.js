@@ -862,7 +862,8 @@ define(function (require) {
         uglify2: true,
         closure: true,
         map: true,
-        throwWhen: true
+        throwWhen: true,
+        rawText: true
     };
 
     build.hasDotPropMatch = function (prop) {
