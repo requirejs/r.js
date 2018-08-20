@@ -30010,6 +30010,8 @@ define('build', function (require) {
                                         singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
                                 };
+                                //Add the layer name to the writeApi so builders know which layer is being built.
+                                writeApi.layerName = module.name;
                                 builder.write(parts.prefix, parts.name, writeApi);
                             }
                             return;
