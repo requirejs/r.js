@@ -48,7 +48,7 @@ define('plug',['converter'], function (converter) {
 });
 
 
-define('plug!shouldbeuppercasetext', function () { /* name: main path: main-built.js */ return 'SHOULDBEUPPERCASETEXT';});
+define('plug!shouldbeuppercasetext', function () { /* name: plug path: main-builtPluginFirst.js */ return 'SHOULDBEUPPERCASETEXT';});
 
 require(['plug', 'converter', 'plug!shouldbeuppercasetext'],
 function (plug,   converter,   text) {

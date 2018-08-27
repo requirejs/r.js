@@ -866,7 +866,7 @@ define(['build', 'env!env/file', 'env', 'lang'], function (build, file, env, lan
 
                 build(["lib/plugins/buildPluginFirst.js"]);
 
-                t.is(nol(c("lib/plugins/expected.js")),
+                t.is(nol(c("lib/plugins/expected-buildPluginFirst.js")),
                      nol(c("lib/plugins/main-builtPluginFirst.js")));
 
                 require._buildReset();

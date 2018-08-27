@@ -18,11 +18,11 @@ define(['converter'], function (converter) {
             onLoad(converted);
         },
 
-        write: function (pluginName, moduleName, write, config) {
+        write: function (pluginName, moduleName, write, data) {
             if (moduleName in buildMap) {
                 var content = jsEscape(buildMap[moduleName]);
                 write("define('" + pluginName + "!" + moduleName  +
-                      "', function () { return '" + content + "';});\n");
+                      "', function () { /* name: " + data.name + " path: " + data.path.split(/[\/\\]/).pop() + " */ return '" + content + "';});\n");
             }
         }
     };
