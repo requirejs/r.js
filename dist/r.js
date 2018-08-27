@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.3.5+ Mon, 27 Aug 2018 03:40:43 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.5+ Mon, 27 Aug 2018 04:57:09 GMT Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.3.5+ Mon, 27 Aug 2018 03:40:43 GMT',
+        version = '2.3.5+ Mon, 27 Aug 2018 04:57:09 GMT',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -30021,7 +30021,11 @@ define('build', function (require) {
                                         singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
                                 };
-                                builder.write(parts.prefix, parts.name, writeApi);
+
+                                builder.write(parts.prefix, parts.name, writeApi, {
+                                    name: module.onCompleteData.name,
+                                    path: module.onCompleteData.path
+                                });
                             }
                             return;
                         } else {
