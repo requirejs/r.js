@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.3.5+ Mon, 27 Aug 2018 04:57:09 GMT Copyright jQuery Foundation and other contributors.
+ * @license r.js 2.3.6 Copyright jQuery Foundation and other contributors.
  * Released under MIT license, http://github.com/requirejs/r.js/LICENSE
  */
 
@@ -19,7 +19,7 @@ var requirejs, require, define, xpcUtil;
 (function (console, args, readFileFunc) {
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
         nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.3.5+ Mon, 27 Aug 2018 04:57:09 GMT',
+        version = '2.3.6',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
@@ -248,7 +248,7 @@ var requirejs, require, define, xpcUtil;
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.3.5 Copyright jQuery Foundation and other contributors.
+ * @license RequireJS 2.3.6 Copyright jQuery Foundation and other contributors.
  * Released under MIT license, https://github.com/requirejs/requirejs/blob/master/LICENSE
  */
 //Not using strict: uneven strict support in browsers, #392, and causes
@@ -260,7 +260,7 @@ var requirejs, require, define, xpcUtil;
 (function (global, setTimeout) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.3.5',
+        version = '2.3.6',
         commentRegExp = /\/\*[\s\S]*?\*\/|([^:"'=]|^)\/\/.*$/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -414,7 +414,7 @@ var requirejs, require, define, xpcUtil;
      * @returns {Error}
      */
     function makeError(id, msg, err, requireModules) {
-        var e = new Error(msg + '\nhttp://requirejs.org/docs/errors.html#' + id);
+        var e = new Error(msg + '\nhttps://requirejs.org/docs/errors.html#' + id);
         e.requireType = id;
         e.requireModules = requireModules;
         if (err) {
@@ -28906,7 +28906,8 @@ define('build', function (require) {
         uglify2: true,
         closure: true,
         map: true,
-        throwWhen: true
+        throwWhen: true,
+        rawText: true
     };
 
     build.hasDotPropMatch = function (prop) {
