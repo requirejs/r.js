@@ -76,7 +76,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
      * Inlines nested stylesheets that have @import calls in them.
      * @param {String} fileName the file name
      * @param {String} fileContents the file contents
-     * @param {String} cssImportIgnore comma delimited string of files to ignore
+     * @param {String} cssImportIgnore comma delimited string of files to ignore or array of regexp/string
      * @param {String} cssPrefix string to be prefixed before relative URLs
      * @param {Object} included an object used to track the files already imported
      */
@@ -95,7 +95,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
         fileContents = fileContents.replace(cssCommentImportRegExp, '');
 
         //Make sure we have a delimited ignore list to make matching faster
-        if (cssImportIgnore && cssImportIgnore.charAt(cssImportIgnore.length - 1) !== ",") {
+        if (cssImportIgnore && typeof cssImportIgnore === "string" && cssImportIgnore.charAt(cssImportIgnore.length - 1) !== ",") {
             cssImportIgnore += ",";
         }
 
@@ -109,8 +109,26 @@ function (lang,   logger,   envOptimize,        file,           parse,
             importFileName = cleanCssUrlQuotes(importFileName);
 
             //Ignore the file import if it is part of an ignore list.
-            if (cssImportIgnore && cssImportIgnore.indexOf(importFileName + ",") !== -1) {
-                return fullMatch;
+            if (cssImportIgnore) {
+                //Strings may be comma-separated lists.
+                if (typeof cssImportIgnore === "string" && cssImportIgnore.indexOf(importFileName + ",") !== -1) {
+                    return fullMatch;
+                }
+                //Regex are checked for simple matches.
+                if (cssImportIgnore instanceof RegExp && cssImportIgnore.test(importFileName)) {
+                    return fullMatch;
+                }
+                //Arrays requiring checking individual elements.
+                if (Array.isArray(cssImportIgnore)) {
+                    cssImportIgnore.forEach(function(expr){
+                        if (typeof expr === "string" && expr === importFileName) {
+                            return fullMatch;
+                        }
+                        if (expr instanceof RegExp && expr.test(importFileName)) {
+                            return fullMatch;
+                        }
+                    })
+                }
             }
 
             //Make sure we have a unix path for the rest of the operation.
