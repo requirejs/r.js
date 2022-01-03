@@ -17,7 +17,11 @@ define(function (require) {
         requirePatch = require('requirePatch'),
         env = require('env'),
         commonJs = require('commonJs'),
-        SourceMapGenerator = require('source-map').SourceMapGenerator,
+        sourceMapExports = require('source-map'),
+        SourceMapGenerator = sourceMapExports.SourceMapGenerator,
+        SourceMapConsumer = sourceMapExports.SourceMapConsumer,
+        sourceMappingURL = require('source-map-url'),
+        sourceMapResolve = require('source-map-resolve'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
@@ -89,11 +93,26 @@ define(function (require) {
      * those cases.
      */
     function addSemiColon(text, config) {
+        var lines, lineCount, lastCodeLine;
         if (config.skipSemiColonInsertion || endsWithSemiColonRegExp.test(text)) {
             return text;
-        } else {
-            return text + ";";
         }
+        // If a source map is attached to the and of the script, ensure that
+        // the semicolon is added to the preceding line.
+        if (sourceMappingURL.existsIn(text)) {
+            lines = text.split("\n");
+            lineCount = lines.length;
+            // Check if the source map is on the last line.
+            if (lines[lineCount - 1].indexOf("//# sourceMappingURL=") === 0) {
+                lastCodeLine = lines[lineCount - 2];
+                if (endsWithSemiColonRegExp.test(lastCodeLine)) {
+                    return text;
+                }
+                lines[lineCount - 2] = lastCodeLine + ";";
+                return lines.join("\n");
+            }
+        }
+        return text + ";";
     }
 
     function endsWithSlash(dirName) {
@@ -141,7 +160,8 @@ define(function (require) {
      * @returns {string} fileContents with singleContents appended
      */
     function appendToFileContents(fileContents, singleContents, path, config, module, sourceMapGenerator) {
-        var refPath, sourceMapPath, resourcePath, pluginId, sourceMapLineNumber, lineCount, parts, i;
+        var refPath, sourceMapPath, resourcePath, pluginId, sourceMapLineNumber, lineCount, parts, i,
+            singleLines, /*encodingIndex,*/ singleSourceMap, singleSourceMapConsumer;
         if (sourceMapGenerator) {
             if (config.out) {
                 refPath = config.baseUrl;
@@ -162,34 +182,124 @@ define(function (require) {
                 pluginId = parts.shift();
                 resourcePath = parts.join('!');
                 if (resourceIsModuleIdRegExp.test(resourcePath)) {
+                    // Retain the original file name without appending !plugin,
+                    // so that the source maps will not include both original and
+                    // transpiled files, but only the original one.
                     sourceMapPath = build.makeRelativeFilePath(refPath, require.toUrl(resourcePath)) +
+                    //                (config.transpiledSourceMapExtensions &&
+                    //                 config.transpiledSourceMapExtensions[pluginId] || '!' + pluginId);
                                     '!' + pluginId;
                 } else {
                     sourceMapPath = path;
                 }
             }
 
+            // Separate modules in the bundle by one or two empty lines.
+            if (fileContents.length !== 0) {
+                fileContents += "\n\n";
+            }
+            // Line offset to remap the single module in the bundle to.
             sourceMapLineNumber = fileContents.split('\n').length - 1;
-            lineCount = singleContents.split('\n').length;
-            for (i = 1; i <= lineCount; i += 1) {
-                sourceMapGenerator.addMapping({
-                    generated: {
-                        line: sourceMapLineNumber + i,
-                        column: 0
-                    },
-                    original: {
-                        line: i,
-                        column: 0
-                    },
-                    source: sourceMapPath
-                });
+
+            // Remove the code that is omitted by pragmas when the bundle is saved.
+            // If left here, the source map line indexes would be skewed ahead.
+            singleContents = pragma.process(sourceMapPath, singleContents, config, 'OnSave');
+            singleLines = singleContents.split('\n');
+            lineCount = singleLines.length;
+
+            // Extract the source map from the last line of the single module.
+            // if (singleLines[singleLines.length - 1].indexOf("//# sourceMappingURL=") === 0) {
+            //     singleLastLine = singleLines.pop();
+            //     --lineCount;
+            //     indexComma = singleLastLine.indexOf(",");
+            //     if (indexComma > 0) {
+            //         singleSourceMap = atob(singleLastLine.substr(indexComma + 1));
+            //     }
+            //     singleContents = singleLines.join("\n");
+            // }
+            singleSourceMap = sourceMapResolve.resolveSourceMapSync(singleContents, sourceMapPath, file.readFileSync);
+            // singleSourceMap = sourceMappingURL.getFrom(singleContents);
+            if (singleSourceMap) {
+                singleSourceMap = singleSourceMap.map;
+                // if (singleSourceMap.indexOf("data:") === 0) {
+                //   const sourceMappingURLParts = /^data:([^,;]*)(?:;charset=([^,;]*))?(?:;([^,;]*))?(?:,(.*))?$/
+                //   encodingIndex = singleSourceMap.indexOf(";base64,")
+                //   if (encodingIndex < 0) {
+                //   }
+                //   throw new Error("Source maps from http:// or https:// are not implemented yet.");
+                //   singleSourceMap = atob(singleSourceMap.substr(encodingIndex + 8));
+                // } else if (singleSourceMap.indexOf("http:") === 0 | singleSourceMap.indexOf("https:") === 0) {
+                //   throw new Error("Source maps from http:// or https:// are not implemented yet.");
+                // } else {
+                //     singleSourceMap = file.readFile(build.makeAbsPath(singleSourceMap, file.parent(sourceMapPath)));
+                // }
+                singleContents = sourceMappingURL.removeFrom(singleContents);
             }
 
-            //Store the content of the original in the source
-            //map since other transforms later like minification
-            //can mess up translating back to the original
-            //source.
-            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+            // Merging the original source map using SourceMapGenerator.applySourceMap
+            // does not work if the built-in minificatoin by UglifyJS is enabled.
+            if (singleSourceMap && config.optimize !== 'uglify2') {
+                singleSourceMapConsumer = new SourceMapConsumer(singleSourceMap);
+                // Clone the mappings from the input source map shifted by the current
+                // line count of the target bundle.
+                singleSourceMapConsumer.eachMapping(function(mapping) {
+                    // Sanity check for the mapping, which needs to point to a line within
+                    // the single module and source + original location must not be null.
+                    if (mapping.generatedLine <= lineCount && mapping.source) {
+                        sourceMapGenerator.addMapping({
+                            generated: {
+                                line: sourceMapLineNumber + mapping.generatedLine,
+                                column: mapping.generatedColumn
+                            },
+                            original: {
+                                line: mapping.originalLine,
+                                column: mapping.originalColumn
+                            },
+                            source: mapping.source,
+                            name: mapping.name
+                        });
+                    }
+                });
+                // If there were more sources of the single module, transfer them
+                // to the source maps of the bundle.
+                singleSourceMapConsumer.sources.forEach(function (source) {
+                    var content = singleSourceMapConsumer.sourceContentFor(source);
+                    if (content) {
+                      sourceMapGenerator.setSourceContent(source, content);
+                    }
+                });
+            } else {
+                // Add source mappings for the lines of the single module shifted
+                // by the current line count of the target bundle.
+                for (i = 1; i <= lineCount; i += 1) {
+                    sourceMapGenerator.addMapping({
+                        generated: {
+                            line: sourceMapLineNumber + i,
+                            column: 0
+                        },
+                        original: {
+                            line: i,
+                            column: 0
+                        },
+                        source: sourceMapPath
+                    });
+                }
+
+                // Store the content of the original in the source map since other
+                // transforms later like minification can mess up translating back
+                // to the original source.
+                sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
+
+                // Adapt the source maps of the single module start from the original
+                // source code instead of from the single module inserted to the bundle.
+                if (singleSourceMap) {
+                  // var sourceMapLog = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(singleSourceMap));
+                  // console.log('Source map of', sourceMapPath + ':');
+                  // console.log(sourceMapLog.toJSON());
+                  singleSourceMapConsumer = new SourceMapConsumer(singleSourceMap);
+                  sourceMapGenerator.applySourceMap(singleSourceMapConsumer, sourceMapPath);
+                }
+            }
         }
         fileContents += singleContents;
         return fileContents;
@@ -1964,13 +2074,19 @@ define(function (require) {
 
                             if (builder.write) {
                                 writeApi = function (input) {
-                                    singleContents += "\n" + addSemiColon(input, config);
+                                    // Do not prepend a line break here. If the input contained
+                                    // a source map, it would break it. Line breaks can be added
+                                    // when concatenating single modules to the output bundle.
+                                    singleContents += addSemiColon(input, config);
                                     if (config.onBuildWrite) {
                                         singleContents = config.onBuildWrite(moduleName, path, singleContents);
                                     }
                                 };
                                 writeApi.asModule = function (moduleName, input) {
-                                    singleContents += "\n" +
+                                    // Do not prepend a line break here. If the input contained
+                                    // a source map, it would break it. Line breaks can be added
+                                    // when concatenating single modules to the output bundle.
+                                    singleContents +=
                                         addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
                                             useSourceUrl: layer.context.config.useSourceUrl
                                         }), config);
@@ -2085,11 +2201,10 @@ define(function (require) {
                             }
                         }
 
-                        //Add line break at end of file, instead of at beginning,
-                        //so source map line numbers stay correct, but still allow
-                        //for some space separation between files in case ASI issues
-                        //for concatenation would cause an error otherwise.
-                        singleContents += '\n';
+                        // Do not prepend a line break here. If the input contained
+                        // a source map, it would break it. Line breaks can be added
+                        // when concatenating single modules to the output bundle.
+                        // singleContents += '\n';
 
                         //Add to the source map and to the final contents
                         fileContents = appendToFileContents(fileContents, singleContents, path, config, module,
@@ -2106,8 +2221,11 @@ define(function (require) {
                             path = module._buildPath;
                         }
                         builder.onLayerEnd(function (input) {
+                            // Do not prepend a line break here. If the input contained
+                            // a source map, it would break it. Line breaks can be added
+                            // when concatenating single modules to the output bundle.
                             fileContents =
-                                appendToFileContents(fileContents, "\n" + addSemiColon(input, config),
+                                appendToFileContents(fileContents, addSemiColon(input, config),
                                                      'onLayerEnd' + index + '.js', config, module, sourceMapGenerator);
                         }, {
                             name: module.name,
