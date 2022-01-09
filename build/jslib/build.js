@@ -217,7 +217,12 @@ define(function (require) {
             //     }
             //     singleContents = singleLines.join("\n");
             // }
-            singleSourceMap = sourceMapResolve.resolveSourceMapSync(singleContents, sourceMapPath, file.readFileSync);
+            try {
+                singleSourceMap = sourceMapResolve.resolveSourceMapSync(singleContents, sourceMapPath, file.readFileSync);
+            } catch (error) {
+                console.log('Resolving source maps for "' + sourceMapPath + '" failed:');
+                console.log(error);
+            }
             // singleSourceMap = sourceMappingURL.getFrom(singleContents);
             if (singleSourceMap) {
                 singleSourceMap = singleSourceMap.map;
@@ -238,34 +243,35 @@ define(function (require) {
 
             // Merging the original source map using SourceMapGenerator.applySourceMap
             // does not work if the built-in minificatoin by UglifyJS is enabled.
-            if (singleSourceMap && config.optimize !== 'uglify2') {
+            if (singleSourceMap) {
                 singleSourceMapConsumer = new SourceMapConsumer(singleSourceMap);
                 // Clone the mappings from the input source map shifted by the current
                 // line count of the target bundle.
-                singleSourceMapConsumer.eachMapping(function(mapping) {
-                    // Sanity check for the mapping, which needs to point to a line within
-                    // the single module and source + original location must not be null.
-                    if (mapping.generatedLine <= lineCount && mapping.source) {
-                        sourceMapGenerator.addMapping({
-                            generated: {
-                                line: sourceMapLineNumber + mapping.generatedLine,
-                                column: mapping.generatedColumn
-                            },
-                            original: {
-                                line: mapping.originalLine,
-                                column: mapping.originalColumn
-                            },
-                            source: mapping.source,
-                            name: mapping.name
-                        });
+                singleSourceMapConsumer.eachMapping(function (mapping) {
+                    var newMapping = {
+                        generated: {
+                            line: sourceMapLineNumber + mapping.generatedLine,
+                            column: mapping.generatedColumn
+                        }
+                    };
+                    if (mapping.source != null) {
+                        newMapping.source = mapping.source;
+                        newMapping.original = {
+                            line: mapping.originalLine,
+                            column: mapping.originalColumn
+                        };
+                        if (mapping.name != null) {
+                            newMapping.name = mapping.name;
+                        }
                     }
+                    sourceMapGenerator.addMapping(newMapping);
                 });
                 // If there were more sources of the single module, transfer them
                 // to the source maps of the bundle.
                 singleSourceMapConsumer.sources.forEach(function (source) {
                     var content = singleSourceMapConsumer.sourceContentFor(source);
                     if (content) {
-                      sourceMapGenerator.setSourceContent(source, content);
+                        sourceMapGenerator.setSourceContent(source, content);
                     }
                 });
             } else {
@@ -289,16 +295,6 @@ define(function (require) {
                 // transforms later like minification can mess up translating back
                 // to the original source.
                 sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
-
-                // Adapt the source maps of the single module start from the original
-                // source code instead of from the single module inserted to the bundle.
-                if (singleSourceMap) {
-                  // var sourceMapLog = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(singleSourceMap));
-                  // console.log('Source map of', sourceMapPath + ':');
-                  // console.log(sourceMapLog.toJSON());
-                  singleSourceMapConsumer = new SourceMapConsumer(singleSourceMap);
-                  sourceMapGenerator.applySourceMap(singleSourceMapConsumer, sourceMapPath);
-                }
             }
         }
         fileContents += singleContents;
