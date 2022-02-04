@@ -244,7 +244,7 @@ define([ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'commonJs', 'prim'
                             } else {
                                 //Load the file contents, process for conditionals, then
                                 //evaluate it.
-                                return require._cacheReadAsync(url).then(function (text) {
+                                return require._cacheReadAsync(url, null, moduleName, context).then(function (text) {
                                     contents = text;
 
                                     if (context.config.cjsTranslate &&
