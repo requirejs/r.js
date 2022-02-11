@@ -218,7 +218,7 @@ define(function (require) {
             //     singleContents = singleLines.join("\n");
             // }
             try {
-                singleSourceMap = sourceMapResolve.resolveSourceMapSync(singleContents, sourceMapPath, file.readFileSync);
+                singleSourceMap = sourceMapResolve.resolveSourceMapSync(singleContents, path, file.readFile);
             } catch (error) {
                 console.log('Resolving source maps for "' + sourceMapPath + '" failed:');
                 console.log(error);
