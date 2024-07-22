@@ -99,7 +99,7 @@
     req.makeNodeWrapper = function (contents) {
         return '(function (require, requirejs, define) { ' +
                 contents +
-                '\n}(requirejsVars.require, requirejsVars.requirejs, requirejsVars.define));';
+                '\n}(global.requirejsVars.require, global.requirejsVars.requirejs, global.requirejsVars.define));';
     };
 
     req.load = function (context, moduleName, url) {
@@ -114,9 +114,8 @@
         if (exists(url)) {
             contents = fs.readFileSync(url, 'utf8');
 
-            contents = req.makeNodeWrapper(contents);
             try {
-                vm.runInThisContext(contents, fs.realpathSync(url));
+                req.exec(contents, fs.realpathSync(url));
             } catch (e) {
                 err = new Error('Evaluating ' + url + ' as module "' +
                                 moduleName + '" failed with error: ' + e);
@@ -164,9 +163,8 @@
     };
 
     //Override to provide the function wrapper for define/require.
-    req.exec = function (text) {
-        /*jslint evil: true */
+    req.exec = function (text, realPath) {
         text = req.makeNodeWrapper(text);
-        return eval(text);
+        return vm.runInThisContext(text, realPath);
     };
 }());
