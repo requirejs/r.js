@@ -938,7 +938,7 @@ define(['./esprimaAdapter', 'lang'], function (esprima, lang) {
             //if that has a define.amd test
             if (bodyNode.consequent && bodyNode.consequent.body) {
                 exp = bodyNode.consequent.body[0];
-                if (exp.type === 'ExpressionStatement' && exp.expression &&
+                if (exp && exp.type === 'ExpressionStatement' && exp.expression &&
                     parse.hasDefine(exp.expression) &&
                     exp.expression.arguments &&
                     exp.expression.arguments.length === 1 &&
