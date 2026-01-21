@@ -27067,6 +27067,12 @@ function (lang,   logger,   envOptimize,        file,           parse,
             importFileName = importFileName.replace(lang.backSlashRegExp, "/");
 
             try {
+                //if an absolute path without scheme ex: //fonts.googleapis.com/icon?family=Material+Icons
+                //skip inlining, if not it will skip after 15seconds trying to readFile
+                if(importFileName.indexOf('//') === 0 ){
+                  logger.warn(fileName + "\n  Full path without scheme, Cannot inline css import, skipping: " + importFileName);
+                  return fullMatch;
+                }
                 //if a relative path, then tack on the filePath.
                 //If it is not a relative path, then the readFile below will fail,
                 //and we will just skip that import.
